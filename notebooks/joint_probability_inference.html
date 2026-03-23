@@ -280,7 +280,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config InlineBackend.figure_format <span class="op">=</span> <span class="st">'retina'</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="dd49dc92" class="cell" data-execution_count="13">
+<div id="dd49dc92" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>path <span class="op">=</span> <span class="st">"/faststorage/project/baboondiversity/data/PG_panu3_phased_chromosomes_4_7_2021_ZARR/chr20.phased.rehead.vcz"</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> sg.load_dataset(path)</span>
@@ -289,38 +289,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>ds_sub <span class="op">=</span> ds.isel(samples<span class="op">=</span>mask)</span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> ds_sub.sizes[<span class="st">"samples"</span>] </span>
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> derived_counts(ts, rec_rate):</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    records <span class="op">=</span> []</span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> var <span class="kw">in</span> ts.variants():</span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        p, g <span class="op">=</span> var.site.position, var.genotypes</span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        records.append((<span class="bu">int</span>(p), p <span class="op">*</span> rec_rate, g.<span class="bu">sum</span>()))</span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> pd.DataFrame.from_records(</span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        records,</span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        columns<span class="op">=</span>[<span class="st">"pos"</span>, <span class="st">"gen_pos"</span>, <span class="st">"count"</span>]</span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> df</span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>mut_rate <span class="op">=</span> <span class="fl">5e-10</span>        </span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>rec_rate <span class="op">=</span> <span class="fl">1e-8</span></span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>seq_length <span class="op">=</span> <span class="dv">100_000_000</span> </span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>pop1_size, pop2_size, anc_pop_size <span class="op">=</span> <span class="dv">20_000</span>, <span class="dv">10_000</span>, <span class="dv">15_000</span></span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>migr_pop1_to_pop2 <span class="op">=</span> <span class="fl">1e-4</span></span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>migr_pop2_to_pop1 <span class="op">=</span> <span class="fl">5e-4</span></span>
-<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>demography <span class="op">=</span> msprime.Demography()</span>
-<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>demography.add_population(name<span class="op">=</span><span class="st">"pop1"</span>, initial_size<span class="op">=</span>pop1_size)</span>
-<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>demography.add_population(name<span class="op">=</span><span class="st">"pop2"</span>, initial_size<span class="op">=</span>pop2_size)</span>
-<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>demography.set_migration_rate(source<span class="op">=</span><span class="st">"pop1"</span>, dest<span class="op">=</span><span class="st">"pop2"</span>, rate<span class="op">=</span>migr_pop1_to_pop2)</span>
-<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>demography.set_migration_rate(source<span class="op">=</span><span class="st">"pop2"</span>, dest<span class="op">=</span><span class="st">"pop1"</span>, rate<span class="op">=</span>migr_pop2_to_pop1)</span>
-<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>ts <span class="op">=</span> msprime.sim_ancestry(samples<span class="op">=</span>{<span class="st">"pop1"</span>: nr_samples}, ploidy<span class="op">=</span><span class="dv">1</span>, </span>
-<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>                          demography<span class="op">=</span>demography, recombination_rate<span class="op">=</span>rec_rate, </span>
-<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>                          sequence_length<span class="op">=</span>seq_length, random_seed<span class="op">=</span><span class="dv">12</span>)</span>
-<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>ts <span class="op">=</span> msprime.sim_mutations(ts, rate<span class="op">=</span>mut_rate, random_seed<span class="op">=</span><span class="dv">5678</span>)</span>
-<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> derived_counts(ts, rec_rate)</span>
-<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>df.to_csv(<span class="st">"baboon_data_derived_counst.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>gt <span class="op">=</span> ds_sub[<span class="st">"call_genotype"</span>]</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>counts <span class="op">=</span> gt.<span class="bu">sum</span>(dim<span class="op">=</span>[<span class="st">"samples"</span>, <span class="st">"ploidy"</span>]).values</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>positions <span class="op">=</span> ds_sub[<span class="st">"variant_position"</span>].values.astype(<span class="bu">int</span>)</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>rec_rate <span class="op">=</span> <span class="fl">1e-8</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>gen_pos <span class="op">=</span> positions <span class="op">*</span> rec_rate</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame({</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">"pos"</span>: positions,</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="st">"gen_pos"</span>: gen_pos,</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="st">"count"</span>: counts</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>df.to_csv(<span class="st">"baboon_data_derived_counts.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="d686644d" class="cell" data-execution_count="15">
+<div id="d686644d" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pairs_in_range(nums, diff_lo, diff_hi):</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="bu">len</span>(nums)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    lo, hi <span class="op">=</span> <span class="dv">1</span>, <span class="dv">1</span></span>
@@ -338,71 +320,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>            pairs.append((i, j))</span>
 <span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pairs</span>
 <span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">"baboon_data_derived_counst.csv"</span>)</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">"baboon_data_derived_counts.csv"</span>)</span>
 <span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>col <span class="op">=</span> <span class="st">"pos"</span> </span>
-<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>distance, tolerance <span class="op">=</span> <span class="dv">5000</span>, <span class="dv">500</span></span>
-<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>min_dist, max_dist <span class="op">=</span> distance <span class="op">-</span> tolerance, distance <span class="op">+</span> tolerance</span>
-<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>records <span class="op">=</span> []</span>
-<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, j <span class="kw">in</span> pairs_in_range(df[col].values, min_dist, max_dist):</span>
-<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    records.append((df.at[i, col], df.at[j, col], df.at[i, <span class="st">"count"</span>], df.at[j, <span class="st">"count"</span>]))</span>
-<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>pairs <span class="op">=</span> pd.DataFrame.from_records(records, columns<span class="op">=</span>[<span class="st">"pos1"</span>, <span class="st">"pos2"</span>, <span class="st">"count1"</span>, <span class="st">"count2"</span>])</span>
-<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>pairs.head()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="15">
-<div>
-
-
-<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">pos1</th>
-<th data-quarto-table-cell-role="th">pos2</th>
-<th data-quarto-table-cell-role="th">count1</th>
-<th data-quarto-table-cell-role="th">count2</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">0</th>
-<td>160020</td>
-<td>164783</td>
-<td>1</td>
-<td>3</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">1</th>
-<td>307248</td>
-<td>311878</td>
-<td>4</td>
-<td>1</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">2</th>
-<td>516495</td>
-<td>521242</td>
-<td>2</td>
-<td>1</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">3</th>
-<td>948820</td>
-<td>953791</td>
-<td>1</td>
-<td>3</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">4</th>
-<td>1784175</td>
-<td>1788903</td>
-<td>1</td>
-<td>1</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df.sort_values(<span class="st">"pos"</span>).reset_index(drop<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>col <span class="op">=</span> <span class="st">"pos"</span> </span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>distance, tolerance <span class="op">=</span> <span class="dv">5000</span>, <span class="dv">500</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>min_dist, max_dist <span class="op">=</span> distance <span class="op">-</span> tolerance, distance <span class="op">+</span> tolerance</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>records <span class="op">=</span> []</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, j <span class="kw">in</span> pairs_in_range(df[col].values, min_dist, max_dist):</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>    records.append((df.at[i, col], df.at[j, col], df.at[i, <span class="st">"count"</span>], df.at[j, <span class="st">"count"</span>]))</span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>pairs <span class="op">=</span> pd.DataFrame.from_records(records, columns<span class="op">=</span>[<span class="st">"pos1"</span>, <span class="st">"pos2"</span>, <span class="st">"count1"</span>, <span class="st">"count2"</span>])</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>pairs.head()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="5057e3f1" class="cell" data-execution_count="16">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a></span>
