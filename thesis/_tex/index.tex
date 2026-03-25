@@ -1915,6 +1915,165 @@ indføres ved at parameterisere overgangsraterne. Dette gør det muligt at
 evaluere modellen for forskellige parameterkombinationer uden at
 rekonstruere state space.
 
+\subsection{Basal coalescent model}\label{basal-coalescent-model}
+
+Som udgangspunkt for analysen anvendes Kingman coalescent modellen, som
+beskriver den genealogiske struktur af en sample bagud i tid som en
+kontinuert-tids Markov proces.
+
+States af processen beskrives ved en vektor \[
+x = (x_1, x_2, \dots, x_n),
+\]
+
+hvor \(x_k\) angiver antallet af linjer med \(k\) efterkommere.
+Processen initialiseres i tilstanden \[
+(n, 0, \dots, 0),
+\]
+
+hvor alle linjer er singletons. Transitionsstrukturen er givet ved, at
+to linjer med størrelser \(i\) og \(j\) coalescerer til en linje med
+størrelse \(i+j\). Transition rates er givet ved \[
+\lambda_{ij} =
+\begin{cases}
+x_i x_j, & i \neq j \\
+\frac{x_i(x_i - 1)}{2}, & i = j
+\end{cases}
+\]
+
+som samlet kan skrives som \[
+\lambda_{ij} = \frac{x_i (x_j - \delta_{ij})}{1 + \delta_{ij}}.
+\]
+
+Modellen implementeres ved hjælp af phasic biblioteket, hvor Markov
+processen repræsenteres som en grafstruktur. Hver node svarer til en
+state, og kanter repræsenterer mulige transitions med tilhørende rater.
+Phasic anvender phase-type distributions til at beregne eksakte moments
+og fordelinger for absorptionstiden (tid til MRCA), hvilket muliggør
+præcis analyse uden brug af Monte Carlo simulering. Derudover kan
+modellen anvendes til at generere syntetiske data ved simulation,
+hvilket senere bruges til parameterestimation og modelvalidering.
+
+For at illustrere strukturen af modellen vises i Figur X et eksempel på
+state space grafen for coalescent processen med fire samples. Noder
+repræsenterer mulige states af lineage-strukturen, mens kanter
+repræsenterer mulige coalescent events med tilhørende rater. Figuren
+illustrerer hvordan processen bevæger sig mod en absorberende state
+svarende til den fælles stamfader.
+
+\subsection{Parameterestimation via Method of
+Moments}\label{parameterestimation-via-method-of-moments}
+
+For at estimere parametre i coalescent modellen anvendes Method of
+Moments (MoM). Metoden bygger på at matche teoretiske moments fra
+modellen med empiriske moments beregnet fra data. Formelt estimeres
+parameteren \(\theta\) ved at løse optimeringsproblemet \[
+\hat{\theta} = \arg\min_{\theta > 0} \| m(\theta) - \hat{m} \|^2,
+\]
+
+hvor \(\theta\) er modellens moments, og \(\hat{m}\) er de observerede
+moments. Moments beregnes eksakt ved hjælp af phase-type distributions
+implementeret i phasic, hvilket eliminerer behovet for Monte Carlo
+approksimationer. Metoden anvendes først på syntetiske data genereret
+fra modellen for at validere dens egenskaber. Herefter bruges den til at
+konstruere informerede prior fordelinger, som anvendes i efterfølgende
+Bayesian inference. Standardfejl for estimaterne beregnes via
+delta-metoden, hvilket muliggør kvantificering af usikkerhed. MoM giver
+en hurtig og stabil tilgang til parameterestimation og fungerer som et
+vigtigt første skridt før anvendelse af mere avancerede inferensmetoder
+som Stein Variational Gradient Descent (SVGD).
+
+\subsection{Time-inhomogeneous coalescent
+model}\label{time-inhomogeneous-coalescent-model}
+
+For at modellere populationshistorie udvides den klassiske coalescent
+model til en time-inhomogen proces, hvor parametre varierer over tid. I
+stedet for en konstant coalescent rate \(\theta\) antages en piecewise
+konstant funktion \(\theta(t)\), hvor tiden opdeles i intervaller
+(epochs), og parameteren antages konstant inden for hvert interval.
+Formelt beskrives modellen som en kontinuert-tids Markov proces med
+tidsafhængige transition rates: \[
+\lambda_{ij}(t) = \theta(t) \cdot \frac{x_i (x_j - \delta_{ij})}{1 + \delta_{ij}}.
+\]
+
+I praksis implementeres dette ved en step-wise konstruktion, hvor
+modellens parametre opdateres ved foruddefinerede tidspunkter. Dette
+muliggør effektiv beregning af fordelinger og moments ved hjælp af
+phase-type metoder. Som eksempel modelleres et populations-bottleneck
+ved at reducere den effektive populationsstørrelse i et tidsinterval,
+hvilket resulterer i øgede coalescent rater i denne periode. Effekten af
+tidsvariation analyseres gennem: - fordelingsfunktioner for coalescent
+tid - forventet opholdstid i states - udviklingen af site frequency
+spectrum (SFS) over tid Denne tilgang gør det muligt at koble
+observerede genetiske mønstre til historiske demografiske begivenheder.
+
+\subsection{Isolation-with-Migration
+model}\label{isolation-with-migration-model}
+
+For at modellere populationsstruktur udvides coalescent modellen til en
+Isolation with Migration (IM) model med to populationer. States
+beskrives ved en udvidet state-vektor, som angiver: - antallet af
+lineager med bestemte descendant-strukturer - hvilken population hver
+lineage befinder sig i
+
+Processen indeholder to typer transitions: 1. Coalescence: To lineager i
+samme population kan koalescere med rate \[
+ \lambda_{coal} = \frac{x_i (x_j - \delta_{ij})}{1 + \delta_{ij}}.
+\]
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{1}
+\tightlist
+\item
+  Migration: Lineager kan skifte population med rater \[
+  m_{12}, \quad m_{21}.
+  \]
+\end{enumerate}
+
+Modellen implementeres som en kontinuert-tids Markov proces ved hjælp af
+phasic, hvor state space konstrueres automatisk via en callback
+funktion. Denne model tillader analyse af: - gene flow mellem
+populationer - divergence mellem populationer - effekten af migration på
+genealogiske strukturer
+
+Ved at variere migrationsrater kan man undersøge overgangen mellem: -
+isolerede populationer - panmiktiske populationer
+
+\subsection{Two-island model}\label{two-island-model}
+
+For at modellere populationsstruktur anvendes en two-island model, hvor
+populationen består af to subpopulationer med migration mellem dem.
+States af modellen beskrives ved en vektor, som angiver fordelingen af
+lineager mellem de to populationer samt deres descendant-struktur.
+
+Modellen inkluderer to typer transitions: 1. Coalescence: Lineager inden
+for samme population kan koalescere med rate \[
+\lambda_{coal} = \frac{x_i (x_j - \delta_{ij})}{1 + \delta_{ij}}.
+\]
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{1}
+\tightlist
+\item
+  Migration: Lineager kan skifte mellem populationerne med rate \$\$
+\end{enumerate}
+
+\begin{enumerate}
+\def\labelenumi{\alph{enumi}.}
+\setcounter{enumi}{12}
+\tightlist
+\item
+  \$\$
+\end{enumerate}
+
+Modellen implementeres som en kontinuert-tids Markov proces ved hjælp af
+phasic, hvor state space konstrueres automatisk via en callback
+funktion. Two-island modellen udgør en fundamental model for
+populationsstruktur og giver et simpelt men framework til at analysere
+gene flow mellem populationer. Ved at variere migrationsraten kan man
+undersøge forskellige scenarier fra isolation til fuld panmixi.
+
 \chapter{Resultater}\label{resultater}
 
 \chapter{Discussion}\label{discussion}

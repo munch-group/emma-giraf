@@ -236,7 +236,14 @@ window.Quarto = {
   </ul></li>
   <li><a href="#metode" id="toc-metode" class="nav-link" data-scroll-target="#metode">Metode</a>
   <ul class="collapse">
-  <li><a href="#modelopbygning" id="toc-modelopbygning" class="nav-link" data-scroll-target="#modelopbygning">Modelopbygning</a></li>
+  <li><a href="#modelopbygning" id="toc-modelopbygning" class="nav-link" data-scroll-target="#modelopbygning">Modelopbygning</a>
+  <ul class="collapse">
+  <li><a href="#basal-coalescent-model" id="toc-basal-coalescent-model" class="nav-link" data-scroll-target="#basal-coalescent-model">Basal coalescent model</a></li>
+  <li><a href="#parameterestimation-via-method-of-moments" id="toc-parameterestimation-via-method-of-moments" class="nav-link" data-scroll-target="#parameterestimation-via-method-of-moments">Parameterestimation via Method of Moments</a></li>
+  <li><a href="#time-inhomogeneous-coalescent-model" id="toc-time-inhomogeneous-coalescent-model" class="nav-link" data-scroll-target="#time-inhomogeneous-coalescent-model">Time-inhomogeneous coalescent model</a></li>
+  <li><a href="#isolation-with-migration-model" id="toc-isolation-with-migration-model" class="nav-link" data-scroll-target="#isolation-with-migration-model">Isolation-with-Migration model</a></li>
+  <li><a href="#two-island-model" id="toc-two-island-model" class="nav-link" data-scroll-target="#two-island-model">Two-island model</a></li>
+  </ul></li>
   </ul></li>
   <li><a href="#resultater" id="toc-resultater" class="nav-link" data-scroll-target="#resultater">Resultater</a></li>
   <li><a href="#discussion" id="toc-discussion" class="nav-link" data-scroll-target="#discussion">Discussion</a></li>
@@ -898,6 +905,70 @@ Figure&nbsp;1: <em>Papio</em> baboon arter. Nuværende udbredelse af hver bavian
 <p>Mutationer modelleres som diskrete events langs grenene i træet. Mutationsraten antages at være proportional med antallet af aktive linjer, hvilket betyder at mutationer opstår hyppigere når flere linjer eksisterer samtidig.</p>
 <p>Størrelser såsom Site Frequency Spectrum (SFS) beregnes ved hjælp af reward-funktioner. Disse måler hvor lang tid processen tilbringer i tilstande med bestemte lineage-konfigurationer.</p>
 <p>Modelparametre såsom effektiv populationsstørrelse og mutationsrate indføres ved at parameterisere overgangsraterne. Dette gør det muligt at evaluere modellen for forskellige parameterkombinationer uden at rekonstruere state space.</p>
+<section id="basal-coalescent-model" class="level3">
+<h3 class="anchored" data-anchor-id="basal-coalescent-model">Basal coalescent model</h3>
+<p>Som udgangspunkt for analysen anvendes Kingman coalescent modellen, som beskriver den genealogiske struktur af en sample bagud i tid som en kontinuert-tids Markov proces.</p>
+<p>States af processen beskrives ved en vektor <span class="math display">\[
+x = (x_1, x_2, \dots, x_n),
+\]</span></p>
+<p>hvor <span class="math inline">\(x_k\)</span> angiver antallet af linjer med <span class="math inline">\(k\)</span> efterkommere. Processen initialiseres i tilstanden <span class="math display">\[
+(n, 0, \dots, 0),
+\]</span></p>
+<p>hvor alle linjer er singletons. Transitionsstrukturen er givet ved, at to linjer med størrelser <span class="math inline">\(i\)</span> og <span class="math inline">\(j\)</span> coalescerer til en linje med størrelse <span class="math inline">\(i+j\)</span>. Transition rates er givet ved <span class="math display">\[
+\lambda_{ij} =
+\begin{cases}
+x_i x_j, &amp; i \neq j \\
+\frac{x_i(x_i - 1)}{2}, &amp; i = j
+\end{cases}
+\]</span></p>
+<p>som samlet kan skrives som <span class="math display">\[
+\lambda_{ij} = \frac{x_i (x_j - \delta_{ij})}{1 + \delta_{ij}}.
+\]</span></p>
+<p>Modellen implementeres ved hjælp af phasic biblioteket, hvor Markov processen repræsenteres som en grafstruktur. Hver node svarer til en state, og kanter repræsenterer mulige transitions med tilhørende rater. Phasic anvender phase-type distributions til at beregne eksakte moments og fordelinger for absorptionstiden (tid til MRCA), hvilket muliggør præcis analyse uden brug af Monte Carlo simulering. Derudover kan modellen anvendes til at generere syntetiske data ved simulation, hvilket senere bruges til parameterestimation og modelvalidering.</p>
+<p>For at illustrere strukturen af modellen vises i Figur X et eksempel på state space grafen for coalescent processen med fire samples. Noder repræsenterer mulige states af lineage-strukturen, mens kanter repræsenterer mulige coalescent events med tilhørende rater. Figuren illustrerer hvordan processen bevæger sig mod en absorberende state svarende til den fælles stamfader.</p>
+</section>
+<section id="parameterestimation-via-method-of-moments" class="level3">
+<h3 class="anchored" data-anchor-id="parameterestimation-via-method-of-moments">Parameterestimation via Method of Moments</h3>
+<p>For at estimere parametre i coalescent modellen anvendes Method of Moments (MoM). Metoden bygger på at matche teoretiske moments fra modellen med empiriske moments beregnet fra data. Formelt estimeres parameteren <span class="math inline">\(\theta\)</span> ved at løse optimeringsproblemet <span class="math display">\[
+\hat{\theta} = \arg\min_{\theta &gt; 0} \| m(\theta) - \hat{m} \|^2,
+\]</span></p>
+<p>hvor <span class="math inline">\(\theta\)</span> er modellens moments, og <span class="math inline">\(\hat{m}\)</span> er de observerede moments. Moments beregnes eksakt ved hjælp af phase-type distributions implementeret i phasic, hvilket eliminerer behovet for Monte Carlo approksimationer. Metoden anvendes først på syntetiske data genereret fra modellen for at validere dens egenskaber. Herefter bruges den til at konstruere informerede prior fordelinger, som anvendes i efterfølgende Bayesian inference. Standardfejl for estimaterne beregnes via delta-metoden, hvilket muliggør kvantificering af usikkerhed. MoM giver en hurtig og stabil tilgang til parameterestimation og fungerer som et vigtigt første skridt før anvendelse af mere avancerede inferensmetoder som Stein Variational Gradient Descent (SVGD).</p>
+</section>
+<section id="time-inhomogeneous-coalescent-model" class="level3">
+<h3 class="anchored" data-anchor-id="time-inhomogeneous-coalescent-model">Time-inhomogeneous coalescent model</h3>
+<p>For at modellere populationshistorie udvides den klassiske coalescent model til en time-inhomogen proces, hvor parametre varierer over tid. I stedet for en konstant coalescent rate <span class="math inline">\(\theta\)</span> antages en piecewise konstant funktion <span class="math inline">\(\theta(t)\)</span>, hvor tiden opdeles i intervaller (epochs), og parameteren antages konstant inden for hvert interval. Formelt beskrives modellen som en kontinuert-tids Markov proces med tidsafhængige transition rates: <span class="math display">\[
+\lambda_{ij}(t) = \theta(t) \cdot \frac{x_i (x_j - \delta_{ij})}{1 + \delta_{ij}}.
+\]</span></p>
+<p>I praksis implementeres dette ved en step-wise konstruktion, hvor modellens parametre opdateres ved foruddefinerede tidspunkter. Dette muliggør effektiv beregning af fordelinger og moments ved hjælp af phase-type metoder. Som eksempel modelleres et populations-bottleneck ved at reducere den effektive populationsstørrelse i et tidsinterval, hvilket resulterer i øgede coalescent rater i denne periode. Effekten af tidsvariation analyseres gennem: - fordelingsfunktioner for coalescent tid - forventet opholdstid i states - udviklingen af site frequency spectrum (SFS) over tid Denne tilgang gør det muligt at koble observerede genetiske mønstre til historiske demografiske begivenheder.</p>
+</section>
+<section id="isolation-with-migration-model" class="level3">
+<h3 class="anchored" data-anchor-id="isolation-with-migration-model">Isolation-with-Migration model</h3>
+<p>For at modellere populationsstruktur udvides coalescent modellen til en Isolation with Migration (IM) model med to populationer. States beskrives ved en udvidet state-vektor, som angiver: - antallet af lineager med bestemte descendant-strukturer - hvilken population hver lineage befinder sig i</p>
+<p>Processen indeholder to typer transitions: 1. Coalescence: To lineager i samme population kan koalescere med rate <span class="math display">\[
+\lambda_{coal} = \frac{x_i (x_j - \delta_{ij})}{1 + \delta_{ij}}.
+\]</span></p>
+<ol start="2" type="1">
+<li>Migration: Lineager kan skifte population med rater <span class="math display">\[
+m_{12}, \quad m_{21}.
+\]</span></li>
+</ol>
+<p>Modellen implementeres som en kontinuert-tids Markov proces ved hjælp af phasic, hvor state space konstrueres automatisk via en callback funktion. Denne model tillader analyse af: - gene flow mellem populationer - divergence mellem populationer - effekten af migration på genealogiske strukturer</p>
+<p>Ved at variere migrationsrater kan man undersøge overgangen mellem: - isolerede populationer - panmiktiske populationer</p>
+</section>
+<section id="two-island-model" class="level3">
+<h3 class="anchored" data-anchor-id="two-island-model">Two-island model</h3>
+<p>For at modellere populationsstruktur anvendes en two-island model, hvor populationen består af to subpopulationer med migration mellem dem. States af modellen beskrives ved en vektor, som angiver fordelingen af lineager mellem de to populationer samt deres descendant-struktur.</p>
+<p>Modellen inkluderer to typer transitions: 1. Coalescence: Lineager inden for samme population kan koalescere med rate <span class="math display">\[
+\lambda_{coal} = \frac{x_i (x_j - \delta_{ij})}{1 + \delta_{ij}}.
+\]</span></p>
+<ol start="2" type="1">
+<li>Migration: Lineager kan skifte mellem populationerne med rate $$</li>
+</ol>
+<ol start="13" type="a">
+<li>$$</li>
+</ol>
+<p>Modellen implementeres som en kontinuert-tids Markov proces ved hjælp af phasic, hvor state space konstrueres automatisk via en callback funktion. Two-island modellen udgør en fundamental model for populationsstruktur og giver et simpelt men framework til at analysere gene flow mellem populationer. Ved at variere migrationsraten kan man undersøge forskellige scenarier fra isolation til fuld panmixi.</p>
+</section>
 </section>
 </section>
 <section id="resultater" class="level1">
