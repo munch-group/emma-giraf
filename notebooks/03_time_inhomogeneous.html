@@ -114,6 +114,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   });
 </script>
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 </head>
 
@@ -234,7 +263,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../notebooks/06_baboon_data.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">06_baboon_data.html</span></a>
+  <a href="../notebooks/06_baboon_data.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Baboon data</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -299,8 +328,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <p>Formålet med denne notebook er at udvide den klassiske coalescent model til at tillade parametre der ændrer sig over tid.</p>
-<p>Dette gør det muligt at modellere: - bottlenecks - populationsvækst - ændringer i migration</p>
-<p>Jeg implementerer dette ved at: 1. Konstruere en time-homogen model 2. Introducere ændringer i parametre over tid 3. Analysere hvordan dette påvirker fordelingen af coalescent tider</p>
+<p>Dette gør det muligt at modellere:</p>
+<ul>
+<li>bottlenecks</li>
+<li>populationsvækst</li>
+<li>ændringer i migration</li>
+</ul>
+<p>Jeg implementerer dette ved at:</p>
+<ol type="1">
+<li>Konstruere en time-homogen model</li>
+<li>Introducere ændringer i parametre over tid</li>
+<li>Analysere hvordan dette påvirker fordelingen af coalescent tider</li>
+</ol>
 <div id="cf605bb4" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ALWAYS import phasic first</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> phasic</span>
@@ -319,11 +358,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <section id="time-inhomogeneity" class="level2">
 <h2 class="anchored" data-anchor-id="time-inhomogeneity">Time inhomogeneity</h2>
-<p>Den klassiske coalescent antager konstant populationsstørrelse: θ = konstant</p>
-<p>I virkeligheden varierer populationer over tid: θ(t)</p>
+<p>Den klassiske coalescent antager konstant populationsstørrelse: <span class="math display">\[
+\theta = konstant
+\]</span></p>
+<p>I virkeligheden varierer populationer over tid: <span class="math display">\[
+\theta(t)
+\]</span></p>
 <p>Dette giver en time-inhomogen Markov proces.</p>
-<p>Jeg approksimerer dette ved: - at opdele tiden i intervaller (epochs) - antage konstant parameter i hvert interval</p>
-<p>Dette kaldes en piecewise constant model: θ(t) = θ₁ for t &lt; t₁ θ(t) = θ₂ for t₁ ≤ t &lt; t₂ …</p>
+<p>Jeg approksimerer dette ved:</p>
+<ul>
+<li>at opdele tiden i intervaller (epochs)</li>
+<li>antage konstant parameter i hvert interval</li>
+</ul>
+<p>Dette kaldes en piecewise constant model: <span class="math display">\[
+\theta(t) =
+\begin{cases}
+\theta_1 &amp; \text{for } t &lt; t_1 \\
+\theta_2 &amp; \text{for } t_1 \le t &lt; t_2 \\
+\vdots
+\end{cases}
+\]</span></p>
 <div id="1a7f8be5" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -419,7 +473,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Bottlenecket ses som en ændring i hældningen af CDF.</p>
-<p>Intuition: - Mindre population → hurtigere coalescence - → stejlere kurve</p>
+<p>Intuition:</p>
+<ul>
+<li>Mindre population <span class="math inline">\(\rightarrow\)</span> hurtigere coalescence</li>
+<li><span class="math inline">\(\rightarrow\)</span> stejlere kurve</li>
+</ul>
 <p>Dette viser hvordan historiske begivenheder kan spores i data.</p>
 </section>
 <section id="expectation-via-integration" class="level2">

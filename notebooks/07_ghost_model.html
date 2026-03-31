@@ -114,6 +114,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   });
 </script>
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 </head>
 
@@ -234,7 +263,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../notebooks/06_baboon_data.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">06_baboon_data.html</span></a>
+  <a href="../notebooks/06_baboon_data.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Baboon data</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -297,25 +326,46 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>Formålet med denne notebook er at modellere effekten af en “ghost population”, dvs. en population som ikke er observeret i data, men som påvirker genetiske mønstre via migration eller admixture.</p>
-<p>Dette er centralt for: - at opdage skjulte populationer - at modellere komplekse populationshistorier</p>
+<p>Formålet med denne notebook er at modellere effekten af en ghost population, dvs. en population som ikke er observeret i data, men som påvirker genetiske mønstre via migration eller admixture.</p>
+<p>Dette er centralt for:</p>
+<ul>
+<li>at opdage skjulte populationer</li>
+<li>at modellere komplekse populationshistorier</li>
+</ul>
 <section id="hvad-er-en-ghost-population" class="level2">
 <h2 class="anchored" data-anchor-id="hvad-er-en-ghost-population">Hvad er en ghost population?</h2>
-<p>En ghost population er: - ikke direkte observeret - men påvirker observerede populationer via gene flow</p>
-<p>Eksempel: pop1 ←→ ghost ←→ pop2</p>
-<p>Selvom ghost ikke samples, påvirker den: - coalescent tider - SFS - genetisk variation</p>
-<p>Dette kan give: - “uforklarlige” mønstre i data</p>
+<p>En ghost population er:</p>
+<ul>
+<li>ikke direkte observeret</li>
+<li>men påvirker observerede populationer via gene flow</li>
+</ul>
+<p>Eksempel:</p>
+<ul>
+<li><span class="math inline">\(pop_1\)</span> <span class="math inline">\(\leftrightarrow\)</span> ghost <span class="math inline">\(\leftrightarrow\)</span> <span class="math inline">\(pop_2\)</span></li>
+</ul>
+<p>Selvom ghost ikke samples, påvirker den:</p>
+<ul>
+<li>coalescent tider</li>
+<li>SFS</li>
+<li>genetisk variation</li>
+</ul>
+<p>Dette kan give “uforklarlige” mønstre i data</p>
 </section>
 <section id="modelstruktur" class="level2">
 <h2 class="anchored" data-anchor-id="modelstruktur">Modelstruktur</h2>
 <p>Jeg udvider two-island modellen til tre populationer:</p>
 <ul>
-<li>pop1 (observeret)</li>
-<li>pop2 (observeret)</li>
+<li><span class="math inline">\(pop_1\)</span> (observeret)</li>
+<li><span class="math inline">\(pop_2\)</span> (observeret)</li>
 <li>ghost (ikke observeret)</li>
 </ul>
-<p>Transitions: 1. Coalescence inden for populationer 2. Migration mellem populationer 3. Ghost population påvirker indirekte</p>
-<p>Observation: Jeg observerer kun lineager fra pop1 og pop2 → ghost er skjult</p>
+<p>Transitions:</p>
+<ol type="1">
+<li>Coalescence inden for populationer</li>
+<li>Migration mellem populationer</li>
+<li>Ghost population påvirker indirekte</li>
+</ol>
+<p>Observation: Jeg observerer kun lineager fra <span class="math inline">\(pop_1\)</span> og <span class="math inline">\(pop_2\)</span> <span class="math inline">\(\rightarrow\)</span> ghost er skjult</p>
 <div id="c5fb0f46" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">2</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -357,7 +407,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>            </span>
 <span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
 <span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>            </span>
-<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>            <span class="co"># --- COALESCENCE ---</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Coalescene</span></span>
 <span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> pi.location <span class="op">==</span> pj.location:</span>
 <span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>                </span>
 <span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
@@ -384,7 +434,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a>                </span>
 <span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a>                transitions.append([new, [rate, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>]])</span>
 <span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a>            </span>
-<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a>            <span class="co"># --- MIGRATION ---</span></span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Migration</span></span>
 <span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a>            </span>
 <span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a>            <span class="co"># pop1 → ghost</span></span>
 <span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> pi.location <span class="op">==</span> <span class="dv">1</span>:</span>
@@ -891,8 +941,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../notebooks/06_baboon_data.html" class="pagination-link" aria-label="06_baboon_data.html">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">06_baboon_data.html</span></span>
+      <a href="../notebooks/06_baboon_data.html" class="pagination-link" aria-label="Baboon data">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Baboon data</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
