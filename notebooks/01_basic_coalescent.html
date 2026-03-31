@@ -117,6 +117,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 </head>
 
@@ -408,18 +437,28 @@ table {
 </div>
 <section id="kingman-coalescent" class="level2">
 <h2 class="anchored" data-anchor-id="kingman-coalescent">Kingman Coalescent</h2>
-<p>Vi betragter en sample på n individer.</p>
-<p>State: State vektoren er: state = (x₁, x₂, …, xₙ)</p>
-<p>hvor: - xₖ = antal linjer med k efterkommere</p>
-<p>Initial state: (n, 0, …, 0)</p>
-<p>Transition: To linjer med størrelser i og j koalescerer til en linje med størrelse i+j.</p>
-<p>Rate: For i ≠ j: rate = x_i * x_j</p>
-<p>For i = j: rate = x_i * (x_i - 1) / 2</p>
-<p>Dette kan samles som: rate = x_i * (x_j - δ_ij) / (1 + δ_ij)</p>
-<p>hvor δ_ij er Kronecker delta.</p>
-<p>Processen stopper når: (0,0,…,1) (MRCA)</p>
+<p>Vi betragter en sample på <span class="math inline">\(n\)</span> individer.</p>
+<p>State: State vektoren er: <span class="math inline">\(state=(x_1, x_2,\dots, x_n)\)</span></p>
+<p>hvor: - <span class="math inline">\(x_k =\)</span> antal linjer med <span class="math inline">\(k\)</span> efterkommere</p>
+<p>Initial state: <span class="math display">\[
+(n, 0, ..., 0)
+\]</span></p>
+<p>Transition: To linjer med størrelser <span class="math inline">\(i\)</span> og <span class="math inline">\(j\)</span> coalescerer til en linje med størrelse <span class="math inline">\(i+j\)</span>.</p>
+<p>Rate: For <span class="math inline">\(i ≠ j\)</span>: <span class="math display">\[
+rate = x_i * x_j
+\]</span></p>
+<p>For <span class="math inline">\(i = j\)</span>: <span class="math display">\[
+rate = x_i * (\frac{x_i-1}{2})
+\]</span></p>
+<p>Dette kan samles som: <span class="math display">\[
+rate = x_i * (\frac{x_j-\delta_{ij}}{1+\delta_{ij}})
+\]</span></p>
+<p>hvor <span class="math inline">\(\delta_{ij}\)</span> er Kronecker delta.</p>
+<p>Processen stopper når: <span class="math display">\[
+(0,0, \dots,1) (MRCA)
+\]</span></p>
 <p>Phasic konstruerer automatisk hele state space ved at udforske alle mulige transitions.</p>
-<p>Grafen repræsenterer en kontinuert-tids Markov kæde: - noder = states - edges = transitions - vægte = transition rates</p>
+<p>Grafen repræsenterer en kontinuert-tids Markov kæde, hvor: * noder = states * edges = transitions * vægte = transition rates</p>
 <div id="7530982b" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> with_ipv</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -464,7 +503,7 @@ table {
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"States:"</span>)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(graph.states())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>State space vokser hurtigt med n og er den primære kilde til computational kompleksitet.</p>
+<p>State space vokser hurtigt med <span class="math inline">\(n\)</span> og er den primære kilde til computational kompleksitet.</p>
 </section>
 <section id="moments" class="level2">
 <h2 class="anchored" data-anchor-id="moments">Moments</h2>
@@ -474,7 +513,7 @@ table {
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Moments:"</span>, graph.moments(<span class="dv">5</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Phasic bruger phase-type distributioner til at beregne eksakte moments.</p>
-<p>Dette er en stor fordel frem for simulation: - ingen Monte Carlo fejl - deterministiske resultater</p>
+<p>Dette er en stor fordel frem for simulation: * ingen Monte Carlo fejl * deterministiske resultater</p>
 </section>
 <section id="fordelingsfunktioner" class="level2">
 <h2 class="anchored" data-anchor-id="fordelingsfunktioner">Fordelingsfunktioner</h2>
@@ -513,7 +552,7 @@ table {
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Density"</span>)</span>
 <span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>Simulation bruges senere til: - inference - model validation</p>
+<p>Simulation bruges senere til: * inference * model validation</p>
 </section>
 <section id="cpu-monitoring" class="level2">
 <h2 class="anchored" data-anchor-id="cpu-monitoring">CPU monitoring</h2>
@@ -543,7 +582,7 @@ table {
 <li>lave inference</li>
 </ul></li>
 </ul>
-<p>Dette bliver fundamentet for: - migration modeller - IM modeller - ghost populations</p>
+<p>Dette bliver fundamentet for: * migration modeller * IM modeller * ghost populations</p>
 
 
 </section>
