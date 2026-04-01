@@ -650,51 +650,51 @@
     "href": "notebooks/01_basic_coalescent.html",
     "title": "Basic Coalescent Model",
     "section": "",
-    "text": "Kingman Coalescent\nFormålet med denne notebook er at implementere den klassiske Kingman coalescent som en kontinuert-tids Markov proces ved hjælp af phasic.\nCoalescent-processen beskriver hvordan genetiske linjer samles bagud i tid, indtil alle individer deler en fælles stamfader (MRCA).\nJeg vil:\nVi betragter en sample på \\(n\\) individer.\nState: State vektoren er: \\[\nstate=(x_1, x_2,\\dots, x_n)\n\\]\nhvor: \\(x_k =\\) antal linjer med \\(k\\) efterkommere\nInitial state: \\[\n(n, 0, ..., 0)\n\\]\nTransition: To linjer med størrelser \\(i\\) og \\(j\\) coalescerer til en linje med størrelse \\(i+j\\).\nRate: For \\(i ≠ j\\): \\[\nrate = x_i * x_j\n\\]\nFor \\(i = j\\): \\[\nrate = x_i * (\\frac{x_i-1}{2})\n\\]\nDette kan samles som: \\[\nrate = x_i * (\\frac{x_j-\\delta_{ij}}{1+\\delta_{ij}})\n\\]\nhvor \\(\\delta_{ij}\\) er Kronecker delta.\nProcessen stopper når: \\[\n(0,0, \\dots,1) (MRCA)\n\\]\nPhasic konstruerer automatisk hele state space ved at udforske alle mulige transitions.\nGrafen repræsenterer en kontinuert-tids Markov kæde, hvor:\nfrom phasic import with_ipv\n\nnr_samples = 4\n\n@with_ipv([nr_samples]+[0]*(nr_samples-1))\ndef coalescent(state):\n    transitions = []\n\n    #iterer over alle par af lineage-typer\n    for i in range(state.size):\n        for j in range(i, state.size):\n            same = int(i == j)\n\n            #Check om coalescene er mulig   \n            if same and state[i] &lt; 2:\n                continue\n            if not same and (state[i] &lt; 1 or state[j] &lt; 1):\n                continue\n\n            #Ny state efter coalescene \n            new_state = state.copy()\n            new_state[i] -= 1\n            new_state[j] -= 1\n            new_state[i+j+1] += 1\n\n            #Coalescent rate\n            rate = state[i]*(state[j]-same)/(1+same)\n\n            transitions.append((new_state, rate))\n    return transitions\n\n# Konstruktion af graf\ngraph = Graph(coalescent)\ngraph.plot()",
+    "text": "Simpel Markov-model\nEn Markov jump proces bevæger sig mellem forskellige states over tid. Hver state beskrives som en vektor af heltal, der repræsenterer systemets egenskaber.\nOvergange mellem states bestemmes af en funktion, som for en given state returnerer:\nDenne funktion kaldes en callback-funktion og er central i opbygningen af modellen.\nDenne model svarer til en eksponentiel fordeling, hvor processen kun har et trin før den afsluttes.\nimport phasic \nfrom phasic import Graph # ALWAYS import phasic first to set jax backend correctly\nimport numpy as np\n\n\ndef model(state):\n    transitions = []               # List for transitions from state\n    if state[0] &lt; 2:               # Control transitions allowed\n        child = state.copy()       # Make a copy to modify\n        child[0] += 1              # Make the child state\n        trans = [child, 2.0]       # Pair the child with a transition rate (in a list not tuple)\n        transitions.append(trans)  # Append transition \n    return transitions\n\ngraph = Graph(model, ipv=[1])\ngraph.plot()",
     "crumbs": [
       "Notebooks",
       "<span class='chapter-number'>4</span>  <span class='chapter-title'>Basic Coalescent Model</span>"
     ]
   },
   {
-    "objectID": "notebooks/01_basic_coalescent.html#kingman-coalescent",
-    "href": "notebooks/01_basic_coalescent.html#kingman-coalescent",
+    "objectID": "notebooks/01_basic_coalescent.html#simpel-markov-model",
+    "href": "notebooks/01_basic_coalescent.html#simpel-markov-model",
     "title": "Basic Coalescent Model",
     "section": "",
-    "text": "noder = states\nedges = transitions\nvægte = transition rates",
+    "text": "hvilke nye states der kan nås\nmed hvilke rater (hastigheder)",
     "crumbs": [
       "Notebooks",
       "<span class='chapter-number'>4</span>  <span class='chapter-title'>Basic Coalescent Model</span>"
     ]
   },
   {
-    "objectID": "notebooks/01_basic_coalescent.html#state-space-analyse",
-    "href": "notebooks/01_basic_coalescent.html#state-space-analyse",
+    "objectID": "notebooks/01_basic_coalescent.html#analyse-af-modellen",
+    "href": "notebooks/01_basic_coalescent.html#analyse-af-modellen",
     "title": "Basic Coalescent Model",
-    "section": "State space analyse",
-    "text": "State space analyse\n\nprint(\"Antal states:\", graph.vertices_length())\nprint(\"States:\")\nprint(graph.states())\n\nAntal states: 6\nStates:\n[[0 0 0 0]\n [4 0 0 0]\n [2 1 0 0]\n [0 2 0 0]\n [1 0 1 0]\n [0 0 0 1]]\n\n\nState space vokser hurtigt med \\(n\\) og er den primære kilde til computational kompleksitet.",
+    "section": "Analyse af modellen",
+    "text": "Analyse af modellen\n\ngraph.expectation(), graph.variance()\n\nForventet ventetid $ = = 0.5$",
     "crumbs": [
       "Notebooks",
       "<span class='chapter-number'>4</span>  <span class='chapter-title'>Basic Coalescent Model</span>"
     ]
   },
   {
-    "objectID": "notebooks/01_basic_coalescent.html#moments",
-    "href": "notebooks/01_basic_coalescent.html#moments",
+    "objectID": "notebooks/01_basic_coalescent.html#momenter",
+    "href": "notebooks/01_basic_coalescent.html#momenter",
     "title": "Basic Coalescent Model",
-    "section": "Moments",
-    "text": "Moments\n\nprint(\"Expectation:\", graph.expectation())\nprint(\"Variance:\", graph.variance())\nprint(\"Moments:\", graph.moments(5))\n\nExpectation: 1.5\nVariance: 1.1388888888888884\nMoments: [1.5, 3.3888888888888884, 10.58333333333333, 42.9074074074074, 215.50925925925918]\n\n\nPhasic bruger phase-type distributioner til at beregne eksakte moments.\nDette er en stor fordel frem for simulation:\n\ningen Monte Carlo fejl\ndeterministiske resultater",
+    "section": "Momenter",
+    "text": "Momenter\n\ngraph.moments(10)\n\nExpectation: 1.5\nVariance: 1.1388888888888884\nMoments: [1.5, 3.3888888888888884, 10.58333333333333, 42.9074074074074, 215.50925925925918]",
     "crumbs": [
       "Notebooks",
       "<span class='chapter-number'>4</span>  <span class='chapter-title'>Basic Coalescent Model</span>"
     ]
   },
   {
-    "objectID": "notebooks/01_basic_coalescent.html#fordelingsfunktioner",
-    "href": "notebooks/01_basic_coalescent.html#fordelingsfunktioner",
+    "objectID": "notebooks/01_basic_coalescent.html#sandsynlighedsfordeling",
+    "href": "notebooks/01_basic_coalescent.html#sandsynlighedsfordeling",
     "title": "Basic Coalescent Model",
-    "section": "Fordelingsfunktioner",
-    "text": "Fordelingsfunktioner\n\nt = np.linspace(0, 5, 200)\n\npdf = graph.pdf(t)\ncdf = graph.cdf(t)\n\nplt.figure(figsize=(10,4))\n\nplt.subplot(1,2,1)\nplt.plot(t, pdf)\nplt.title(\"PDF\")\n\nplt.subplot(1,2,2)\nplt.plot(t, cdf)\nplt.title(\"CDF\")\n\nplt.show()\n\nPDF beskriver sandsynligheden for coalescent tid. CDF beskriver sandsynligheden for at MRCA er nået før tid t.",
+    "section": "Sandsynlighedsfordeling",
+    "text": "Sandsynlighedsfordeling\n\nimport matplotlib.pyplot as plt\nfig, axes = plt.subplots(1, 2, figsize=(7, 3))\nvals = np.linspace(0, 3, 100)\naxes[0].plot(vals, graph.pdf(vals))\naxes[1].plot(vals, graph.cdf(vals))\nplt.show()\n\nPDF beskriver sandsynligheden for coalescent tid. CDF beskriver sandsynligheden for at MRCA er nået før tid t.",
     "crumbs": [
       "Notebooks",
       "<span class='chapter-number'>4</span>  <span class='chapter-title'>Basic Coalescent Model</span>"
@@ -705,29 +705,7 @@
     "href": "notebooks/01_basic_coalescent.html#simulation",
     "title": "Basic Coalescent Model",
     "section": "Simulation",
-    "text": "Simulation\n\nsamples = graph.sample(5000)\n\nprint(\"Sample mean:\", np.mean(samples))\nprint(\"Theoretical mean:\", graph.expectation())\n\nSample mean: 1.4952193693448914\nTheoretical mean: 1.5\n\n\n\nplt.hist(samples, bins=50, density=True)\nplt.title(\"Simulated coalescent times\")\nplt.xlabel(\"Time\")\nplt.ylabel(\"Density\")\nplt.show()\n\nSimulation bruges senere til:\n\ninference\nmodel validation",
-    "crumbs": [
-      "Notebooks",
-      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Basic Coalescent Model</span>"
-    ]
-  },
-  {
-    "objectID": "notebooks/01_basic_coalescent.html#cpu-monitoring",
-    "href": "notebooks/01_basic_coalescent.html#cpu-monitoring",
-    "title": "Basic Coalescent Model",
-    "section": "CPU monitoring",
-    "text": "CPU monitoring\n\n%%monitor\ngraph.moments(10)",
-    "crumbs": [
-      "Notebooks",
-      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Basic Coalescent Model</span>"
-    ]
-  },
-  {
-    "objectID": "notebooks/01_basic_coalescent.html#caching",
-    "href": "notebooks/01_basic_coalescent.html#caching",
-    "title": "Basic Coalescent Model",
-    "section": "Caching",
-    "text": "Caching\n\ngraph_cached = Graph(coalescent, cache=True)\n\nGraph caching gemmer state space på disk og undgår genberegning.\nDette er essentielt for større modeller.",
+    "text": "Simulation\n\nsamples = graph.sample(10000)\nsamples[:10]\nnp.mean(samples).item(), graph.expectation()\n\nSample mean: 1.4952193693448914\nTheoretical mean: 1.5\n\n\nHer sammenlignes den simulerede middelværdi med den teoretiske forventning.\n\ndef mesh(state, max_val=None):\n    transitions = []\n    for i in range(state.size):\n        if state[i] &lt;= max_val:\n            child = state.copy()\n            child[i] += 1\n            trans = [child, state.sum()]\n            transitions.append(trans)\n    return transitions\n\ngraph = Graph(mesh, ipv=[1, 1], max_val=2)\ngraph.plot()\n\n\ngraph = Graph(mesh, ipv=[1, 1], max_val=8)\nprint(graph.expectation())\ngraph.plot()",
     "crumbs": [
       "Notebooks",
       "<span class='chapter-number'>4</span>  <span class='chapter-title'>Basic Coalescent Model</span>"
@@ -739,6 +717,50 @@
     "title": "Basic Coalescent Model",
     "section": "Konklusion",
     "text": "Konklusion\n\nCoalescent kan formuleres som en Markov jump process\nStates repræsenterer lineage-struktur\nTransition rates følger klassisk coalescent teori\nPhasic gør det muligt at:\n\nberegne eksakte fordelinger\nsimulere data\nlave inference\n\n\nDette bliver fundamentet for:\n\nmigration modeller\nIM modeller\nghost populations",
+    "crumbs": [
+      "Notebooks",
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Basic Coalescent Model</span>"
+    ]
+  },
+  {
+    "objectID": "notebooks/01_basic_coalescent.html#coalescent-modellen",
+    "href": "notebooks/01_basic_coalescent.html#coalescent-modellen",
+    "title": "Basic Coalescent Model",
+    "section": "Coalescent-modellen",
+    "text": "Coalescent-modellen\nI dette afsnit introduceres Coalescent-modellen, som er en klassisk Markov jump proces inden for populationsgenetik.\nModellen beskriver, hvordan en stikprøve af individer kan spores bagud i tid til en fælles forfader. I processen coalescerer linjer sammen, så antallet af slægtslinjer gradvist reduceres, indtil der kun er en fælles forfader tilbage.\nMan følger ikke individer fremad i tid, men derimod deres fælles ophav bagud i tid.\n\nTilstande i modellen\nState i Coalescent-modellen kan beskrives som en vektor, der tæller hvor mange grupper (linjer) der har et bestemt antal efterkommere:\n\n1-ton: linjer med en efterkommer (singleton)\n2-ton: linjer med to efterkommere (doubleton)\nosv.\n\nFor eksempel kan en tilstand med 4 individer skrives som:\n(4, 0, 0, 0)\nDet betyder:\n\n4 singleton-linjer\n0 doubletons\n0 tripletons\n0 quadrupletons\n\nProcessen starter her og ender med:\n(0, 0, 0, 1)\nhvor alle individer deler en fælles forfader.\nNår to linjer coalescerer:\n\nantallet af linjer falder med 1\nstørrelsen på den nye gruppe øges\n\nOver tid dannes et træ, hvor grenene repræsenterer slægtslinjer. Dette kaldes et coalescent tree.\n\n\nHvorfor er modellen vigtig?\nCoalescent-modellen bruges bl.a. til:\n\ngenetisk dataanalyse\nforståelse af evolution\nestimering af populationsstørrelser\nmodellering af mutationer\n\n\n\nSammenhæng med Phasic\nCoalescent-modellen kan implementeres i Phasic ved:\n\nat beskrive states som vektorer\nat definere en callback-funktion, der beskriver hvordan linjer coalescerer\nat angive rater for, hvor hurtigt coalescens sker\n\nDette gør det muligt at beregne:\n\nventetider\nfordelinger\nforventede værdier\n\npå samme måde som i de simple modeller tidligere – men nu for en langt mere kompleks proces.\n\nimport seaborn as sns\nfrom vscodenb import set_vscode_theme\nset_vscode_theme()\nsns.set_palette('tab10')",
+    "crumbs": [
+      "Notebooks",
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Basic Coalescent Model</span>"
+    ]
+  },
+  {
+    "objectID": "notebooks/01_basic_coalescent.html#konstruktion-af-state-space",
+    "href": "notebooks/01_basic_coalescent.html#konstruktion-af-state-space",
+    "title": "Basic Coalescent Model",
+    "section": "Konstruktion af state space",
+    "text": "Konstruktion af state space\nI de tidligere eksempler blev modeller defineret direkte via en callback-funktion. I mere komplekse modeller som Coalescent kan det være nyttigt at konstruere hele state space eksplicit.\nState space består af:\n\nalle mulige states processen kan være i\nalle overgange mellem disse state\ntilhørende rater\n\nMan starter i en initial state, fx: (4, 0, 0, 0)\nDerefter:\n\nFinder man alle mulige coalescent events\nOpretter nye states\nTilføjer transitions mellem dem\nGentager indtil alle state er gennemgået\n\nDet man ser er, at når to linjer coalescerer:\n\nen linje fjernes fra hver gruppe\nen ny gruppe med samlet størrelse tilføjes\n\nEksempel: \\[\n(2,1,0,0) \\rightarrow (1,0,1,0)\n\\]\nDenne metode giver fuld kontrol over:\n\nhvilke state der findes\nhvordan rater beregnes\n\n\nimport seaborn as sns\n%config InlineBackend.figure_format = 'svg'\nfrom vscodenb import set_vscode_theme\n\nnp.random.seed(42)\nset_vscode_theme()\nsns.set_palette('tab10')\n\n\ndef coalescent_graph(nr_samples):\n    state_vector_length = nr_samples\n    graph = Graph(state_vector_length)\n\n    initial_state = np.zeros(state_vector_length, dtype=int)\n    initial_state[0] = nr_samples\n\n    vertex = graph.find_or_create_vertex(initial_state)\n    graph.starting_vertex().add_edge(vertex, 1)\n\n    index = 1\n    while index &lt; graph.vertices_length():\n        vertex = graph.vertex_at(index)\n        state = vertex.state()\n\n        for i in range(nr_samples):\n            for j in range(i, nr_samples):\n                same = int(i == j)\n                if same and state[i] &lt; 2:\n                    continue\n                if not same and (state[i] &lt; 1 or state[j] &lt; 1):\n                    continue\n                new_state = state.copy()\n                new_state[i] -= 1\n                new_state[j] -= 1\n                new_state[i+j+1] += 1\n                new_vertex = graph.find_or_create_vertex(new_state)\n                rate = state[i]*(state[j]-same)/(1+same)\n                vertex.add_edge(new_vertex, rate)\n        index += 1\n    return graph\n\n\ngraph = coalescent_graph(4)\ngraph.plot()\n\n\ngraph.states()\n\nHer kan man se alle states i modellen. Hver række repræsenterer en mulig konfiguration af lineager.\n\ngraph.plot()",
+    "crumbs": [
+      "Notebooks",
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Basic Coalescent Model</span>"
+    ]
+  },
+  {
+    "objectID": "notebooks/01_basic_coalescent.html#sammenligning-af-metoder",
+    "href": "notebooks/01_basic_coalescent.html#sammenligning-af-metoder",
+    "title": "Basic Coalescent Model",
+    "section": "Sammenligning af metoder",
+    "text": "Sammenligning af metoder\nDer findes to måder at opbygge modellen på:\n\nstate-space konstruktion\nCallback-funktion\n\nCallback-metoden er:\n\nkortere\nmere fleksibel\nlettere at vedligeholde\n\nState-space konstruktion er:\n\nmere eksplicit\nnyttig til forståelse\nbedre hvis man vil manipulere grafen direkte",
+    "crumbs": [
+      "Notebooks",
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Basic Coalescent Model</span>"
+    ]
+  },
+  {
+    "objectID": "notebooks/01_basic_coalescent.html#state-properties-og-indexing",
+    "href": "notebooks/01_basic_coalescent.html#state-properties-og-indexing",
+    "title": "Basic Coalescent Model",
+    "section": "State properties og indexing",
+    "text": "State properties og indexing\nDenne afsnit viser brugen af StateIndexer fra phasic til at repræsentere komplekse states i en coalescent-model.\nJeg fokuserer på:\n\nmapping mellem indeks og egenskaber\nkombinatoriske states\nanvendelse i en two-locus ARG\n\n\nfrom phasic import Graph, with_ipv, StateIndexer, PropertySet, Property\nimport numpy as np\nimport seaborn as sns\n%config InlineBackend.figure_format = 'svg'\nfrom vscodenb import set_vscode_theme\nset_vscode_theme()\n\n\nProperties\nEn Property repræsenterer en dimension i state space.\n\ndescendants = Property('descendants', max_value=10)\ndescendants\n\n\n\nSingle PropertySet\n\nindexer = StateIndexer(\n    lineage=[Property('descendants', max_value=10)]\n)\nprint(f\"Total states: {indexer.state_length}\")\nprint(f\"PropertySet: {indexer.lineage}\")\n\n\n# Index to properties (returns dataclass by default)\nprops = indexer.lineage.i2p(5)\nprint(f\"Index 5: {props}\")\nprint(f\"Access via attribute: props.descendants = {props.descendants}\")\n\n# Can also get as dict\nprops_dict = indexer.lineage.i2p(5, as_dict=True)\nprint(f\"As dict: {props_dict}\")\n\n# Properties to index\nidx = indexer.lineage.p2i({'descendants': 5})\nprint(f\"{{descendants: 5}}: index {idx}\")\n\n# Also accepts dataclass\nidx = indexer.lineage.p2i(props)\nprint(f\"Dataclass: index {idx}\")\n\n\n\nCombinatorial State Space with multiple properties\n\n# Two properties: derived allele status (0 or 1) × descendants (0 to 4)\nindexer2 = StateIndexer(\n    lineage=[\n        Property('derived', max_value=1),      # 2 values: 0, 1\n        Property('descendants', max_value=4)   # 5 values: 0, 1, 2, 3, 4\n    ]\n)\n\nprint(f\"Total states: {indexer2.state_length} (2 × 5 = 10)\")\nprint(f\"\\nAll states:\")\nfor i in indexer2.lineage:\n    props = indexer2.lineage.i2p(i)\n    print(f\"  Index {i:2d}: derived={props.derived}, descendants={props.descendants}\")\n\n\n\nTwo-locus ancestral recombination graph\nJeg modellerer lineager med antal efterkommere ved to loci.\n\nnr_samples = 4\nindexer = StateIndexer(\n    n_descendants=[\n        Property('locus1', max_value=nr_samples),\n        Property('locus2', max_value=nr_samples)\n    ]\n)\nindexer\n\n\nindexer.state_length\n\n\nindexer.n_descendants\n\n\nprint('index', 'locus1', 'locus2', sep='\\t')\n\nfor i in indexer.n_descendants: \n    props = indexer.n_descendants.index_to_props(i) \n    print(i, props.locus1, props.locus2, sep='\\t')\n\n\nprops = indexer.n_descendants.index_to_props(5) \nprops.locus1, props.locus2\n\n\nindexer.n_descendants.props_to_index(props)\n\n\nindexer.n_descendants.props_to_index(locus1=props.locus1 + 1, \n                                     locus2=props.locus2)\n\n\n# zero state vector with appropriate size\ninitial = [0] * indexer.state_length\n\n# set initial state with all lineages having one descendant at both loci\ninitial[indexer.props_to_index(locus1=1, locus2=1)] = nr_samples\n\n@with_ipv(initial)\ndef two_locus_arg(state, indexer=None, N=None, R=None):\n\n    transitions = []\n    if state.sum() &lt;= 1: return transitions\n\n    for i in range(indexer.state_length):\n        if state[i] == 0: continue\n        props_i = indexer.n_descendants.index_to_props(i)\n\n        for j in range(i, indexer.state_length):\n            if state[j] == 0: continue\n            props_j = indexer.n_descendants.index_to_props(j)\n            \n            same = int(i == j)\n            if same and state[i] &lt; 2:\n                continue\n            if not same and (state[i] &lt; 1 or state[j] &lt; 1):\n                continue \n            child = state.copy()\n            child[i] -= 1\n            child[j] -= 1\n            locus1 = props_i.locus1 + props_j.locus1\n            locus2 = props_i.locus2 + props_j.locus2\n            if locus1 &lt;= nr_samples and locus2 &lt;= nr_samples:\n                child[indexer.props_to_index(locus1=locus1, locus2=locus2)] += 1\n                transitions.append([child, state[i]*(state[j]-same)/(1+same)/N])\n\n        if state[i] &gt; 0 and props_i.locus1 &gt; 0 and props_i.locus2 &gt; 0:\n            child = state.copy()\n            child[i] -= 1\n            child[indexer.props_to_index(locus1=props_i.locus1, locus2=0)] += 1\n            child[indexer.props_to_index(locus1=0, locus2=props_i.locus2)] += 1\n            transitions.append([child, R])\n\n    return transitions\n\n\ngraph = Graph(two_locus_arg, \n                     N=1, R=1,\n                     indexer=indexer) # passing indexer as argument\ngraph.plot(max_nodes=200)\n\n\ngraph.expectation()\n\n\nreward_matrix = graph.states().T\n\n\nidx_singleton_loc1 = indexer.n_descendants.props_to_index(locus1=1)\nidx_singleton_loc1\n\n\nreward_matrix = graph.states().T\n\nsingleton_rewards_loc1 = reward_matrix[idx_singleton_loc1].sum(axis=0)\nsingleton_rewards_loc1\n\n\ngraph.expectation(singleton_rewards_loc1)\n\n\nsfs_loc1 = [graph.expectation(reward_matrix[indexer.n_descendants.props_to_index(locus1=i)].sum(axis=0)) for i in range(1, nr_samples+1)]\nlabels = [f\"{i+1}'ton\" for i in range(nr_samples)]\nsns.barplot(x=labels, y=sfs_loc1, hue=labels) ;",
     "crumbs": [
       "Notebooks",
       "<span class='chapter-number'>4</span>  <span class='chapter-title'>Basic Coalescent Model</span>"
