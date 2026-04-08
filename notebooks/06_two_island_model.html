@@ -80,9 +80,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../site_libs/bootstrap/bootstrap-b63f26e5b9dc9facfbe96e6d64a9f374.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
-<script src="../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
-<link href="../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
-<link href="../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -225,17 +222,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../notebooks/03_baboon_data.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Datasæt</span></a>
+  <a href="../notebooks/03_baboon_data.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Bavian-data og Site Frequency Spectrum</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../notebooks/04_time_inhomogeneous_models.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Time inhomogeneity</span></a>
+  <a href="../notebooks/04_time_inhomogeneous_models.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Tidsinhomogene modeller</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../notebooks/05_IM_model.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">IM model med ghost population i baboon data</span></a>
+  <a href="../notebooks/05_IM_model.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Isolation with migration (IM) model og ghost-population på bavian-data</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -271,8 +268,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">Table of contents</h2>
    
   <ul class="collapse">
-  <li><a href="#eksempel-simulation---two-island-model" id="toc-eksempel-simulation---two-island-model" class="nav-link active" data-scroll-target="#eksempel-simulation---two-island-model">Eksempel simulation - Two-island model:</a></li>
-  <li><a href="#baboon-data" id="toc-baboon-data" class="nav-link" data-scroll-target="#baboon-data">Baboon data</a></li>
+  <li><a href="#validering-på-simulerede-data" id="toc-validering-på-simulerede-data" class="nav-link active" data-scroll-target="#validering-på-simulerede-data">1. Validering på simulerede data</a></li>
+  <li><a href="#bavian-data-indlæsning-og-klargjøring" id="toc-bavian-data-indlæsning-og-klargjøring" class="nav-link" data-scroll-target="#bavian-data-indlæsning-og-klargjøring">2. Bavian-data: indlæsning og klargjøring</a></li>
+  <li><a href="#two-island-model-tilpasning-til-bavian-data" id="toc-two-island-model-tilpasning-til-bavian-data" class="nav-link" data-scroll-target="#two-island-model-tilpasning-til-bavian-data">3. Two-island model: tilpasning til bavian-data</a></li>
+  <li><a href="#samlet-modelsammenligning-alle-tre-modeller" id="toc-samlet-modelsammenligning-alle-tre-modeller" class="nav-link" data-scroll-target="#samlet-modelsammenligning-alle-tre-modeller">4. Samlet modelsammenligning: alle tre modeller</a></li>
   </ul>
 <div class="toc-actions"><ul class="collapse"><li><a href="https://github.dev/munch-group/emma-giraf/blob/main/notebooks/06_two_island_model.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/emma-giraf/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/emma-giraf/blob/main/notebooks/06_two_island_model.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
     </div>
@@ -308,34 +307,44 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>pop1 ↔︎ pop2</p>
 <p>Ingen ancestral population i modellen (i modsætning til IM model).</p>
 <div id="41970e3c" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    Graph, with_ipv, GaussPrior, HalfCauchyPrior, </span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    Adam, Adamelia, ExpStepSize, ExpRegularization, clear_caches,</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    clear_jax_cache, clear_model_cache,</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Importer nødvendige pakker</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    Graph, with_ipv, GaussPrior, HalfCauchyPrior,</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    Adam, ExpStepSize, ExpRegularization,</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    StateIndexer, Property, PropertySet, set_log_level</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>) <span class="co"># ALWAYS import phasic first to set jax backend correctly</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>set_log_level(<span class="st">'WARNING'</span>)</span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Optional</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib.colors <span class="im">import</span> LogNorm</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config InlineBackend.figure_format <span class="op">=</span> <span class="st">'svg'</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> tqdm.auto <span class="im">import</span> tqdm</span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Optional, Callable</span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> partial</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itertools <span class="im">import</span> combinations, combinations_with_replacement</span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>all_pairs <span class="op">=</span> partial(combinations_with_replacement, r<span class="op">=</span><span class="dv">2</span>)</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> set_vscode_theme</span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>sns.set_palette(<span class="st">'tab10'</span>)</span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="co"># set_log_level('DEBUG')</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib.colors <span class="im">import</span> LogNorm</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sgkit <span class="im">as</span> sg</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config InlineBackend.figure_format <span class="op">=</span> <span class="st">'svg'</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> partial</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itertools <span class="im">import</span> combinations_with_replacement</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> set_vscode_theme</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>all_pairs <span class="op">=</span> partial(combinations_with_replacement, r<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>sns.set_palette(<span class="st">'tab10'</span>)</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Genanvender pairs_in_range fra Notebook 05</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pairs_in_range(nums, diff_lo, diff_hi):</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Find SNP-par med afstand i [diff_lo, diff_hi]."""</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="bu">len</span>(nums)</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    lo, hi <span class="op">=</span> <span class="dv">1</span>, <span class="dv">1</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>    pairs <span class="op">=</span> []</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n):</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> lo <span class="op">&lt;=</span> i: lo <span class="op">=</span> i <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>        <span class="cf">while</span> lo <span class="op">&lt;</span> n <span class="kw">and</span> nums[lo] <span class="op">-</span> nums[i] <span class="op">&lt;</span> diff_lo: lo <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> hi <span class="op">&lt;=</span> i: hi <span class="op">=</span> i <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>        <span class="cf">while</span> hi <span class="op">&lt;</span> n <span class="kw">and</span> nums[hi] <span class="op">-</span> nums[i] <span class="op">&lt;=</span> diff_hi: hi <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(lo, hi):</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>            pairs.append((i, j))</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pairs</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 
 <style>
@@ -421,1616 +430,266 @@ table {
         
 </div>
 </div>
-<section id="eksempel-simulation---two-island-model" class="level2">
-<h2 class="anchored" data-anchor-id="eksempel-simulation---two-island-model">Eksempel simulation - Two-island model:</h2>
+<section id="validering-på-simulerede-data" class="level2">
+<h2 class="anchored" data-anchor-id="validering-på-simulerede-data">1. Validering på simulerede data</h2>
+<p>Som i Notebook 05 starter jeg med simulerede data med kendte parametre for at verificere implementationen.</p>
 <div id="05ad08a2" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> msprime</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config InlineBackend.figure_format <span class="op">=</span> <span class="st">'retina'</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> derived_counts(ts, rec_rate):</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    records <span class="op">=</span> []</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> var <span class="kw">in</span> ts.variants():</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        p, g <span class="op">=</span> var.site.position, var.genotypes</span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        records.append((<span class="bu">int</span>(p), p<span class="op">*</span>rec_rate, g.<span class="bu">sum</span>()))</span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> pd.DataFrame().from_records(</span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        records, columns<span class="op">=</span>[<span class="st">"pos"</span>, <span class="st">"gen_pos"</span>, <span class="st">"count"</span>]</span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> df</span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>mut_rate <span class="op">=</span> <span class="fl">5e-10</span></span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>rec_rate <span class="op">=</span> <span class="fl">1e-8</span></span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">5</span></span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>seq_length <span class="op">=</span> <span class="dv">100_000_000</span></span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>pop1_size, pop2_size, anc_pop_size <span class="op">=</span> <span class="dv">20_000</span>, <span class="dv">10_000</span>, <span class="dv">15_000</span></span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>migr_pop1_to_pop2 <span class="op">=</span> <span class="fl">1e-4</span></span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>migr_pop2_to_pop1 <span class="op">=</span> <span class="fl">5e-4</span></span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>demography <span class="op">=</span> msprime.Demography()</span>
-<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>demography.add_population(name<span class="op">=</span><span class="st">"pop1"</span>, initial_size<span class="op">=</span>pop1_size)</span>
-<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>demography.add_population(name<span class="op">=</span><span class="st">"pop2"</span>, initial_size<span class="op">=</span>pop2_size)</span>
-<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>demography.set_migration_rate(source<span class="op">=</span><span class="st">"pop1"</span>, dest<span class="op">=</span><span class="st">"pop2"</span>, rate<span class="op">=</span>migr_pop1_to_pop2)</span>
-<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>demography.set_migration_rate(source<span class="op">=</span><span class="st">"pop2"</span>, dest<span class="op">=</span><span class="st">"pop1"</span>, rate<span class="op">=</span>migr_pop2_to_pop1)</span>
-<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>ts <span class="op">=</span> msprime.sim_ancestry(samples<span class="op">=</span>{<span class="st">"pop1"</span>: nr_samples, <span class="st">"pop2"</span>: <span class="dv">0</span>}, ploidy<span class="op">=</span><span class="dv">1</span>, </span>
-<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>                          demography<span class="op">=</span>demography, recombination_rate<span class="op">=</span>rec_rate, </span>
-<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>                          sequence_length<span class="op">=</span>seq_length, random_seed<span class="op">=</span><span class="dv">12</span>)</span>
-<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>ts <span class="op">=</span> msprime.sim_mutations(ts, rate<span class="op">=</span>mut_rate, random_seed<span class="op">=</span><span class="dv">5678</span>)</span>
-<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> derived_counts(ts, rec_rate)</span>
-<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>df.to_csv(<span class="st">"island_model_derived_counts.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div id="3dc83bcd" class="cell" data-execution_count="3">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pairs_in_range(nums, diff_lo, diff_hi):</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="bu">len</span>(nums)</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    lo, hi <span class="op">=</span> <span class="dv">1</span>, <span class="dv">1</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    pairs <span class="op">=</span> []</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n):</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> lo <span class="op">&lt;=</span> i:</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>            lo <span class="op">=</span> i <span class="op">+</span> <span class="dv">1</span></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">while</span> lo <span class="op">&lt;</span> n <span class="kw">and</span> nums[lo] <span class="op">-</span> nums[i] <span class="op">&lt;</span> diff_lo:</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>            lo <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> hi <span class="op">&lt;=</span> i:</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>            hi <span class="op">=</span> i <span class="op">+</span> <span class="dv">1</span></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">while</span> hi <span class="op">&lt;</span> n <span class="kw">and</span> nums[hi] <span class="op">-</span> nums[i] <span class="op">&lt;=</span> diff_hi:</span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>            hi <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(lo, hi):</span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>            pairs.append((i, j))</span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pairs</span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">"island_model_derived_counts.csv"</span>)</span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>col <span class="op">=</span> <span class="st">"pos"</span> <span class="co"># can also use "gen_pos"</span></span>
-<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>distance, tolerance <span class="op">=</span> <span class="dv">5000</span>, <span class="dv">500</span></span>
-<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>min_dist, max_dist <span class="op">=</span> distance <span class="op">-</span> tolerance, distance <span class="op">+</span> tolerance</span>
-<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>records <span class="op">=</span> []</span>
-<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, j <span class="kw">in</span> pairs_in_range(df[col].values, min_dist, max_dist):</span>
-<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    records.append((df.at[i, col], df.at[j, col], df.at[i, <span class="st">"count"</span>], df.at[j, <span class="st">"count"</span>]))</span>
-<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>pairs <span class="op">=</span> pd.DataFrame.from_records(records, columns<span class="op">=</span>[<span class="st">"pos1"</span>, <span class="st">"pos2"</span>, <span class="st">"count1"</span>, <span class="st">"count2"</span>])</span>
-<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>pairs.head()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="3">
-<div>
-
-
-<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">pos1</th>
-<th data-quarto-table-cell-role="th">pos2</th>
-<th data-quarto-table-cell-role="th">count1</th>
-<th data-quarto-table-cell-role="th">count2</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">0</th>
-<td>160020</td>
-<td>164783</td>
-<td>1</td>
-<td>3</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">1</th>
-<td>307248</td>
-<td>311878</td>
-<td>4</td>
-<td>1</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">2</th>
-<td>516495</td>
-<td>521242</td>
-<td>2</td>
-<td>1</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">3</th>
-<td>948820</td>
-<td>953791</td>
-<td>1</td>
-<td>3</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">4</th>
-<td>1784175</td>
-<td>1788903</td>
-<td>1</td>
-<td>1</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
-</div>
-<div id="1fe8899b" class="cell" data-execution_count="4">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>mask <span class="op">=</span> (pairs.pos1 <span class="op">==</span> pairs.pos1.shift()) <span class="op">|</span> (pairs.pos2 <span class="op">==</span> pairs.pos2.shift())</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>filtered_pairs <span class="op">=</span> pairs.loc[<span class="op">~</span>mask, :]</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>filtered_pairs.head()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="4">
-<div>
-
-
-<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">pos1</th>
-<th data-quarto-table-cell-role="th">pos2</th>
-<th data-quarto-table-cell-role="th">count1</th>
-<th data-quarto-table-cell-role="th">count2</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">0</th>
-<td>160020</td>
-<td>164783</td>
-<td>1</td>
-<td>3</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">1</th>
-<td>307248</td>
-<td>311878</td>
-<td>4</td>
-<td>1</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">2</th>
-<td>516495</td>
-<td>521242</td>
-<td>2</td>
-<td>1</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">3</th>
-<td>948820</td>
-<td>953791</td>
-<td>1</td>
-<td>3</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">4</th>
-<td>1784175</td>
-<td>1788903</td>
-<td>1</td>
-<td>1</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
-</div>
-<div id="d3c76869" class="cell" data-execution_count="5">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>plt.hist(filtered_pairs.pos2 <span class="op">-</span> filtered_pairs.pos1, bins<span class="op">=</span><span class="dv">10</span>) <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><a href="06_two_island_model_files/figure-html/cell-6-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="06_two_island_model_files/figure-html/cell-6-output-1.png" width="434" height="328" class="figure-img"></a></p>
-</figure>
-</div>
-</div>
-</div>
-<div id="8c28a067" class="cell" data-execution_count="6">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="bu">len</span>(filtered_pairs)</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>observations <span class="op">=</span> np.zeros((n, nr_samples), dtype<span class="op">=</span><span class="bu">int</span>)</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>observations</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, pair <span class="kw">in</span> <span class="bu">enumerate</span>(filtered_pairs[[<span class="st">"count1"</span>, <span class="st">"count2"</span>]].values):</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    observations[i, pair] <span class="op">=</span> <span class="dv">1</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div id="2dc63f21" class="cell" data-execution_count="7">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>msg <span class="op">=</span> <span class="ss">f"""</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ss">Two-locus observations across </span><span class="sc">{</span>nr_samples<span class="sc">}</span><span class="ss"> samples of </span><span class="sc">{</span>seq_length<span class="op">/</span><span class="fl">1e6</span><span class="sc">:.0f}</span><span class="ss"> Mb:</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ss">    Mutation rate:</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="ss">        </span><span class="sc">{</span>mut_rate<span class="sc">}</span><span class="ss"> events/site/generation</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="ss">    Recombination rate:</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="ss">        </span><span class="sc">{</span>rec_rate<span class="sc">}</span><span class="ss"> crossovers/base/generation</span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="ss">    Haploid population sizes:</span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="ss">        pop1: </span><span class="sc">{</span>pop1_size<span class="sc">}</span></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="ss">        pop2: </span><span class="sc">{</span>pop2_size<span class="sc">}</span></span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="ss">    Migration rate:</span></span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="ss">        pop1 -&gt; pop2: </span><span class="sc">{</span>migr_pop1_to_pop2<span class="sc">}</span></span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="ss">        pop2 -&gt; pop1: </span><span class="sc">{</span>migr_pop2_to_pop1<span class="sc">}</span></span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="ss">"""</span></span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(msg)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Sande parametre for two-island simuleringen</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>mut_rate  <span class="op">=</span> <span class="fl">5e-10</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>rec_rate  <span class="op">=</span> <span class="fl">1e-8</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>nr_samples   <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>seq_length   <span class="op">=</span> <span class="dv">100_000_000</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>pop1_size, pop2_size <span class="op">=</span> <span class="dv">20_000</span>, <span class="dv">10_000</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>migr_pop1_to_pop2 <span class="op">=</span> <span class="fl">1e-4</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>migr_pop2_to_pop1 <span class="op">=</span> <span class="fl">5e-4</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Two-island model: ingen split, konstant migration</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>demography <span class="op">=</span> msprime.Demography()</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>demography.add_population(name<span class="op">=</span><span class="st">"pop1"</span>, initial_size<span class="op">=</span>pop1_size)</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>demography.add_population(name<span class="op">=</span><span class="st">"pop2"</span>, initial_size<span class="op">=</span>pop2_size)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>demography.set_migration_rate(source<span class="op">=</span><span class="st">"pop1"</span>, dest<span class="op">=</span><span class="st">"pop2"</span>, rate<span class="op">=</span>migr_pop1_to_pop2)</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>demography.set_migration_rate(source<span class="op">=</span><span class="st">"pop2"</span>, dest<span class="op">=</span><span class="st">"pop1"</span>, rate<span class="op">=</span>migr_pop2_to_pop1)</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>ts <span class="op">=</span> msprime.sim_ancestry(</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    samples<span class="op">=</span>{<span class="st">"pop1"</span>: nr_samples, <span class="st">"pop2"</span>: <span class="dv">0</span>}, ploidy<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    demography<span class="op">=</span>demography, recombination_rate<span class="op">=</span>rec_rate,</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    sequence_length<span class="op">=</span>seq_length, random_seed<span class="op">=</span><span class="dv">12</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>ts <span class="op">=</span> msprime.sim_mutations(ts, rate<span class="op">=</span>mut_rate, random_seed<span class="op">=</span><span class="dv">5678</span>)</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>records <span class="op">=</span> []</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> var <span class="kw">in</span> ts.variants():</span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    p, g <span class="op">=</span> var.site.position, var.genotypes</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    records.append((<span class="bu">int</span>(p), p <span class="op">*</span> rec_rate, <span class="bu">int</span>(g.<span class="bu">sum</span>())))</span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>df_sim <span class="op">=</span> pd.DataFrame(records, columns<span class="op">=</span>[<span class="st">"pos"</span>, <span class="st">"gen_pos"</span>, <span class="st">"count"</span>])</span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>distance, tolerance <span class="op">=</span> <span class="dv">5000</span>, <span class="dv">500</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>pairs_idx <span class="op">=</span> pairs_in_range(df_sim[<span class="st">"pos"</span>].values, distance<span class="op">-</span>tolerance, distance<span class="op">+</span>tolerance)</span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>pairs_sim <span class="op">=</span> pd.DataFrame(</span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>    [(df_sim.at[i,<span class="st">"pos"</span>], df_sim.at[j,<span class="st">"pos"</span>],</span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>      df_sim.at[i,<span class="st">"count"</span>], df_sim.at[j,<span class="st">"count"</span>])</span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>     <span class="cf">for</span> i, j <span class="kw">in</span> pairs_idx],</span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>    columns<span class="op">=</span>[<span class="st">"pos1"</span>, <span class="st">"pos2"</span>, <span class="st">"count1"</span>, <span class="st">"count2"</span>]</span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>mask <span class="op">=</span> (pairs_sim.pos1 <span class="op">==</span> pairs_sim.pos1.shift()) <span class="op">|</span> (pairs_sim.pos2 <span class="op">==</span> pairs_sim.pos2.shift())</span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>pairs_sim <span class="op">=</span> pairs_sim.loc[<span class="op">~</span>mask].reset_index(drop<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>observations_sim <span class="op">=</span> np.zeros((<span class="bu">len</span>(pairs_sim), nr_samples), dtype<span class="op">=</span><span class="bu">int</span>)</span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, (c1, c2) <span class="kw">in</span> <span class="bu">enumerate</span>(pairs_sim[[<span class="st">"count1"</span>, <span class="st">"count2"</span>]].values):</span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>    observations_sim[i, <span class="bu">int</span>(c1)] <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>    observations_sim[i, <span class="bu">int</span>(c2)] <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Simuleret: </span><span class="sc">{</span><span class="bu">len</span>(df_sim)<span class="sc">:,}</span><span class="ss"> varianter, </span><span class="sc">{</span><span class="bu">len</span>(pairs_sim)<span class="sc">:,}</span><span class="ss"> SNP-par"</span>)</span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Sande parametre:"</span>)</span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  N_pop1 = </span><span class="sc">{</span>pop1_size<span class="sc">:,}</span><span class="ss">, N_pop2 = </span><span class="sc">{</span>pop2_size<span class="sc">:,}</span><span class="ss">"</span>)</span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  m12 = </span><span class="sc">{</span>migr_pop1_to_pop2<span class="sc">:.0e}</span><span class="ss">, m21 = </span><span class="sc">{</span>migr_pop2_to_pop1<span class="sc">:.0e}</span><span class="ss">"</span>)</span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  (Ingen split — two-island)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>
-Two-locus observations across 5 samples of 100 Mb:
-    Mutation rate:
-        5e-10 events/site/generation
-    Recombination rate:
-        1e-08 crossovers/base/generation
-    Haploid population sizes:
-        pop1: 20000
-        pop2: 10000
-    Migration rate:
-        pop1 -&gt; pop2: 0.0001
-        pop2 -&gt; pop1: 0.0005
-</code></pre>
+<pre><code>Simuleret: 5,479 varianter, 290 SNP-par
+
+Sande parametre:
+  N_pop1 = 20,000, N_pop2 = 10,000
+  m12 = 1e-04, m21 = 5e-04
+  (Ingen split — two-island)</code></pre>
 </div>
 </div>
 </section>
-<section id="baboon-data" class="level2">
-<h2 class="anchored" data-anchor-id="baboon-data">Baboon data</h2>
-<p>Load data for chromosome 20</p>
-<div id="2c40d72d" class="cell" data-execution_count="9">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sgkit <span class="im">as</span> sg</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co"># load data for chr20</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> sg.load_dataset(<span class="st">"/faststorage/project/baboondiversity/data/PG_panu3_phased_chromosomes_4_7_2021_ZARR/chr20.phased.rehead.vcz"</span>)</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>ds</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="9">
-<div><svg style="position: absolute; width: 0; height: 0; overflow: hidden">
-<defs>
-<symbol id="icon-database" viewbox="0 0 32 32">
-<path d="M16 0c-8.837 0-16 2.239-16 5v4c0 2.761 7.163 5 16 5s16-2.239 16-5v-4c0-2.761-7.163-5-16-5z"></path>
-<path d="M16 17c-8.837 0-16-2.239-16-5v6c0 2.761 7.163 5 16 5s16-2.239 16-5v-6c0 2.761-7.163 5-16 5z"></path>
-<path d="M16 26c-8.837 0-16-2.239-16-5v6c0 2.761 7.163 5 16 5s16-2.239 16-5v-6c0 2.761-7.163 5-16 5z"></path>
-</symbol>
-<symbol id="icon-file-text2" viewbox="0 0 32 32">
-<path d="M28.681 7.159c-0.694-0.947-1.662-2.053-2.724-3.116s-2.169-2.030-3.116-2.724c-1.612-1.182-2.393-1.319-2.841-1.319h-15.5c-1.378 0-2.5 1.121-2.5 2.5v27c0 1.378 1.122 2.5 2.5 2.5h23c1.378 0 2.5-1.122 2.5-2.5v-19.5c0-0.448-0.137-1.23-1.319-2.841zM24.543 5.457c0.959 0.959 1.712 1.825 2.268 2.543h-4.811v-4.811c0.718 0.556 1.584 1.309 2.543 2.268zM28 29.5c0 0.271-0.229 0.5-0.5 0.5h-23c-0.271 0-0.5-0.229-0.5-0.5v-27c0-0.271 0.229-0.5 0.5-0.5 0 0 15.499-0 15.5 0v7c0 0.552 0.448 1 1 1h7v19.5z"></path>
-<path d="M23 26h-14c-0.552 0-1-0.448-1-1s0.448-1 1-1h14c0.552 0 1 0.448 1 1s-0.448 1-1 1z"></path>
-<path d="M23 22h-14c-0.552 0-1-0.448-1-1s0.448-1 1-1h14c0.552 0 1 0.448 1 1s-0.448 1-1 1z"></path>
-<path d="M23 18h-14c-0.552 0-1-0.448-1-1s0.448-1 1-1h14c0.552 0 1 0.448 1 1s-0.448 1-1 1z"></path>
-</symbol>
-</defs>
-</svg>
-<style>/* CSS stylesheet for displaying xarray objects in jupyterlab.
- *
- */
-
-:root {
-  --xr-font-color0: var(--jp-content-font-color0, rgba(0, 0, 0, 1));
-  --xr-font-color2: var(--jp-content-font-color2, rgba(0, 0, 0, 0.54));
-  --xr-font-color3: var(--jp-content-font-color3, rgba(0, 0, 0, 0.38));
-  --xr-border-color: var(--jp-border-color2, #e0e0e0);
-  --xr-disabled-color: var(--jp-layout-color3, #bdbdbd);
-  --xr-background-color: var(--jp-layout-color0, white);
-  --xr-background-color-row-even: var(--jp-layout-color1, white);
-  --xr-background-color-row-odd: var(--jp-layout-color2, #eeeeee);
-}
-
-html[theme="dark"],
-html[data-theme="dark"],
-body[data-theme="dark"],
-body.vscode-dark {
-  --xr-font-color0: rgba(255, 255, 255, 1);
-  --xr-font-color2: rgba(255, 255, 255, 0.54);
-  --xr-font-color3: rgba(255, 255, 255, 0.38);
-  --xr-border-color: #1f1f1f;
-  --xr-disabled-color: #515151;
-  --xr-background-color: #111111;
-  --xr-background-color-row-even: #111111;
-  --xr-background-color-row-odd: #313131;
-}
-
-.xr-wrap {
-  display: block !important;
-  min-width: 300px;
-  max-width: 700px;
-}
-
-.xr-text-repr-fallback {
-  /* fallback to plain text repr when CSS is not injected (untrusted notebook) */
-  display: none;
-}
-
-.xr-header {
-  padding-top: 6px;
-  padding-bottom: 6px;
-  margin-bottom: 4px;
-  border-bottom: solid 1px var(--xr-border-color);
-}
-
-.xr-header > div,
-.xr-header > ul {
-  display: inline;
-  margin-top: 0;
-  margin-bottom: 0;
-}
-
-.xr-obj-type,
-.xr-array-name {
-  margin-left: 2px;
-  margin-right: 10px;
-}
-
-.xr-obj-type {
-  color: var(--xr-font-color2);
-}
-
-.xr-sections {
-  padding-left: 0 !important;
-  display: grid;
-  grid-template-columns: 150px auto auto 1fr 0 20px 0 20px;
-}
-
-.xr-section-item {
-  display: contents;
-}
-
-.xr-section-item input {
-  display: inline-block;
-  opacity: 0;
-  height: 0;
-}
-
-.xr-section-item input + label {
-  color: var(--xr-disabled-color);
-}
-
-.xr-section-item input:enabled + label {
-  cursor: pointer;
-  color: var(--xr-font-color2);
-}
-
-.xr-section-item input:focus + label {
-  border: 2px solid var(--xr-font-color0);
-}
-
-.xr-section-item input:enabled + label:hover {
-  color: var(--xr-font-color0);
-}
-
-.xr-section-summary {
-  grid-column: 1;
-  color: var(--xr-font-color2);
-  font-weight: 500;
-}
-
-.xr-section-summary > span {
-  display: inline-block;
-  padding-left: 0.5em;
-}
-
-.xr-section-summary-in:disabled + label {
-  color: var(--xr-font-color2);
-}
-
-.xr-section-summary-in + label:before {
-  display: inline-block;
-  content: "►";
-  font-size: 11px;
-  width: 15px;
-  text-align: center;
-}
-
-.xr-section-summary-in:disabled + label:before {
-  color: var(--xr-disabled-color);
-}
-
-.xr-section-summary-in:checked + label:before {
-  content: "▼";
-}
-
-.xr-section-summary-in:checked + label > span {
-  display: none;
-}
-
-.xr-section-summary,
-.xr-section-inline-details {
-  padding-top: 4px;
-  padding-bottom: 4px;
-}
-
-.xr-section-inline-details {
-  grid-column: 2 / -1;
-}
-
-.xr-section-details {
-  display: none;
-  grid-column: 1 / -1;
-  margin-bottom: 5px;
-}
-
-.xr-section-summary-in:checked ~ .xr-section-details {
-  display: contents;
-}
-
-.xr-array-wrap {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: 20px auto;
-}
-
-.xr-array-wrap > label {
-  grid-column: 1;
-  vertical-align: top;
-}
-
-.xr-preview {
-  color: var(--xr-font-color3);
-}
-
-.xr-array-preview,
-.xr-array-data {
-  padding: 0 5px !important;
-  grid-column: 2;
-}
-
-.xr-array-data,
-.xr-array-in:checked ~ .xr-array-preview {
-  display: none;
-}
-
-.xr-array-in:checked ~ .xr-array-data,
-.xr-array-preview {
-  display: inline-block;
-}
-
-.xr-dim-list {
-  display: inline-block !important;
-  list-style: none;
-  padding: 0 !important;
-  margin: 0;
-}
-
-.xr-dim-list li {
-  display: inline-block;
-  padding: 0;
-  margin: 0;
-}
-
-.xr-dim-list:before {
-  content: "(";
-}
-
-.xr-dim-list:after {
-  content: ")";
-}
-
-.xr-dim-list li:not(:last-child):after {
-  content: ",";
-  padding-right: 5px;
-}
-
-.xr-has-index {
-  font-weight: bold;
-}
-
-.xr-var-list,
-.xr-var-item {
-  display: contents;
-}
-
-.xr-var-item > div,
-.xr-var-item label,
-.xr-var-item > .xr-var-name span {
-  background-color: var(--xr-background-color-row-even);
-  margin-bottom: 0;
-}
-
-.xr-var-item > .xr-var-name:hover span {
-  padding-right: 5px;
-}
-
-.xr-var-list > li:nth-child(odd) > div,
-.xr-var-list > li:nth-child(odd) > label,
-.xr-var-list > li:nth-child(odd) > .xr-var-name span {
-  background-color: var(--xr-background-color-row-odd);
-}
-
-.xr-var-name {
-  grid-column: 1;
-}
-
-.xr-var-dims {
-  grid-column: 2;
-}
-
-.xr-var-dtype {
-  grid-column: 3;
-  text-align: right;
-  color: var(--xr-font-color2);
-}
-
-.xr-var-preview {
-  grid-column: 4;
-}
-
-.xr-index-preview {
-  grid-column: 2 / 5;
-  color: var(--xr-font-color2);
-}
-
-.xr-var-name,
-.xr-var-dims,
-.xr-var-dtype,
-.xr-preview,
-.xr-attrs dt {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding-right: 10px;
-}
-
-.xr-var-name:hover,
-.xr-var-dims:hover,
-.xr-var-dtype:hover,
-.xr-attrs dt:hover {
-  overflow: visible;
-  width: auto;
-  z-index: 1;
-}
-
-.xr-var-attrs,
-.xr-var-data,
-.xr-index-data {
-  display: none;
-  background-color: var(--xr-background-color) !important;
-  padding-bottom: 5px !important;
-}
-
-.xr-var-attrs-in:checked ~ .xr-var-attrs,
-.xr-var-data-in:checked ~ .xr-var-data,
-.xr-index-data-in:checked ~ .xr-index-data {
-  display: block;
-}
-
-.xr-var-data > table {
-  float: right;
-}
-
-.xr-var-name span,
-.xr-var-data,
-.xr-index-name div,
-.xr-index-data,
-.xr-attrs {
-  padding-left: 25px !important;
-}
-
-.xr-attrs,
-.xr-var-attrs,
-.xr-var-data,
-.xr-index-data {
-  grid-column: 1 / -1;
-}
-
-dl.xr-attrs {
-  padding: 0;
-  margin: 0;
-  display: grid;
-  grid-template-columns: 125px auto;
-}
-
-.xr-attrs dt,
-.xr-attrs dd {
-  padding: 0;
-  margin: 0;
-  float: left;
-  padding-right: 10px;
-  width: auto;
-}
-
-.xr-attrs dt {
-  font-weight: normal;
-  grid-column: 1;
-}
-
-.xr-attrs dt:hover span {
-  display: inline-block;
-  background: var(--xr-background-color);
-  padding-right: 10px;
-}
-
-.xr-attrs dd {
-  grid-column: 2;
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-
-.xr-icon-database,
-.xr-icon-file-text2,
-.xr-no-icon {
-  display: inline-block;
-  vertical-align: middle;
-  width: 1em;
-  height: 1.5em !important;
-  stroke-width: 0;
-  stroke: currentColor;
-  fill: currentColor;
-}
-</style><pre class="xr-text-repr-fallback">&lt;xarray.Dataset&gt; Size: 3GB
-Dimensions:               (variants: 2665269, samples: 227, ploidy: 2,
-                           contigs: 1, filters: 1, region_index_values: 2666,
-                           region_index_fields: 6, alt_alleles: 1, alleles: 2)
-Dimensions without coordinates: variants, samples, ploidy, contigs, filters,
-                                region_index_values, region_index_fields,
-                                alt_alleles, alleles
-Data variables: (12/19)
-    call_genotype         (variants, samples, ploidy) int8 1GB dask.array&lt;chunksize=(1000, 227, 2), meta=np.ndarray&gt;
-    call_genotype_mask    (variants, samples, ploidy) bool 1GB dask.array&lt;chunksize=(1000, 227, 2), meta=np.ndarray&gt;
-    call_genotype_phased  (variants, samples) bool 605MB dask.array&lt;chunksize=(1000, 227), meta=np.ndarray&gt;
-    contig_id             (contigs) object 8B dask.array&lt;chunksize=(1,), meta=np.ndarray&gt;
-    filter_description    (filters) object 8B dask.array&lt;chunksize=(1,), meta=np.ndarray&gt;
-    filter_id             (filters) object 8B dask.array&lt;chunksize=(1,), meta=np.ndarray&gt;
-    ...                    ...
-    variant_filter        (variants, filters) bool 3MB dask.array&lt;chunksize=(1000, 1), meta=np.ndarray&gt;
-    variant_id            (variants) object 21MB dask.array&lt;chunksize=(1000,), meta=np.ndarray&gt;
-    variant_id_mask       (variants) bool 3MB dask.array&lt;chunksize=(1000,), meta=np.ndarray&gt;
-    variant_length        (variants) int8 3MB dask.array&lt;chunksize=(1000,), meta=np.ndarray&gt;
-    variant_position      (variants) int32 11MB dask.array&lt;chunksize=(1000,), meta=np.ndarray&gt;
-    variant_quality       (variants) float32 11MB dask.array&lt;chunksize=(1000,), meta=np.ndarray&gt;
-Attributes:
-    source:                bio2zarr-0.1.7
-    vcf_meta_information:  [['fileformat', 'VCFv4.2'], ['fileDate', '06/07/20...
-    vcf_zarr_version:      0.4</pre><div class="xr-wrap" style="display:none"><div class="xr-header"><div class="xr-obj-type">xarray.Dataset</div></div><ul class="xr-sections"><li class="xr-section-item"><input id="section-4ec8d108-fee8-4b33-ba7a-67835a7f2ef8" class="xr-section-summary-in" type="checkbox" disabled=""><label for="section-4ec8d108-fee8-4b33-ba7a-67835a7f2ef8" class="xr-section-summary" title="Expand/collapse section">Dimensions:</label><div class="xr-section-inline-details"><ul class="xr-dim-list"><li><span>variants</span>: 2665269</li><li><span>samples</span>: 227</li><li><span>ploidy</span>: 2</li><li><span>contigs</span>: 1</li><li><span>filters</span>: 1</li><li><span>region_index_values</span>: 2666</li><li><span>region_index_fields</span>: 6</li><li><span>alt_alleles</span>: 1</li><li><span>alleles</span>: 2</li></ul></div><div class="xr-section-details"></div></li><li class="xr-section-item"><input id="section-6498d068-38b1-41c7-84cd-f1353f59fd06" class="xr-section-summary-in" type="checkbox" disabled=""><label for="section-6498d068-38b1-41c7-84cd-f1353f59fd06" class="xr-section-summary" title="Expand/collapse section">Coordinates: <span>(0)</span></label><div class="xr-section-inline-details"></div><div class="xr-section-details"><ul class="xr-var-list"></ul></div></li><li class="xr-section-item"><input id="section-ec4905c6-3a7c-4d9c-b230-fdb0ac4fe8e9" class="xr-section-summary-in" type="checkbox"><label for="section-ec4905c6-3a7c-4d9c-b230-fdb0ac4fe8e9" class="xr-section-summary">Data variables: <span>(19)</span></label><div class="xr-section-inline-details"></div><div class="xr-section-details"><ul class="xr-var-list"><li class="xr-var-item"><div class="xr-var-name"><span>call_genotype</span></div><div class="xr-var-dims">(variants, samples, ploidy)</div><div class="xr-var-dtype">int8</div><div class="xr-var-preview xr-preview">dask.array&lt;chunksize=(1000, 227, 2), meta=np.ndarray&gt;</div><input id="attrs-9407a28c-de5a-4f2b-9434-609e32dc32b4" class="xr-var-attrs-in" type="checkbox"><label for="attrs-9407a28c-de5a-4f2b-9434-609e32dc32b4" title="Show/Hide attributes"><svg class="icon xr-icon-file-text2"><use href="#icon-file-text2"></use></svg></label><input id="data-e267dc28-f201-4947-81e8-465eec44d8a9" class="xr-var-data-in" type="checkbox"><label for="data-e267dc28-f201-4947-81e8-465eec44d8a9" title="Show/Hide data repr"><svg class="icon xr-icon-database"><use href="#icon-database"></use></svg></label><div class="xr-var-attrs"><dl class="xr-attrs"><dt><span>description :</span></dt><dd></dd></dl></div><div class="xr-var-data">
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<td></td>
-<th data-quarto-table-cell-role="th">Array</th>
-<th data-quarto-table-cell-role="th">Chunk</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Bytes</th>
-<td>1.13 GiB</td>
-<td>443.36 kiB</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Shape</th>
-<td>(2665269, 227, 2)</td>
-<td>(1000, 227, 2)</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Dask graph</th>
-<td colspan="2">2666 chunks in 2 graph layers</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Data type</th>
-<td colspan="2">int8 numpy.ndarray</td>
-</tr>
-</tbody>
-</table></td>
-<td><svg width="156" height="146" style="stroke:rgb(0,0,0);stroke-width:1">
-<!-- Horizontal lines --> <line x1="10" y1="0" x2="80" y2="70" style="stroke-width:2"></line> <line x1="10" y1="25" x2="80" y2="96" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="10" y1="0" x2="10" y2="25" style="stroke-width:2"></line> <line x1="13" y1="3" x2="13" y2="29"></line> <line x1="17" y1="7" x2="17" y2="32"></line> <line x1="21" y1="11" x2="21" y2="36"></line> <line x1="24" y1="14" x2="24" y2="40"></line> <line x1="28" y1="18" x2="28" y2="43"></line> <line x1="32" y1="22" x2="32" y2="47"></line> <line x1="36" y1="26" x2="36" y2="51"></line> <line x1="39" y1="29" x2="39" y2="55"></line> <line x1="43" y1="33" x2="43" y2="58"></line> <line x1="47" y1="37" x2="47" y2="62"></line> <line x1="50" y1="40" x2="50" y2="66"></line> <line x1="54" y1="44" x2="54" y2="69"></line> <line x1="58" y1="48" x2="58" y2="73"></line> <line x1="62" y1="52" x2="62" y2="77"></line> <line x1="65" y1="55" x2="65" y2="81"></line> <line x1="69" y1="59" x2="69" y2="84"></line> <line x1="73" y1="63" x2="73" y2="88"></line> <line x1="76" y1="66" x2="76" y2="92"></line> <line x1="80" y1="70" x2="80" y2="96" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="10.0,0.0 80.58823529411765,70.58823529411765 80.58823529411765,96.00085180870013 10.0,25.412616514582485" style="fill:#8B4903A0;stroke-width:0"></polygon> <!-- Horizontal lines --> <line x1="10" y1="0" x2="35" y2="0" style="stroke-width:2"></line> <line x1="13" y1="3" x2="39" y2="3"></line> <line x1="17" y1="7" x2="42" y2="7"></line> <line x1="21" y1="11" x2="46" y2="11"></line> <line x1="24" y1="14" x2="50" y2="14"></line> <line x1="28" y1="18" x2="53" y2="18"></line> <line x1="32" y1="22" x2="57" y2="22"></line> <line x1="36" y1="26" x2="61" y2="26"></line> <line x1="39" y1="29" x2="65" y2="29"></line> <line x1="43" y1="33" x2="68" y2="33"></line> <line x1="47" y1="37" x2="72" y2="37"></line> <line x1="50" y1="40" x2="76" y2="40"></line> <line x1="54" y1="44" x2="79" y2="44"></line> <line x1="58" y1="48" x2="83" y2="48"></line> <line x1="62" y1="52" x2="87" y2="52"></line> <line x1="65" y1="55" x2="91" y2="55"></line> <line x1="69" y1="59" x2="94" y2="59"></line> <line x1="73" y1="63" x2="98" y2="63"></line> <line x1="76" y1="66" x2="102" y2="66"></line> <line x1="80" y1="70" x2="106" y2="70" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="10" y1="0" x2="80" y2="70" style="stroke-width:2"></line> <line x1="35" y1="0" x2="106" y2="70" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="10.0,0.0 35.41261651458248,0.0 106.00085180870013,70.58823529411765 80.58823529411765,70.58823529411765" style="fill:#8B4903A0;stroke-width:0"></polygon> <!-- Horizontal lines --> <line x1="80" y1="70" x2="106" y2="70" style="stroke-width:2"></line> <line x1="80" y1="96" x2="106" y2="96" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="80" y1="70" x2="80" y2="96" style="stroke-width:2"></line> <line x1="106" y1="70" x2="106" y2="96" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="80.58823529411765,70.58823529411765 106.00085180870013,70.58823529411765 106.00085180870013,96.00085180870013 80.58823529411765,96.00085180870013" style="fill:#ECB172A0;stroke-width:0"></polygon> <!-- Text --> <text x="93.294544" y="116.000852" font-size="1.0rem" font-weight="100" text-anchor="middle">2</text> <text x="126.000852" y="83.294544" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(-90,126.000852,83.294544)">227</text> <text x="35.294118" y="80.706734" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(45,35.294118,80.706734)">2665269</text>
-</svg></td>
-</tr>
-</tbody>
-</table>
-</div></li><li class="xr-var-item"><div class="xr-var-name"><span>call_genotype_mask</span></div><div class="xr-var-dims">(variants, samples, ploidy)</div><div class="xr-var-dtype">bool</div><div class="xr-var-preview xr-preview">dask.array&lt;chunksize=(1000, 227, 2), meta=np.ndarray&gt;</div><input id="attrs-4c807027-8d56-4efb-adb9-d37e90faa01e" class="xr-var-attrs-in" type="checkbox"><label for="attrs-4c807027-8d56-4efb-adb9-d37e90faa01e" title="Show/Hide attributes"><svg class="icon xr-icon-file-text2"><use href="#icon-file-text2"></use></svg></label><input id="data-3e2654dd-a9a6-41f3-aafa-cfd6e06c03c4" class="xr-var-data-in" type="checkbox"><label for="data-3e2654dd-a9a6-41f3-aafa-cfd6e06c03c4" title="Show/Hide data repr"><svg class="icon xr-icon-database"><use href="#icon-database"></use></svg></label><div class="xr-var-attrs"><dl class="xr-attrs"><dt><span>description :</span></dt><dd></dd></dl></div><div class="xr-var-data">
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<td></td>
-<th data-quarto-table-cell-role="th">Array</th>
-<th data-quarto-table-cell-role="th">Chunk</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Bytes</th>
-<td>1.13 GiB</td>
-<td>443.36 kiB</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Shape</th>
-<td>(2665269, 227, 2)</td>
-<td>(1000, 227, 2)</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Dask graph</th>
-<td colspan="2">2666 chunks in 2 graph layers</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Data type</th>
-<td colspan="2">bool numpy.ndarray</td>
-</tr>
-</tbody>
-</table></td>
-<td><svg width="156" height="146" style="stroke:rgb(0,0,0);stroke-width:1">
-<!-- Horizontal lines --> <line x1="10" y1="0" x2="80" y2="70" style="stroke-width:2"></line> <line x1="10" y1="25" x2="80" y2="96" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="10" y1="0" x2="10" y2="25" style="stroke-width:2"></line> <line x1="13" y1="3" x2="13" y2="29"></line> <line x1="17" y1="7" x2="17" y2="32"></line> <line x1="21" y1="11" x2="21" y2="36"></line> <line x1="24" y1="14" x2="24" y2="40"></line> <line x1="28" y1="18" x2="28" y2="43"></line> <line x1="32" y1="22" x2="32" y2="47"></line> <line x1="36" y1="26" x2="36" y2="51"></line> <line x1="39" y1="29" x2="39" y2="55"></line> <line x1="43" y1="33" x2="43" y2="58"></line> <line x1="47" y1="37" x2="47" y2="62"></line> <line x1="50" y1="40" x2="50" y2="66"></line> <line x1="54" y1="44" x2="54" y2="69"></line> <line x1="58" y1="48" x2="58" y2="73"></line> <line x1="62" y1="52" x2="62" y2="77"></line> <line x1="65" y1="55" x2="65" y2="81"></line> <line x1="69" y1="59" x2="69" y2="84"></line> <line x1="73" y1="63" x2="73" y2="88"></line> <line x1="76" y1="66" x2="76" y2="92"></line> <line x1="80" y1="70" x2="80" y2="96" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="10.0,0.0 80.58823529411765,70.58823529411765 80.58823529411765,96.00085180870013 10.0,25.412616514582485" style="fill:#8B4903A0;stroke-width:0"></polygon> <!-- Horizontal lines --> <line x1="10" y1="0" x2="35" y2="0" style="stroke-width:2"></line> <line x1="13" y1="3" x2="39" y2="3"></line> <line x1="17" y1="7" x2="42" y2="7"></line> <line x1="21" y1="11" x2="46" y2="11"></line> <line x1="24" y1="14" x2="50" y2="14"></line> <line x1="28" y1="18" x2="53" y2="18"></line> <line x1="32" y1="22" x2="57" y2="22"></line> <line x1="36" y1="26" x2="61" y2="26"></line> <line x1="39" y1="29" x2="65" y2="29"></line> <line x1="43" y1="33" x2="68" y2="33"></line> <line x1="47" y1="37" x2="72" y2="37"></line> <line x1="50" y1="40" x2="76" y2="40"></line> <line x1="54" y1="44" x2="79" y2="44"></line> <line x1="58" y1="48" x2="83" y2="48"></line> <line x1="62" y1="52" x2="87" y2="52"></line> <line x1="65" y1="55" x2="91" y2="55"></line> <line x1="69" y1="59" x2="94" y2="59"></line> <line x1="73" y1="63" x2="98" y2="63"></line> <line x1="76" y1="66" x2="102" y2="66"></line> <line x1="80" y1="70" x2="106" y2="70" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="10" y1="0" x2="80" y2="70" style="stroke-width:2"></line> <line x1="35" y1="0" x2="106" y2="70" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="10.0,0.0 35.41261651458248,0.0 106.00085180870013,70.58823529411765 80.58823529411765,70.58823529411765" style="fill:#8B4903A0;stroke-width:0"></polygon> <!-- Horizontal lines --> <line x1="80" y1="70" x2="106" y2="70" style="stroke-width:2"></line> <line x1="80" y1="96" x2="106" y2="96" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="80" y1="70" x2="80" y2="96" style="stroke-width:2"></line> <line x1="106" y1="70" x2="106" y2="96" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="80.58823529411765,70.58823529411765 106.00085180870013,70.58823529411765 106.00085180870013,96.00085180870013 80.58823529411765,96.00085180870013" style="fill:#ECB172A0;stroke-width:0"></polygon> <!-- Text --> <text x="93.294544" y="116.000852" font-size="1.0rem" font-weight="100" text-anchor="middle">2</text> <text x="126.000852" y="83.294544" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(-90,126.000852,83.294544)">227</text> <text x="35.294118" y="80.706734" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(45,35.294118,80.706734)">2665269</text>
-</svg></td>
-</tr>
-</tbody>
-</table>
-</div></li><li class="xr-var-item"><div class="xr-var-name"><span>call_genotype_phased</span></div><div class="xr-var-dims">(variants, samples)</div><div class="xr-var-dtype">bool</div><div class="xr-var-preview xr-preview">dask.array&lt;chunksize=(1000, 227), meta=np.ndarray&gt;</div><input id="attrs-fd5d069d-c1fd-403c-82d4-d675045fb051" class="xr-var-attrs-in" type="checkbox"><label for="attrs-fd5d069d-c1fd-403c-82d4-d675045fb051" title="Show/Hide attributes"><svg class="icon xr-icon-file-text2"><use href="#icon-file-text2"></use></svg></label><input id="data-dce06494-0b2e-4ef1-8364-010cc218ac61" class="xr-var-data-in" type="checkbox"><label for="data-dce06494-0b2e-4ef1-8364-010cc218ac61" title="Show/Hide data repr"><svg class="icon xr-icon-database"><use href="#icon-database"></use></svg></label><div class="xr-var-attrs"><dl class="xr-attrs"><dt><span>description :</span></dt><dd></dd></dl></div><div class="xr-var-data">
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<td></td>
-<th data-quarto-table-cell-role="th">Array</th>
-<th data-quarto-table-cell-role="th">Chunk</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Bytes</th>
-<td>576.99 MiB</td>
-<td>221.68 kiB</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Shape</th>
-<td>(2665269, 227)</td>
-<td>(1000, 227)</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Dask graph</th>
-<td colspan="2">2666 chunks in 2 graph layers</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Data type</th>
-<td colspan="2">bool numpy.ndarray</td>
-</tr>
-</tbody>
-</table></td>
-<td><svg width="75" height="170" style="stroke:rgb(0,0,0);stroke-width:1">
-<!-- Horizontal lines --> <line x1="0" y1="0" x2="25" y2="0" style="stroke-width:2"></line> <line x1="0" y1="6" x2="25" y2="6"></line> <line x1="0" y1="12" x2="25" y2="12"></line> <line x1="0" y1="18" x2="25" y2="18"></line> <line x1="0" y1="25" x2="25" y2="25"></line> <line x1="0" y1="31" x2="25" y2="31"></line> <line x1="0" y1="37" x2="25" y2="37"></line> <line x1="0" y1="44" x2="25" y2="44"></line> <line x1="0" y1="50" x2="25" y2="50"></line> <line x1="0" y1="56" x2="25" y2="56"></line> <line x1="0" y1="63" x2="25" y2="63"></line> <line x1="0" y1="69" x2="25" y2="69"></line> <line x1="0" y1="75" x2="25" y2="75"></line> <line x1="0" y1="82" x2="25" y2="82"></line> <line x1="0" y1="88" x2="25" y2="88"></line> <line x1="0" y1="94" x2="25" y2="94"></line> <line x1="0" y1="101" x2="25" y2="101"></line> <line x1="0" y1="107" x2="25" y2="107"></line> <line x1="0" y1="113" x2="25" y2="113"></line> <line x1="0" y1="120" x2="25" y2="120" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="0" y1="0" x2="0" y2="120" style="stroke-width:2"></line> <line x1="25" y1="0" x2="25" y2="120" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="0.0,0.0 25.412616514582485,0.0 25.412616514582485,120.0 0.0,120.0" style="fill:#8B4903A0;stroke-width:0"></polygon> <!-- Text --> <text x="12.706308" y="140.000000" font-size="1.0rem" font-weight="100" text-anchor="middle">227</text> <text x="45.412617" y="60.000000" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(-90,45.412617,60.000000)">2665269</text>
-</svg></td>
-</tr>
-</tbody>
-</table>
-</div></li><li class="xr-var-item"><div class="xr-var-name"><span>contig_id</span></div><div class="xr-var-dims">(contigs)</div><div class="xr-var-dtype">object</div><div class="xr-var-preview xr-preview">dask.array&lt;chunksize=(1,), meta=np.ndarray&gt;</div><input id="attrs-b0517b46-09e1-4c4f-99f2-7fd347f36421" class="xr-var-attrs-in" type="checkbox" disabled=""><label for="attrs-b0517b46-09e1-4c4f-99f2-7fd347f36421" title="Show/Hide attributes"><svg class="icon xr-icon-file-text2"><use href="#icon-file-text2"></use></svg></label><input id="data-8d84270f-679b-4132-b19f-54c8de377f52" class="xr-var-data-in" type="checkbox"><label for="data-8d84270f-679b-4132-b19f-54c8de377f52" title="Show/Hide data repr"><svg class="icon xr-icon-database"><use href="#icon-database"></use></svg></label><div class="xr-var-attrs"><dl class="xr-attrs"></dl></div><div class="xr-var-data">
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<td></td>
-<th data-quarto-table-cell-role="th">Array</th>
-<th data-quarto-table-cell-role="th">Chunk</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Bytes</th>
-<td>8 B</td>
-<td>8 B</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Shape</th>
-<td>(1,)</td>
-<td>(1,)</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Dask graph</th>
-<td colspan="2">1 chunks in 2 graph layers</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Data type</th>
-<td colspan="2">object numpy.ndarray</td>
-</tr>
-</tbody>
-</table></td>
-<td><svg width="170" height="170" style="stroke:rgb(0,0,0);stroke-width:1">
-<!-- Horizontal lines --> <line x1="0" y1="0" x2="120" y2="0" style="stroke-width:2"></line> <line x1="0" y1="120" x2="120" y2="120" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="0" y1="0" x2="0" y2="120" style="stroke-width:2"></line> <line x1="120" y1="0" x2="120" y2="120" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="0.0,0.0 120.0,0.0 120.0,120.0 0.0,120.0" style="fill:#ECB172A0;stroke-width:0"></polygon> <!-- Text --> <text x="60.000000" y="140.000000" font-size="1.0rem" font-weight="100" text-anchor="middle">1</text> <text x="140.000000" y="60.000000" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(0,140.000000,60.000000)">1</text>
-</svg></td>
-</tr>
-</tbody>
-</table>
-</div></li><li class="xr-var-item"><div class="xr-var-name"><span>filter_description</span></div><div class="xr-var-dims">(filters)</div><div class="xr-var-dtype">object</div><div class="xr-var-preview xr-preview">dask.array&lt;chunksize=(1,), meta=np.ndarray&gt;</div><input id="attrs-e279a01a-d571-4c24-8303-b2ec015fa723" class="xr-var-attrs-in" type="checkbox" disabled=""><label for="attrs-e279a01a-d571-4c24-8303-b2ec015fa723" title="Show/Hide attributes"><svg class="icon xr-icon-file-text2"><use href="#icon-file-text2"></use></svg></label><input id="data-0d56ea7b-f53a-4fb9-bdba-aa4ee88f84df" class="xr-var-data-in" type="checkbox"><label for="data-0d56ea7b-f53a-4fb9-bdba-aa4ee88f84df" title="Show/Hide data repr"><svg class="icon xr-icon-database"><use href="#icon-database"></use></svg></label><div class="xr-var-attrs"><dl class="xr-attrs"></dl></div><div class="xr-var-data">
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<td></td>
-<th data-quarto-table-cell-role="th">Array</th>
-<th data-quarto-table-cell-role="th">Chunk</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Bytes</th>
-<td>8 B</td>
-<td>8 B</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Shape</th>
-<td>(1,)</td>
-<td>(1,)</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Dask graph</th>
-<td colspan="2">1 chunks in 2 graph layers</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Data type</th>
-<td colspan="2">object numpy.ndarray</td>
-</tr>
-</tbody>
-</table></td>
-<td><svg width="170" height="170" style="stroke:rgb(0,0,0);stroke-width:1">
-<!-- Horizontal lines --> <line x1="0" y1="0" x2="120" y2="0" style="stroke-width:2"></line> <line x1="0" y1="120" x2="120" y2="120" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="0" y1="0" x2="0" y2="120" style="stroke-width:2"></line> <line x1="120" y1="0" x2="120" y2="120" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="0.0,0.0 120.0,0.0 120.0,120.0 0.0,120.0" style="fill:#ECB172A0;stroke-width:0"></polygon> <!-- Text --> <text x="60.000000" y="140.000000" font-size="1.0rem" font-weight="100" text-anchor="middle">1</text> <text x="140.000000" y="60.000000" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(0,140.000000,60.000000)">1</text>
-</svg></td>
-</tr>
-</tbody>
-</table>
-</div></li><li class="xr-var-item"><div class="xr-var-name"><span>filter_id</span></div><div class="xr-var-dims">(filters)</div><div class="xr-var-dtype">object</div><div class="xr-var-preview xr-preview">dask.array&lt;chunksize=(1,), meta=np.ndarray&gt;</div><input id="attrs-9aaecdd4-1cce-400c-8b11-705dd91cdc00" class="xr-var-attrs-in" type="checkbox" disabled=""><label for="attrs-9aaecdd4-1cce-400c-8b11-705dd91cdc00" title="Show/Hide attributes"><svg class="icon xr-icon-file-text2"><use href="#icon-file-text2"></use></svg></label><input id="data-170b7b66-ab6b-46cf-be4f-0e612a2b0d71" class="xr-var-data-in" type="checkbox"><label for="data-170b7b66-ab6b-46cf-be4f-0e612a2b0d71" title="Show/Hide data repr"><svg class="icon xr-icon-database"><use href="#icon-database"></use></svg></label><div class="xr-var-attrs"><dl class="xr-attrs"></dl></div><div class="xr-var-data">
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<td></td>
-<th data-quarto-table-cell-role="th">Array</th>
-<th data-quarto-table-cell-role="th">Chunk</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Bytes</th>
-<td>8 B</td>
-<td>8 B</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Shape</th>
-<td>(1,)</td>
-<td>(1,)</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Dask graph</th>
-<td colspan="2">1 chunks in 2 graph layers</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Data type</th>
-<td colspan="2">object numpy.ndarray</td>
-</tr>
-</tbody>
-</table></td>
-<td><svg width="170" height="170" style="stroke:rgb(0,0,0);stroke-width:1">
-<!-- Horizontal lines --> <line x1="0" y1="0" x2="120" y2="0" style="stroke-width:2"></line> <line x1="0" y1="120" x2="120" y2="120" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="0" y1="0" x2="0" y2="120" style="stroke-width:2"></line> <line x1="120" y1="0" x2="120" y2="120" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="0.0,0.0 120.0,0.0 120.0,120.0 0.0,120.0" style="fill:#ECB172A0;stroke-width:0"></polygon> <!-- Text --> <text x="60.000000" y="140.000000" font-size="1.0rem" font-weight="100" text-anchor="middle">1</text> <text x="140.000000" y="60.000000" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(0,140.000000,60.000000)">1</text>
-</svg></td>
-</tr>
-</tbody>
-</table>
-</div></li><li class="xr-var-item"><div class="xr-var-name"><span>region_index</span></div><div class="xr-var-dims">(region_index_values, region_index_fields)</div><div class="xr-var-dtype">int32</div><div class="xr-var-preview xr-preview">dask.array&lt;chunksize=(2666, 6), meta=np.ndarray&gt;</div><input id="attrs-9492fac1-729f-4abb-b855-23664de8a3c0" class="xr-var-attrs-in" type="checkbox" disabled=""><label for="attrs-9492fac1-729f-4abb-b855-23664de8a3c0" title="Show/Hide attributes"><svg class="icon xr-icon-file-text2"><use href="#icon-file-text2"></use></svg></label><input id="data-0bc134fd-2088-4375-a92d-ddc68241c96f" class="xr-var-data-in" type="checkbox"><label for="data-0bc134fd-2088-4375-a92d-ddc68241c96f" title="Show/Hide data repr"><svg class="icon xr-icon-database"><use href="#icon-database"></use></svg></label><div class="xr-var-attrs"><dl class="xr-attrs"></dl></div><div class="xr-var-data">
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<td></td>
-<th data-quarto-table-cell-role="th">Array</th>
-<th data-quarto-table-cell-role="th">Chunk</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Bytes</th>
-<td>62.48 kiB</td>
-<td>62.48 kiB</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Shape</th>
-<td>(2666, 6)</td>
-<td>(2666, 6)</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Dask graph</th>
-<td colspan="2">1 chunks in 2 graph layers</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Data type</th>
-<td colspan="2">int32 numpy.ndarray</td>
-</tr>
-</tbody>
-</table></td>
-<td><svg width="75" height="170" style="stroke:rgb(0,0,0);stroke-width:1">
-<!-- Horizontal lines --> <line x1="0" y1="0" x2="25" y2="0" style="stroke-width:2"></line> <line x1="0" y1="120" x2="25" y2="120" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="0" y1="0" x2="0" y2="120" style="stroke-width:2"></line> <line x1="25" y1="0" x2="25" y2="120" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="0.0,0.0 25.412616514582485,0.0 25.412616514582485,120.0 0.0,120.0" style="fill:#ECB172A0;stroke-width:0"></polygon> <!-- Text --> <text x="12.706308" y="140.000000" font-size="1.0rem" font-weight="100" text-anchor="middle">6</text> <text x="45.412617" y="60.000000" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(-90,45.412617,60.000000)">2666</text>
-</svg></td>
-</tr>
-</tbody>
-</table>
-</div></li><li class="xr-var-item"><div class="xr-var-name"><span>sample_id</span></div><div class="xr-var-dims">(samples)</div><div class="xr-var-dtype">object</div><div class="xr-var-preview xr-preview">dask.array&lt;chunksize=(227,), meta=np.ndarray&gt;</div><input id="attrs-8ab52fbc-3129-4a72-a8fb-66836357cb24" class="xr-var-attrs-in" type="checkbox" disabled=""><label for="attrs-8ab52fbc-3129-4a72-a8fb-66836357cb24" title="Show/Hide attributes"><svg class="icon xr-icon-file-text2"><use href="#icon-file-text2"></use></svg></label><input id="data-bfab4f52-8c88-4719-a07d-8c56fd797976" class="xr-var-data-in" type="checkbox"><label for="data-bfab4f52-8c88-4719-a07d-8c56fd797976" title="Show/Hide data repr"><svg class="icon xr-icon-database"><use href="#icon-database"></use></svg></label><div class="xr-var-attrs"><dl class="xr-attrs"></dl></div><div class="xr-var-data">
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<td></td>
-<th data-quarto-table-cell-role="th">Array</th>
-<th data-quarto-table-cell-role="th">Chunk</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Bytes</th>
-<td>1.77 kiB</td>
-<td>1.77 kiB</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Shape</th>
-<td>(227,)</td>
-<td>(227,)</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Dask graph</th>
-<td colspan="2">1 chunks in 2 graph layers</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Data type</th>
-<td colspan="2">object numpy.ndarray</td>
-</tr>
-</tbody>
-</table></td>
-<td><svg width="170" height="75" style="stroke:rgb(0,0,0);stroke-width:1">
-<!-- Horizontal lines --> <line x1="0" y1="0" x2="120" y2="0" style="stroke-width:2"></line> <line x1="0" y1="25" x2="120" y2="25" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="0" y1="0" x2="0" y2="25" style="stroke-width:2"></line> <line x1="120" y1="0" x2="120" y2="25" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="0.0,0.0 120.0,0.0 120.0,25.412616514582485 0.0,25.412616514582485" style="fill:#ECB172A0;stroke-width:0"></polygon> <!-- Text --> <text x="60.000000" y="45.412617" font-size="1.0rem" font-weight="100" text-anchor="middle">227</text> <text x="140.000000" y="12.706308" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(0,140.000000,12.706308)">1</text>
-</svg></td>
-</tr>
-</tbody>
-</table>
-</div></li><li class="xr-var-item"><div class="xr-var-name"><span>variant_AC</span></div><div class="xr-var-dims">(variants)</div><div class="xr-var-dtype">int16</div><div class="xr-var-preview xr-preview">dask.array&lt;chunksize=(1000,), meta=np.ndarray&gt;</div><input id="attrs-aa797549-6f6a-43cb-a6c0-ed9ccd6d5b91" class="xr-var-attrs-in" type="checkbox"><label for="attrs-aa797549-6f6a-43cb-a6c0-ed9ccd6d5b91" title="Show/Hide attributes"><svg class="icon xr-icon-file-text2"><use href="#icon-file-text2"></use></svg></label><input id="data-26b9aa6b-bfef-4506-8f07-ee68ff703cd2" class="xr-var-data-in" type="checkbox"><label for="data-26b9aa6b-bfef-4506-8f07-ee68ff703cd2" title="Show/Hide data repr"><svg class="icon xr-icon-database"><use href="#icon-database"></use></svg></label><div class="xr-var-attrs"><dl class="xr-attrs"><dt><span>description :</span></dt><dd>Allele count</dd></dl></div><div class="xr-var-data">
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<td></td>
-<th data-quarto-table-cell-role="th">Array</th>
-<th data-quarto-table-cell-role="th">Chunk</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Bytes</th>
-<td>5.08 MiB</td>
-<td>1.95 kiB</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Shape</th>
-<td>(2665269,)</td>
-<td>(1000,)</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Dask graph</th>
-<td colspan="2">2666 chunks in 2 graph layers</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Data type</th>
-<td colspan="2">int16 numpy.ndarray</td>
-</tr>
-</tbody>
-</table></td>
-<td><svg width="170" height="75" style="stroke:rgb(0,0,0);stroke-width:1">
-<!-- Horizontal lines --> <line x1="0" y1="0" x2="120" y2="0" style="stroke-width:2"></line> <line x1="0" y1="25" x2="120" y2="25" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="0" y1="0" x2="0" y2="25" style="stroke-width:2"></line> <line x1="6" y1="0" x2="6" y2="25"></line> <line x1="12" y1="0" x2="12" y2="25"></line> <line x1="18" y1="0" x2="18" y2="25"></line> <line x1="25" y1="0" x2="25" y2="25"></line> <line x1="31" y1="0" x2="31" y2="25"></line> <line x1="37" y1="0" x2="37" y2="25"></line> <line x1="44" y1="0" x2="44" y2="25"></line> <line x1="50" y1="0" x2="50" y2="25"></line> <line x1="56" y1="0" x2="56" y2="25"></line> <line x1="63" y1="0" x2="63" y2="25"></line> <line x1="69" y1="0" x2="69" y2="25"></line> <line x1="75" y1="0" x2="75" y2="25"></line> <line x1="82" y1="0" x2="82" y2="25"></line> <line x1="88" y1="0" x2="88" y2="25"></line> <line x1="94" y1="0" x2="94" y2="25"></line> <line x1="101" y1="0" x2="101" y2="25"></line> <line x1="107" y1="0" x2="107" y2="25"></line> <line x1="113" y1="0" x2="113" y2="25"></line> <line x1="120" y1="0" x2="120" y2="25" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="0.0,0.0 120.0,0.0 120.0,25.412616514582485 0.0,25.412616514582485" style="fill:#8B4903A0;stroke-width:0"></polygon> <!-- Text --> <text x="60.000000" y="45.412617" font-size="1.0rem" font-weight="100" text-anchor="middle">2665269</text> <text x="140.000000" y="12.706308" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(0,140.000000,12.706308)">1</text>
-</svg></td>
-</tr>
-</tbody>
-</table>
-</div></li><li class="xr-var-item"><div class="xr-var-name"><span>variant_AF</span></div><div class="xr-var-dims">(variants, alt_alleles)</div><div class="xr-var-dtype">float32</div><div class="xr-var-preview xr-preview">dask.array&lt;chunksize=(1000, 1), meta=np.ndarray&gt;</div><input id="attrs-c02101a4-be8c-431f-9252-ccb66415eb8a" class="xr-var-attrs-in" type="checkbox"><label for="attrs-c02101a4-be8c-431f-9252-ccb66415eb8a" title="Show/Hide attributes"><svg class="icon xr-icon-file-text2"><use href="#icon-file-text2"></use></svg></label><input id="data-941474af-3905-4509-b529-2116b955eefe" class="xr-var-data-in" type="checkbox"><label for="data-941474af-3905-4509-b529-2116b955eefe" title="Show/Hide data repr"><svg class="icon xr-icon-database"><use href="#icon-database"></use></svg></label><div class="xr-var-attrs"><dl class="xr-attrs"><dt><span>description :</span></dt><dd>Allele Frequency</dd></dl></div><div class="xr-var-data">
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<td></td>
-<th data-quarto-table-cell-role="th">Array</th>
-<th data-quarto-table-cell-role="th">Chunk</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Bytes</th>
-<td>10.17 MiB</td>
-<td>3.91 kiB</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Shape</th>
-<td>(2665269, 1)</td>
-<td>(1000, 1)</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Dask graph</th>
-<td colspan="2">2666 chunks in 2 graph layers</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Data type</th>
-<td colspan="2">float32 numpy.ndarray</td>
-</tr>
-</tbody>
-</table></td>
-<td><svg width="75" height="170" style="stroke:rgb(0,0,0);stroke-width:1">
-<!-- Horizontal lines --> <line x1="0" y1="0" x2="25" y2="0" style="stroke-width:2"></line> <line x1="0" y1="6" x2="25" y2="6"></line> <line x1="0" y1="12" x2="25" y2="12"></line> <line x1="0" y1="18" x2="25" y2="18"></line> <line x1="0" y1="25" x2="25" y2="25"></line> <line x1="0" y1="31" x2="25" y2="31"></line> <line x1="0" y1="37" x2="25" y2="37"></line> <line x1="0" y1="44" x2="25" y2="44"></line> <line x1="0" y1="50" x2="25" y2="50"></line> <line x1="0" y1="56" x2="25" y2="56"></line> <line x1="0" y1="63" x2="25" y2="63"></line> <line x1="0" y1="69" x2="25" y2="69"></line> <line x1="0" y1="75" x2="25" y2="75"></line> <line x1="0" y1="82" x2="25" y2="82"></line> <line x1="0" y1="88" x2="25" y2="88"></line> <line x1="0" y1="94" x2="25" y2="94"></line> <line x1="0" y1="101" x2="25" y2="101"></line> <line x1="0" y1="107" x2="25" y2="107"></line> <line x1="0" y1="113" x2="25" y2="113"></line> <line x1="0" y1="120" x2="25" y2="120" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="0" y1="0" x2="0" y2="120" style="stroke-width:2"></line> <line x1="25" y1="0" x2="25" y2="120" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="0.0,0.0 25.412616514582485,0.0 25.412616514582485,120.0 0.0,120.0" style="fill:#8B4903A0;stroke-width:0"></polygon> <!-- Text --> <text x="12.706308" y="140.000000" font-size="1.0rem" font-weight="100" text-anchor="middle">1</text> <text x="45.412617" y="60.000000" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(-90,45.412617,60.000000)">2665269</text>
-</svg></td>
-</tr>
-</tbody>
-</table>
-</div></li><li class="xr-var-item"><div class="xr-var-name"><span>variant_CM</span></div><div class="xr-var-dims">(variants, alt_alleles)</div><div class="xr-var-dtype">float32</div><div class="xr-var-preview xr-preview">dask.array&lt;chunksize=(1000, 1), meta=np.ndarray&gt;</div><input id="attrs-ce39928a-30ce-425b-8e60-208c0ee0bbc3" class="xr-var-attrs-in" type="checkbox"><label for="attrs-ce39928a-30ce-425b-8e60-208c0ee0bbc3" title="Show/Hide attributes"><svg class="icon xr-icon-file-text2"><use href="#icon-file-text2"></use></svg></label><input id="data-7b1219dd-aa0d-4b48-ada4-7d47d8bfef8c" class="xr-var-data-in" type="checkbox"><label for="data-7b1219dd-aa0d-4b48-ada4-7d47d8bfef8c" title="Show/Hide data repr"><svg class="icon xr-icon-database"><use href="#icon-database"></use></svg></label><div class="xr-var-attrs"><dl class="xr-attrs"><dt><span>description :</span></dt><dd>Interpolated cM position</dd></dl></div><div class="xr-var-data">
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<td></td>
-<th data-quarto-table-cell-role="th">Array</th>
-<th data-quarto-table-cell-role="th">Chunk</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Bytes</th>
-<td>10.17 MiB</td>
-<td>3.91 kiB</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Shape</th>
-<td>(2665269, 1)</td>
-<td>(1000, 1)</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Dask graph</th>
-<td colspan="2">2666 chunks in 2 graph layers</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Data type</th>
-<td colspan="2">float32 numpy.ndarray</td>
-</tr>
-</tbody>
-</table></td>
-<td><svg width="75" height="170" style="stroke:rgb(0,0,0);stroke-width:1">
-<!-- Horizontal lines --> <line x1="0" y1="0" x2="25" y2="0" style="stroke-width:2"></line> <line x1="0" y1="6" x2="25" y2="6"></line> <line x1="0" y1="12" x2="25" y2="12"></line> <line x1="0" y1="18" x2="25" y2="18"></line> <line x1="0" y1="25" x2="25" y2="25"></line> <line x1="0" y1="31" x2="25" y2="31"></line> <line x1="0" y1="37" x2="25" y2="37"></line> <line x1="0" y1="44" x2="25" y2="44"></line> <line x1="0" y1="50" x2="25" y2="50"></line> <line x1="0" y1="56" x2="25" y2="56"></line> <line x1="0" y1="63" x2="25" y2="63"></line> <line x1="0" y1="69" x2="25" y2="69"></line> <line x1="0" y1="75" x2="25" y2="75"></line> <line x1="0" y1="82" x2="25" y2="82"></line> <line x1="0" y1="88" x2="25" y2="88"></line> <line x1="0" y1="94" x2="25" y2="94"></line> <line x1="0" y1="101" x2="25" y2="101"></line> <line x1="0" y1="107" x2="25" y2="107"></line> <line x1="0" y1="113" x2="25" y2="113"></line> <line x1="0" y1="120" x2="25" y2="120" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="0" y1="0" x2="0" y2="120" style="stroke-width:2"></line> <line x1="25" y1="0" x2="25" y2="120" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="0.0,0.0 25.412616514582485,0.0 25.412616514582485,120.0 0.0,120.0" style="fill:#8B4903A0;stroke-width:0"></polygon> <!-- Text --> <text x="12.706308" y="140.000000" font-size="1.0rem" font-weight="100" text-anchor="middle">1</text> <text x="45.412617" y="60.000000" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(-90,45.412617,60.000000)">2665269</text>
-</svg></td>
-</tr>
-</tbody>
-</table>
-</div></li><li class="xr-var-item"><div class="xr-var-name"><span>variant_allele</span></div><div class="xr-var-dims">(variants, alleles)</div><div class="xr-var-dtype">object</div><div class="xr-var-preview xr-preview">dask.array&lt;chunksize=(1000, 2), meta=np.ndarray&gt;</div><input id="attrs-e9cd7074-c1c3-4201-bd5e-c3bd0c9f900c" class="xr-var-attrs-in" type="checkbox"><label for="attrs-e9cd7074-c1c3-4201-bd5e-c3bd0c9f900c" title="Show/Hide attributes"><svg class="icon xr-icon-file-text2"><use href="#icon-file-text2"></use></svg></label><input id="data-cad27f52-69dc-4467-a3de-9c9977e81d27" class="xr-var-data-in" type="checkbox"><label for="data-cad27f52-69dc-4467-a3de-9c9977e81d27" title="Show/Hide data repr"><svg class="icon xr-icon-database"><use href="#icon-database"></use></svg></label><div class="xr-var-attrs"><dl class="xr-attrs"><dt><span>description :</span></dt><dd>List of the reference and alternate alleles</dd></dl></div><div class="xr-var-data">
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<td></td>
-<th data-quarto-table-cell-role="th">Array</th>
-<th data-quarto-table-cell-role="th">Chunk</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Bytes</th>
-<td>40.67 MiB</td>
-<td>15.62 kiB</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Shape</th>
-<td>(2665269, 2)</td>
-<td>(1000, 2)</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Dask graph</th>
-<td colspan="2">2666 chunks in 2 graph layers</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Data type</th>
-<td colspan="2">object numpy.ndarray</td>
-</tr>
-</tbody>
-</table></td>
-<td><svg width="75" height="170" style="stroke:rgb(0,0,0);stroke-width:1">
-<!-- Horizontal lines --> <line x1="0" y1="0" x2="25" y2="0" style="stroke-width:2"></line> <line x1="0" y1="6" x2="25" y2="6"></line> <line x1="0" y1="12" x2="25" y2="12"></line> <line x1="0" y1="18" x2="25" y2="18"></line> <line x1="0" y1="25" x2="25" y2="25"></line> <line x1="0" y1="31" x2="25" y2="31"></line> <line x1="0" y1="37" x2="25" y2="37"></line> <line x1="0" y1="44" x2="25" y2="44"></line> <line x1="0" y1="50" x2="25" y2="50"></line> <line x1="0" y1="56" x2="25" y2="56"></line> <line x1="0" y1="63" x2="25" y2="63"></line> <line x1="0" y1="69" x2="25" y2="69"></line> <line x1="0" y1="75" x2="25" y2="75"></line> <line x1="0" y1="82" x2="25" y2="82"></line> <line x1="0" y1="88" x2="25" y2="88"></line> <line x1="0" y1="94" x2="25" y2="94"></line> <line x1="0" y1="101" x2="25" y2="101"></line> <line x1="0" y1="107" x2="25" y2="107"></line> <line x1="0" y1="113" x2="25" y2="113"></line> <line x1="0" y1="120" x2="25" y2="120" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="0" y1="0" x2="0" y2="120" style="stroke-width:2"></line> <line x1="25" y1="0" x2="25" y2="120" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="0.0,0.0 25.412616514582485,0.0 25.412616514582485,120.0 0.0,120.0" style="fill:#8B4903A0;stroke-width:0"></polygon> <!-- Text --> <text x="12.706308" y="140.000000" font-size="1.0rem" font-weight="100" text-anchor="middle">2</text> <text x="45.412617" y="60.000000" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(-90,45.412617,60.000000)">2665269</text>
-</svg></td>
-</tr>
-</tbody>
-</table>
-</div></li><li class="xr-var-item"><div class="xr-var-name"><span>variant_contig</span></div><div class="xr-var-dims">(variants)</div><div class="xr-var-dtype">int8</div><div class="xr-var-preview xr-preview">dask.array&lt;chunksize=(1000,), meta=np.ndarray&gt;</div><input id="attrs-b857edb9-1c0f-4dc6-b70b-715149f6e0fc" class="xr-var-attrs-in" type="checkbox"><label for="attrs-b857edb9-1c0f-4dc6-b70b-715149f6e0fc" title="Show/Hide attributes"><svg class="icon xr-icon-file-text2"><use href="#icon-file-text2"></use></svg></label><input id="data-629c4443-84a3-49fd-9c51-4a4969fdb5d2" class="xr-var-data-in" type="checkbox"><label for="data-629c4443-84a3-49fd-9c51-4a4969fdb5d2" title="Show/Hide data repr"><svg class="icon xr-icon-database"><use href="#icon-database"></use></svg></label><div class="xr-var-attrs"><dl class="xr-attrs"><dt><span>description :</span></dt><dd>An identifier from the reference genome or an angle-bracketed ID string pointing to a contig in the assembly file</dd></dl></div><div class="xr-var-data">
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<td></td>
-<th data-quarto-table-cell-role="th">Array</th>
-<th data-quarto-table-cell-role="th">Chunk</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Bytes</th>
-<td>2.54 MiB</td>
-<td>0.98 kiB</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Shape</th>
-<td>(2665269,)</td>
-<td>(1000,)</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Dask graph</th>
-<td colspan="2">2666 chunks in 2 graph layers</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Data type</th>
-<td colspan="2">int8 numpy.ndarray</td>
-</tr>
-</tbody>
-</table></td>
-<td><svg width="170" height="75" style="stroke:rgb(0,0,0);stroke-width:1">
-<!-- Horizontal lines --> <line x1="0" y1="0" x2="120" y2="0" style="stroke-width:2"></line> <line x1="0" y1="25" x2="120" y2="25" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="0" y1="0" x2="0" y2="25" style="stroke-width:2"></line> <line x1="6" y1="0" x2="6" y2="25"></line> <line x1="12" y1="0" x2="12" y2="25"></line> <line x1="18" y1="0" x2="18" y2="25"></line> <line x1="25" y1="0" x2="25" y2="25"></line> <line x1="31" y1="0" x2="31" y2="25"></line> <line x1="37" y1="0" x2="37" y2="25"></line> <line x1="44" y1="0" x2="44" y2="25"></line> <line x1="50" y1="0" x2="50" y2="25"></line> <line x1="56" y1="0" x2="56" y2="25"></line> <line x1="63" y1="0" x2="63" y2="25"></line> <line x1="69" y1="0" x2="69" y2="25"></line> <line x1="75" y1="0" x2="75" y2="25"></line> <line x1="82" y1="0" x2="82" y2="25"></line> <line x1="88" y1="0" x2="88" y2="25"></line> <line x1="94" y1="0" x2="94" y2="25"></line> <line x1="101" y1="0" x2="101" y2="25"></line> <line x1="107" y1="0" x2="107" y2="25"></line> <line x1="113" y1="0" x2="113" y2="25"></line> <line x1="120" y1="0" x2="120" y2="25" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="0.0,0.0 120.0,0.0 120.0,25.412616514582485 0.0,25.412616514582485" style="fill:#8B4903A0;stroke-width:0"></polygon> <!-- Text --> <text x="60.000000" y="45.412617" font-size="1.0rem" font-weight="100" text-anchor="middle">2665269</text> <text x="140.000000" y="12.706308" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(0,140.000000,12.706308)">1</text>
-</svg></td>
-</tr>
-</tbody>
-</table>
-</div></li><li class="xr-var-item"><div class="xr-var-name"><span>variant_filter</span></div><div class="xr-var-dims">(variants, filters)</div><div class="xr-var-dtype">bool</div><div class="xr-var-preview xr-preview">dask.array&lt;chunksize=(1000, 1), meta=np.ndarray&gt;</div><input id="attrs-99b5474c-fcc5-41ee-8574-3ba2776d06ec" class="xr-var-attrs-in" type="checkbox"><label for="attrs-99b5474c-fcc5-41ee-8574-3ba2776d06ec" title="Show/Hide attributes"><svg class="icon xr-icon-file-text2"><use href="#icon-file-text2"></use></svg></label><input id="data-31c67161-455b-497d-b20f-b6b4abeefbec" class="xr-var-data-in" type="checkbox"><label for="data-31c67161-455b-497d-b20f-b6b4abeefbec" title="Show/Hide data repr"><svg class="icon xr-icon-database"><use href="#icon-database"></use></svg></label><div class="xr-var-attrs"><dl class="xr-attrs"><dt><span>description :</span></dt><dd>Filter status of the variant</dd></dl></div><div class="xr-var-data">
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<td></td>
-<th data-quarto-table-cell-role="th">Array</th>
-<th data-quarto-table-cell-role="th">Chunk</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Bytes</th>
-<td>2.54 MiB</td>
-<td>0.98 kiB</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Shape</th>
-<td>(2665269, 1)</td>
-<td>(1000, 1)</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Dask graph</th>
-<td colspan="2">2666 chunks in 2 graph layers</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Data type</th>
-<td colspan="2">bool numpy.ndarray</td>
-</tr>
-</tbody>
-</table></td>
-<td><svg width="75" height="170" style="stroke:rgb(0,0,0);stroke-width:1">
-<!-- Horizontal lines --> <line x1="0" y1="0" x2="25" y2="0" style="stroke-width:2"></line> <line x1="0" y1="6" x2="25" y2="6"></line> <line x1="0" y1="12" x2="25" y2="12"></line> <line x1="0" y1="18" x2="25" y2="18"></line> <line x1="0" y1="25" x2="25" y2="25"></line> <line x1="0" y1="31" x2="25" y2="31"></line> <line x1="0" y1="37" x2="25" y2="37"></line> <line x1="0" y1="44" x2="25" y2="44"></line> <line x1="0" y1="50" x2="25" y2="50"></line> <line x1="0" y1="56" x2="25" y2="56"></line> <line x1="0" y1="63" x2="25" y2="63"></line> <line x1="0" y1="69" x2="25" y2="69"></line> <line x1="0" y1="75" x2="25" y2="75"></line> <line x1="0" y1="82" x2="25" y2="82"></line> <line x1="0" y1="88" x2="25" y2="88"></line> <line x1="0" y1="94" x2="25" y2="94"></line> <line x1="0" y1="101" x2="25" y2="101"></line> <line x1="0" y1="107" x2="25" y2="107"></line> <line x1="0" y1="113" x2="25" y2="113"></line> <line x1="0" y1="120" x2="25" y2="120" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="0" y1="0" x2="0" y2="120" style="stroke-width:2"></line> <line x1="25" y1="0" x2="25" y2="120" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="0.0,0.0 25.412616514582485,0.0 25.412616514582485,120.0 0.0,120.0" style="fill:#8B4903A0;stroke-width:0"></polygon> <!-- Text --> <text x="12.706308" y="140.000000" font-size="1.0rem" font-weight="100" text-anchor="middle">1</text> <text x="45.412617" y="60.000000" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(-90,45.412617,60.000000)">2665269</text>
-</svg></td>
-</tr>
-</tbody>
-</table>
-</div></li><li class="xr-var-item"><div class="xr-var-name"><span>variant_id</span></div><div class="xr-var-dims">(variants)</div><div class="xr-var-dtype">object</div><div class="xr-var-preview xr-preview">dask.array&lt;chunksize=(1000,), meta=np.ndarray&gt;</div><input id="attrs-62ea2653-8ed2-4ff0-ab4f-6dedbfa65665" class="xr-var-attrs-in" type="checkbox"><label for="attrs-62ea2653-8ed2-4ff0-ab4f-6dedbfa65665" title="Show/Hide attributes"><svg class="icon xr-icon-file-text2"><use href="#icon-file-text2"></use></svg></label><input id="data-84281ab8-4be3-4523-84c5-514bfe57693b" class="xr-var-data-in" type="checkbox"><label for="data-84281ab8-4be3-4523-84c5-514bfe57693b" title="Show/Hide data repr"><svg class="icon xr-icon-database"><use href="#icon-database"></use></svg></label><div class="xr-var-attrs"><dl class="xr-attrs"><dt><span>description :</span></dt><dd>List of unique identifiers where applicable</dd></dl></div><div class="xr-var-data">
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<td></td>
-<th data-quarto-table-cell-role="th">Array</th>
-<th data-quarto-table-cell-role="th">Chunk</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Bytes</th>
-<td>20.33 MiB</td>
-<td>7.81 kiB</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Shape</th>
-<td>(2665269,)</td>
-<td>(1000,)</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Dask graph</th>
-<td colspan="2">2666 chunks in 2 graph layers</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Data type</th>
-<td colspan="2">object numpy.ndarray</td>
-</tr>
-</tbody>
-</table></td>
-<td><svg width="170" height="75" style="stroke:rgb(0,0,0);stroke-width:1">
-<!-- Horizontal lines --> <line x1="0" y1="0" x2="120" y2="0" style="stroke-width:2"></line> <line x1="0" y1="25" x2="120" y2="25" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="0" y1="0" x2="0" y2="25" style="stroke-width:2"></line> <line x1="6" y1="0" x2="6" y2="25"></line> <line x1="12" y1="0" x2="12" y2="25"></line> <line x1="18" y1="0" x2="18" y2="25"></line> <line x1="25" y1="0" x2="25" y2="25"></line> <line x1="31" y1="0" x2="31" y2="25"></line> <line x1="37" y1="0" x2="37" y2="25"></line> <line x1="44" y1="0" x2="44" y2="25"></line> <line x1="50" y1="0" x2="50" y2="25"></line> <line x1="56" y1="0" x2="56" y2="25"></line> <line x1="63" y1="0" x2="63" y2="25"></line> <line x1="69" y1="0" x2="69" y2="25"></line> <line x1="75" y1="0" x2="75" y2="25"></line> <line x1="82" y1="0" x2="82" y2="25"></line> <line x1="88" y1="0" x2="88" y2="25"></line> <line x1="94" y1="0" x2="94" y2="25"></line> <line x1="101" y1="0" x2="101" y2="25"></line> <line x1="107" y1="0" x2="107" y2="25"></line> <line x1="113" y1="0" x2="113" y2="25"></line> <line x1="120" y1="0" x2="120" y2="25" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="0.0,0.0 120.0,0.0 120.0,25.412616514582485 0.0,25.412616514582485" style="fill:#8B4903A0;stroke-width:0"></polygon> <!-- Text --> <text x="60.000000" y="45.412617" font-size="1.0rem" font-weight="100" text-anchor="middle">2665269</text> <text x="140.000000" y="12.706308" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(0,140.000000,12.706308)">1</text>
-</svg></td>
-</tr>
-</tbody>
-</table>
-</div></li><li class="xr-var-item"><div class="xr-var-name"><span>variant_id_mask</span></div><div class="xr-var-dims">(variants)</div><div class="xr-var-dtype">bool</div><div class="xr-var-preview xr-preview">dask.array&lt;chunksize=(1000,), meta=np.ndarray&gt;</div><input id="attrs-1c80cdf7-87da-4ddc-b855-7d60aa970721" class="xr-var-attrs-in" type="checkbox"><label for="attrs-1c80cdf7-87da-4ddc-b855-7d60aa970721" title="Show/Hide attributes"><svg class="icon xr-icon-file-text2"><use href="#icon-file-text2"></use></svg></label><input id="data-8004b992-d4a8-46ee-ad34-d3b021d9f139" class="xr-var-data-in" type="checkbox"><label for="data-8004b992-d4a8-46ee-ad34-d3b021d9f139" title="Show/Hide data repr"><svg class="icon xr-icon-database"><use href="#icon-database"></use></svg></label><div class="xr-var-attrs"><dl class="xr-attrs"><dt><span>description :</span></dt><dd></dd></dl></div><div class="xr-var-data">
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<td></td>
-<th data-quarto-table-cell-role="th">Array</th>
-<th data-quarto-table-cell-role="th">Chunk</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Bytes</th>
-<td>2.54 MiB</td>
-<td>0.98 kiB</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Shape</th>
-<td>(2665269,)</td>
-<td>(1000,)</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Dask graph</th>
-<td colspan="2">2666 chunks in 2 graph layers</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Data type</th>
-<td colspan="2">bool numpy.ndarray</td>
-</tr>
-</tbody>
-</table></td>
-<td><svg width="170" height="75" style="stroke:rgb(0,0,0);stroke-width:1">
-<!-- Horizontal lines --> <line x1="0" y1="0" x2="120" y2="0" style="stroke-width:2"></line> <line x1="0" y1="25" x2="120" y2="25" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="0" y1="0" x2="0" y2="25" style="stroke-width:2"></line> <line x1="6" y1="0" x2="6" y2="25"></line> <line x1="12" y1="0" x2="12" y2="25"></line> <line x1="18" y1="0" x2="18" y2="25"></line> <line x1="25" y1="0" x2="25" y2="25"></line> <line x1="31" y1="0" x2="31" y2="25"></line> <line x1="37" y1="0" x2="37" y2="25"></line> <line x1="44" y1="0" x2="44" y2="25"></line> <line x1="50" y1="0" x2="50" y2="25"></line> <line x1="56" y1="0" x2="56" y2="25"></line> <line x1="63" y1="0" x2="63" y2="25"></line> <line x1="69" y1="0" x2="69" y2="25"></line> <line x1="75" y1="0" x2="75" y2="25"></line> <line x1="82" y1="0" x2="82" y2="25"></line> <line x1="88" y1="0" x2="88" y2="25"></line> <line x1="94" y1="0" x2="94" y2="25"></line> <line x1="101" y1="0" x2="101" y2="25"></line> <line x1="107" y1="0" x2="107" y2="25"></line> <line x1="113" y1="0" x2="113" y2="25"></line> <line x1="120" y1="0" x2="120" y2="25" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="0.0,0.0 120.0,0.0 120.0,25.412616514582485 0.0,25.412616514582485" style="fill:#8B4903A0;stroke-width:0"></polygon> <!-- Text --> <text x="60.000000" y="45.412617" font-size="1.0rem" font-weight="100" text-anchor="middle">2665269</text> <text x="140.000000" y="12.706308" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(0,140.000000,12.706308)">1</text>
-</svg></td>
-</tr>
-</tbody>
-</table>
-</div></li><li class="xr-var-item"><div class="xr-var-name"><span>variant_length</span></div><div class="xr-var-dims">(variants)</div><div class="xr-var-dtype">int8</div><div class="xr-var-preview xr-preview">dask.array&lt;chunksize=(1000,), meta=np.ndarray&gt;</div><input id="attrs-9c684c58-ed1f-4554-aab0-d3c500d0c2c0" class="xr-var-attrs-in" type="checkbox"><label for="attrs-9c684c58-ed1f-4554-aab0-d3c500d0c2c0" title="Show/Hide attributes"><svg class="icon xr-icon-file-text2"><use href="#icon-file-text2"></use></svg></label><input id="data-68eb58e6-8e6c-4119-9985-76fd682c8a1a" class="xr-var-data-in" type="checkbox"><label for="data-68eb58e6-8e6c-4119-9985-76fd682c8a1a" title="Show/Hide data repr"><svg class="icon xr-icon-database"><use href="#icon-database"></use></svg></label><div class="xr-var-attrs"><dl class="xr-attrs"><dt><span>description :</span></dt><dd>The length of the variant measured in bases</dd></dl></div><div class="xr-var-data">
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<td></td>
-<th data-quarto-table-cell-role="th">Array</th>
-<th data-quarto-table-cell-role="th">Chunk</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Bytes</th>
-<td>2.54 MiB</td>
-<td>0.98 kiB</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Shape</th>
-<td>(2665269,)</td>
-<td>(1000,)</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Dask graph</th>
-<td colspan="2">2666 chunks in 2 graph layers</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Data type</th>
-<td colspan="2">int8 numpy.ndarray</td>
-</tr>
-</tbody>
-</table></td>
-<td><svg width="170" height="75" style="stroke:rgb(0,0,0);stroke-width:1">
-<!-- Horizontal lines --> <line x1="0" y1="0" x2="120" y2="0" style="stroke-width:2"></line> <line x1="0" y1="25" x2="120" y2="25" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="0" y1="0" x2="0" y2="25" style="stroke-width:2"></line> <line x1="6" y1="0" x2="6" y2="25"></line> <line x1="12" y1="0" x2="12" y2="25"></line> <line x1="18" y1="0" x2="18" y2="25"></line> <line x1="25" y1="0" x2="25" y2="25"></line> <line x1="31" y1="0" x2="31" y2="25"></line> <line x1="37" y1="0" x2="37" y2="25"></line> <line x1="44" y1="0" x2="44" y2="25"></line> <line x1="50" y1="0" x2="50" y2="25"></line> <line x1="56" y1="0" x2="56" y2="25"></line> <line x1="63" y1="0" x2="63" y2="25"></line> <line x1="69" y1="0" x2="69" y2="25"></line> <line x1="75" y1="0" x2="75" y2="25"></line> <line x1="82" y1="0" x2="82" y2="25"></line> <line x1="88" y1="0" x2="88" y2="25"></line> <line x1="94" y1="0" x2="94" y2="25"></line> <line x1="101" y1="0" x2="101" y2="25"></line> <line x1="107" y1="0" x2="107" y2="25"></line> <line x1="113" y1="0" x2="113" y2="25"></line> <line x1="120" y1="0" x2="120" y2="25" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="0.0,0.0 120.0,0.0 120.0,25.412616514582485 0.0,25.412616514582485" style="fill:#8B4903A0;stroke-width:0"></polygon> <!-- Text --> <text x="60.000000" y="45.412617" font-size="1.0rem" font-weight="100" text-anchor="middle">2665269</text> <text x="140.000000" y="12.706308" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(0,140.000000,12.706308)">1</text>
-</svg></td>
-</tr>
-</tbody>
-</table>
-</div></li><li class="xr-var-item"><div class="xr-var-name"><span>variant_position</span></div><div class="xr-var-dims">(variants)</div><div class="xr-var-dtype">int32</div><div class="xr-var-preview xr-preview">dask.array&lt;chunksize=(1000,), meta=np.ndarray&gt;</div><input id="attrs-c6f5323b-6bc9-4c07-8191-1525c539ad4e" class="xr-var-attrs-in" type="checkbox"><label for="attrs-c6f5323b-6bc9-4c07-8191-1525c539ad4e" title="Show/Hide attributes"><svg class="icon xr-icon-file-text2"><use href="#icon-file-text2"></use></svg></label><input id="data-0aa2722e-6665-4532-83fe-01652482fef0" class="xr-var-data-in" type="checkbox"><label for="data-0aa2722e-6665-4532-83fe-01652482fef0" title="Show/Hide data repr"><svg class="icon xr-icon-database"><use href="#icon-database"></use></svg></label><div class="xr-var-attrs"><dl class="xr-attrs"><dt><span>description :</span></dt><dd>The reference position</dd></dl></div><div class="xr-var-data">
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<td></td>
-<th data-quarto-table-cell-role="th">Array</th>
-<th data-quarto-table-cell-role="th">Chunk</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Bytes</th>
-<td>10.17 MiB</td>
-<td>3.91 kiB</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Shape</th>
-<td>(2665269,)</td>
-<td>(1000,)</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Dask graph</th>
-<td colspan="2">2666 chunks in 2 graph layers</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Data type</th>
-<td colspan="2">int32 numpy.ndarray</td>
-</tr>
-</tbody>
-</table></td>
-<td><svg width="170" height="75" style="stroke:rgb(0,0,0);stroke-width:1">
-<!-- Horizontal lines --> <line x1="0" y1="0" x2="120" y2="0" style="stroke-width:2"></line> <line x1="0" y1="25" x2="120" y2="25" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="0" y1="0" x2="0" y2="25" style="stroke-width:2"></line> <line x1="6" y1="0" x2="6" y2="25"></line> <line x1="12" y1="0" x2="12" y2="25"></line> <line x1="18" y1="0" x2="18" y2="25"></line> <line x1="25" y1="0" x2="25" y2="25"></line> <line x1="31" y1="0" x2="31" y2="25"></line> <line x1="37" y1="0" x2="37" y2="25"></line> <line x1="44" y1="0" x2="44" y2="25"></line> <line x1="50" y1="0" x2="50" y2="25"></line> <line x1="56" y1="0" x2="56" y2="25"></line> <line x1="63" y1="0" x2="63" y2="25"></line> <line x1="69" y1="0" x2="69" y2="25"></line> <line x1="75" y1="0" x2="75" y2="25"></line> <line x1="82" y1="0" x2="82" y2="25"></line> <line x1="88" y1="0" x2="88" y2="25"></line> <line x1="94" y1="0" x2="94" y2="25"></line> <line x1="101" y1="0" x2="101" y2="25"></line> <line x1="107" y1="0" x2="107" y2="25"></line> <line x1="113" y1="0" x2="113" y2="25"></line> <line x1="120" y1="0" x2="120" y2="25" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="0.0,0.0 120.0,0.0 120.0,25.412616514582485 0.0,25.412616514582485" style="fill:#8B4903A0;stroke-width:0"></polygon> <!-- Text --> <text x="60.000000" y="45.412617" font-size="1.0rem" font-weight="100" text-anchor="middle">2665269</text> <text x="140.000000" y="12.706308" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(0,140.000000,12.706308)">1</text>
-</svg></td>
-</tr>
-</tbody>
-</table>
-</div></li><li class="xr-var-item"><div class="xr-var-name"><span>variant_quality</span></div><div class="xr-var-dims">(variants)</div><div class="xr-var-dtype">float32</div><div class="xr-var-preview xr-preview">dask.array&lt;chunksize=(1000,), meta=np.ndarray&gt;</div><input id="attrs-1a003eaf-3fcb-4810-b9d4-5308f1249635" class="xr-var-attrs-in" type="checkbox"><label for="attrs-1a003eaf-3fcb-4810-b9d4-5308f1249635" title="Show/Hide attributes"><svg class="icon xr-icon-file-text2"><use href="#icon-file-text2"></use></svg></label><input id="data-4e0318f3-89f0-4b5a-a11f-cdffe77fdd91" class="xr-var-data-in" type="checkbox"><label for="data-4e0318f3-89f0-4b5a-a11f-cdffe77fdd91" title="Show/Hide data repr"><svg class="icon xr-icon-database"><use href="#icon-database"></use></svg></label><div class="xr-var-attrs"><dl class="xr-attrs"><dt><span>description :</span></dt><dd>Phred-scaled quality score</dd></dl></div><div class="xr-var-data">
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<td></td>
-<th data-quarto-table-cell-role="th">Array</th>
-<th data-quarto-table-cell-role="th">Chunk</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Bytes</th>
-<td>10.17 MiB</td>
-<td>3.91 kiB</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Shape</th>
-<td>(2665269,)</td>
-<td>(1000,)</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">Dask graph</th>
-<td colspan="2">2666 chunks in 2 graph layers</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">Data type</th>
-<td colspan="2">float32 numpy.ndarray</td>
-</tr>
-</tbody>
-</table></td>
-<td><svg width="170" height="75" style="stroke:rgb(0,0,0);stroke-width:1">
-<!-- Horizontal lines --> <line x1="0" y1="0" x2="120" y2="0" style="stroke-width:2"></line> <line x1="0" y1="25" x2="120" y2="25" style="stroke-width:2"></line> <!-- Vertical lines --> <line x1="0" y1="0" x2="0" y2="25" style="stroke-width:2"></line> <line x1="6" y1="0" x2="6" y2="25"></line> <line x1="12" y1="0" x2="12" y2="25"></line> <line x1="18" y1="0" x2="18" y2="25"></line> <line x1="25" y1="0" x2="25" y2="25"></line> <line x1="31" y1="0" x2="31" y2="25"></line> <line x1="37" y1="0" x2="37" y2="25"></line> <line x1="44" y1="0" x2="44" y2="25"></line> <line x1="50" y1="0" x2="50" y2="25"></line> <line x1="56" y1="0" x2="56" y2="25"></line> <line x1="63" y1="0" x2="63" y2="25"></line> <line x1="69" y1="0" x2="69" y2="25"></line> <line x1="75" y1="0" x2="75" y2="25"></line> <line x1="82" y1="0" x2="82" y2="25"></line> <line x1="88" y1="0" x2="88" y2="25"></line> <line x1="94" y1="0" x2="94" y2="25"></line> <line x1="101" y1="0" x2="101" y2="25"></line> <line x1="107" y1="0" x2="107" y2="25"></line> <line x1="113" y1="0" x2="113" y2="25"></line> <line x1="120" y1="0" x2="120" y2="25" style="stroke-width:2"></line> <!-- Colored Rectangle --> <polygon points="0.0,0.0 120.0,0.0 120.0,25.412616514582485 0.0,25.412616514582485" style="fill:#8B4903A0;stroke-width:0"></polygon> <!-- Text --> <text x="60.000000" y="45.412617" font-size="1.0rem" font-weight="100" text-anchor="middle">2665269</text> <text x="140.000000" y="12.706308" font-size="1.0rem" font-weight="100" text-anchor="middle" transform="rotate(0,140.000000,12.706308)">1</text>
-</svg></td>
-</tr>
-</tbody>
-</table>
-</div></li></ul></div></li><li class="xr-section-item"><input id="section-d941899b-0026-4963-9c84-c002009816f9" class="xr-section-summary-in" type="checkbox" disabled=""><label for="section-d941899b-0026-4963-9c84-c002009816f9" class="xr-section-summary" title="Expand/collapse section">Indexes: <span>(0)</span></label><div class="xr-section-inline-details"></div><div class="xr-section-details"><ul class="xr-var-list"></ul></div></li><li class="xr-section-item"><input id="section-9df0457d-aaeb-4376-b9bb-e255676f0c10" class="xr-section-summary-in" type="checkbox" checked=""><label for="section-9df0457d-aaeb-4376-b9bb-e255676f0c10" class="xr-section-summary">Attributes: <span>(3)</span></label><div class="xr-section-inline-details"></div><div class="xr-section-details"><dl class="xr-attrs"><dt><span>source :</span></dt><dd>bio2zarr-0.1.7</dd><dt><span>vcf_meta_information :</span></dt><dd>[['fileformat', 'VCFv4.2'], ['fileDate', '06/07/2021 - 12:14:20'], ['source', 'shapeit4.1.3']]</dd><dt><span>vcf_zarr_version :</span></dt><dd>0.4</dd></dl></div></li></ul></div></div>
-</div>
-</div>
-<p>Jeg vælger to populationer GOG og Yellow Baboon</p>
-<div id="f187c962" class="cell" data-execution_count="10">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>samples <span class="op">=</span> ds[<span class="st">"sample_id"</span>].values</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Jeg vælger Filoha, Ethiopia, P. Hamadryas (pop2) og Gog, Ethiopia, P. anubis (pop1).</span></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>pop1 <span class="op">=</span> [</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">'PD_0720'</span>, <span class="st">'PD_0721'</span>, <span class="st">'PD_0722'</span>, <span class="st">'PD_0723'</span>, <span class="st">'PD_0724'</span>,<span class="st">'PD_0725'</span>,<span class="st">'PD_0726'</span>,</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">'PD_0727'</span>, <span class="st">'PD_0728'</span>, <span class="st">'PD_0729'</span>, <span class="st">'PD_0730'</span>, <span class="st">'PD_0731'</span>, <span class="st">'PD_0732'</span>, <span class="st">'PD_0733'</span>,</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">'PD_0734'</span>, <span class="st">'PD_0735'</span>, <span class="st">'PD_0736'</span>, <span class="st">'PD_0737'</span>, <span class="st">'PD_0738'</span>, <span class="st">'PD_0739'</span>, <span class="st">'PD_0740'</span>,</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">'PD_0741'</span>, <span class="st">'PD_0742'</span>, <span class="st">'PD_0743'</span>, <span class="st">'PD_0744'</span></span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>] <span class="co">#GOG</span></span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>pop2 <span class="op">=</span> [</span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">'PD_0696'</span>, <span class="st">'PD_0697'</span>, <span class="st">'PD_0698'</span>, <span class="st">'PD_0699'</span>, <span class="st">'PD_0700'</span>, <span class="st">'PD_0701'</span>, <span class="st">'PD_0702'</span>,</span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">'PD_0703'</span>, <span class="st">'PD_0704'</span>, <span class="st">'PD_0705'</span>, <span class="st">'PD_0706'</span>, <span class="st">'PD_0707'</span>, <span class="st">'PD_0708'</span>, <span class="st">'PD_0709'</span>,</span>
-<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">'PD_0710'</span>, <span class="st">'PD_0711'</span>, <span class="st">'PD_0712'</span>, <span class="st">'PD_0713'</span>, <span class="st">'PD_0714'</span>, <span class="st">'PD_0715'</span>, <span class="st">'PD_0716'</span>,</span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">'PD_0717'</span>, <span class="st">'PD_0718'</span>, <span class="st">'PD_0719'</span></span>
-<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>] <span class="co"># Filoha</span></span>
-<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>keep <span class="op">=</span> pop1 <span class="op">+</span> pop2</span>
-<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>mask <span class="op">=</span> ds[<span class="st">"sample_id"</span>].isin(keep).values</span>
-<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>ds_sub <span class="op">=</span> ds.isel(samples<span class="op">=</span>mask)</span>
-<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Antal samples:"</span>, ds_sub.dims[<span class="st">"samples"</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="bavian-data-indlæsning-og-klargjøring" class="level2">
+<h2 class="anchored" data-anchor-id="bavian-data-indlæsning-og-klargjøring">2. Bavian-data: indlæsning og klargjøring</h2>
+<p>Jeg bruger det fulde kombinerede dataset fra GOG og Filoha, alle individer fra begge populationer for at maksimere statistisk styrke i two-island analysen.</p>
+<div id="0c3fcb28" class="cell" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Indlæs data</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> sg.load_dataset(</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"/faststorage/project/baboondiversity/data/"</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"PG_panu3_phased_chromosomes_4_7_2021_ZARR/chr20.phased.rehead.vcz"</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Alle GOG og Filoha individer</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>pop1_ids <span class="op">=</span> [</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">'PD_0720'</span>, <span class="st">'PD_0721'</span>, <span class="st">'PD_0722'</span>, <span class="st">'PD_0723'</span>, <span class="st">'PD_0724'</span>, <span class="st">'PD_0725'</span>, <span class="st">'PD_0726'</span>,</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">'PD_0727'</span>, <span class="st">'PD_0728'</span>, <span class="st">'PD_0729'</span>, <span class="st">'PD_0730'</span>, <span class="st">'PD_0731'</span>, <span class="st">'PD_0732'</span>, <span class="st">'PD_0733'</span>,</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">'PD_0734'</span>, <span class="st">'PD_0735'</span>, <span class="st">'PD_0736'</span>, <span class="st">'PD_0737'</span>, <span class="st">'PD_0738'</span>, <span class="st">'PD_0739'</span>, <span class="st">'PD_0740'</span>,</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">'PD_0741'</span>, <span class="st">'PD_0742'</span>, <span class="st">'PD_0743'</span>, <span class="st">'PD_0744'</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>]  <span class="co"># GOG: P. anubis</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>pop2_ids <span class="op">=</span> [</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">'PD_0696'</span>, <span class="st">'PD_0697'</span>, <span class="st">'PD_0698'</span>, <span class="st">'PD_0699'</span>, <span class="st">'PD_0700'</span>, <span class="st">'PD_0701'</span>, <span class="st">'PD_0702'</span>,</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="st">'PD_0703'</span>, <span class="st">'PD_0704'</span>, <span class="st">'PD_0705'</span>, <span class="st">'PD_0706'</span>, <span class="st">'PD_0707'</span>, <span class="st">'PD_0708'</span>, <span class="st">'PD_0709'</span>,</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="st">'PD_0710'</span>, <span class="st">'PD_0711'</span>, <span class="st">'PD_0712'</span>, <span class="st">'PD_0713'</span>, <span class="st">'PD_0714'</span>, <span class="st">'PD_0715'</span>, <span class="st">'PD_0716'</span>,</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="st">'PD_0717'</span>, <span class="st">'PD_0718'</span>, <span class="st">'PD_0719'</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>]  <span class="co"># Filoha: P. hamadryas</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>keep <span class="op">=</span> pop1_ids <span class="op">+</span> pop2_ids</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>mask <span class="op">=</span> ds[<span class="st">"sample_id"</span>].isin(keep).values</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>ds_sub <span class="op">=</span> ds.isel(samples<span class="op">=</span>mask)</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>nr_samples_baboon <span class="op">=</span> ds_sub.dims[<span class="st">"samples"</span>]</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"GOG:    </span><span class="sc">{</span><span class="bu">len</span>(pop1_ids)<span class="sc">}</span><span class="ss"> individer"</span>)</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Filoha: </span><span class="sc">{</span><span class="bu">len</span>(pop2_ids)<span class="sc">}</span><span class="ss"> individer"</span>)</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Total:  </span><span class="sc">{</span>nr_samples_baboon<span class="sc">}</span><span class="ss"> individer"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Antal samples: 49</code></pre>
+<pre><code>GOG:    25 individer
+Filoha: 24 individer
+Total:  49 individer</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>/tmp/ipykernel_2745327/545421130.py:23: FutureWarning: The return type of `Dataset.dims` will be changed to return a set of dimension names in future, in order to be more consistent with `DataArray.dims`. To access a mapping from dimension names to lengths, please use `Dataset.sizes`.
-  print("Antal samples:", ds_sub.dims["samples"])</code></pre>
+<pre><code>/tmp/ipykernel_1788356/1830541069.py:26: FutureWarning: The return type of `Dataset.dims` will be changed to return a set of dimension names in future, in order to be more consistent with `DataArray.dims`. To access a mapping from dimension names to lengths, please use `Dataset.sizes`.
+  nr_samples_baboon = ds_sub.dims["samples"]</code></pre>
 </div>
-</div>
-<p>Derived allele counts</p>
-<div id="b6bac553" class="cell" data-execution_count="11">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>variant_allele_counts <span class="op">=</span> sg.count_variant_alleles(ds_sub)</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>ac <span class="op">=</span> variant_allele_counts[<span class="st">"variant_allele_count"</span>].values</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame({</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"pos"</span>: ds_sub[<span class="st">"variant_position"</span>].values,</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"count"</span>: ac[:, <span class="dv">1</span>]</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>}).sort_values(<span class="st">"pos"</span>).reset_index(drop<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<p>SNP paris</p>
-<div id="78740634" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pairs_in_range(nums, diff_lo, diff_hi):</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="bu">len</span>(nums)</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    lo, hi <span class="op">=</span> <span class="dv">1</span>, <span class="dv">1</span></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    pairs <span class="op">=</span> []</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n):</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> lo <span class="op">&lt;=</span> i:</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>            lo <span class="op">=</span> i <span class="op">+</span> <span class="dv">1</span></span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">while</span> lo <span class="op">&lt;</span> n <span class="kw">and</span> nums[lo] <span class="op">-</span> nums[i] <span class="op">&lt;</span> diff_lo:</span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>            lo <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> hi <span class="op">&lt;=</span> i:</span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>            hi <span class="op">=</span> i <span class="op">+</span> <span class="dv">1</span></span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">while</span> hi <span class="op">&lt;</span> n <span class="kw">and</span> nums[hi] <span class="op">-</span> nums[i] <span class="op">&lt;=</span> diff_hi:</span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>            hi <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(lo, hi):</span>
-<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>            pairs.append((i, j))</span>
-<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pairs</span>
-<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>distance, tolerance <span class="op">=</span> <span class="dv">5000</span>, <span class="dv">500</span></span>
-<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>pairs_list <span class="op">=</span> pairs_in_range(</span>
-<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">"pos"</span>].values,</span>
-<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    distance <span class="op">-</span> tolerance,</span>
-<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>    distance <span class="op">+</span> tolerance</span>
-<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>pairs <span class="op">=</span> pd.DataFrame([</span>
-<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>    (df.at[i, <span class="st">"pos"</span>], df.at[j, <span class="st">"pos"</span>], df.at[i, <span class="st">"count"</span>], df.at[j, <span class="st">"count"</span>])</span>
-<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, j <span class="kw">in</span> pairs_list</span>
-<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>], columns<span class="op">=</span>[<span class="st">"pos1"</span>, <span class="st">"pos2"</span>, <span class="st">"count1"</span>, <span class="st">"count2"</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<p>Matrix</p>
-<div id="504c327f" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> ds_sub.dims[<span class="st">"samples"</span>]</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="bu">len</span>(pairs)</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>observations <span class="op">=</span> np.zeros((n, nr_samples), dtype<span class="op">=</span><span class="bu">int</span>)</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, (c1, c2) <span class="kw">in</span> <span class="bu">enumerate</span>(pairs[[<span class="st">"count1"</span>, <span class="st">"count2"</span>]].values):</span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> c1 <span class="op">&lt;</span> nr_samples:</span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>        observations[i, c1] <span class="op">=</span> <span class="dv">1</span></span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> c2 <span class="op">&lt;</span> nr_samples:</span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>        observations[i, c2] <span class="op">=</span> <span class="dv">1</span></span>
-<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(observations.shape)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<section id="two-island-model" class="level3">
-<h3 class="anchored" data-anchor-id="two-island-model">Two-island model:</h3>
-<p>pop1 ↔︎ pop2</p>
-<ul>
-<li>Ingen split</li>
-<li>Konstant migration i begge retninger</li>
-</ul>
-<div id="1915acd0" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph()</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>graph.add_population(<span class="st">"pop1"</span>)</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>graph.add_population(<span class="st">"pop2"</span>)</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="co"># migration begge veje</span></span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>graph.add_migration(<span class="st">"pop1"</span>, <span class="st">"pop2"</span>, rate<span class="op">=</span><span class="st">"m12"</span>)</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>graph.add_migration(<span class="st">"pop2"</span>, <span class="st">"pop1"</span>, rate<span class="op">=</span><span class="st">"m21"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div id="71ecbfd4" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>priors <span class="op">=</span> PropertySet(</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    m12<span class="op">=</span>HalfCauchyPrior(<span class="fl">1e-4</span>),</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    m21<span class="op">=</span>HalfCauchyPrior(<span class="fl">1e-4</span>),</span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div id="d54d338f" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> graph.fit(</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    observations<span class="op">=</span>observations,</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    priors<span class="op">=</span>priors,</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adamelia(</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>        step_size<span class="op">=</span>ExpStepSize(<span class="fl">0.05</span>),</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>        regularization<span class="op">=</span>ExpRegularization(<span class="fl">1e-3</span>)</span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    steps<span class="op">=</span><span class="dv">500</span></span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(result)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div id="05210b5f" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>sns.kdeplot(result.samples[<span class="st">"m12"</span>], label<span class="op">=</span><span class="st">"pop1 → pop2"</span>)</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>sns.kdeplot(result.samples[<span class="st">"m21"</span>], label<span class="op">=</span><span class="st">"pop2 → pop1"</span>)</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"Posterior migration rates"</span>)</span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
-<section id="fortolkning" class="level3">
-<h3 class="anchored" data-anchor-id="fortolkning">Fortolkning</h3>
-<p>Denne model tester om:</p>
-<ul>
-<li>populationerne opfører sig som to kontinuerligt interagerende øer</li>
-</ul>
-<p>Hvis modellen passer dårligt: → evidens for: - historisk split (IM model bedre) - eller ghost populations</p>
-<p>I baboon data forventer man ofte:</p>
-<ul>
-<li>kompleks struktur</li>
-<li>admixture</li>
-<li>ikke en simpel two-island model</li>
-</ul>
-
-
+<section id="two-island-model-tilpasning-til-bavian-data" class="level2">
+<h2 class="anchored" data-anchor-id="two-island-model-tilpasning-til-bavian-data">3. Two-island model: tilpasning til bavian-data</h2>
+<p>Jeg tilpasser nu two-island modellen til de fulde bavian-data. Modellen estimerer migrationraterne i begge retninger under antagelsen om, at populationerne aldrig har været adskilt.</p>
+<div id="1adebfe1" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Beregn derived allele counts og udtræk SNP-par</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>variant_allele_counts <span class="op">=</span> sg.count_variant_alleles(ds_sub)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>ac <span class="op">=</span> variant_allele_counts[<span class="st">"variant_allele_count"</span>].values</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>df_baboon <span class="op">=</span> pd.DataFrame({</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"pos"</span>:   ds_sub[<span class="st">"variant_position"</span>].values,</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"count"</span>: ac[:, <span class="dv">1</span>],</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>}).sort_values(<span class="st">"pos"</span>).reset_index(drop<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Segregerende varianter</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>df_baboon <span class="op">=</span> df_baboon[(df_baboon[<span class="st">"count"</span>] <span class="op">&gt;</span> <span class="dv">0</span>) <span class="op">&amp;</span> (df_baboon[<span class="st">"count"</span>] <span class="op">&lt;</span> nr_samples_baboon)]</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="co"># SNP-par</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>pairs_idx <span class="op">=</span> pairs_in_range(df_baboon[<span class="st">"pos"</span>].values, distance<span class="op">-</span>tolerance, distance<span class="op">+</span>tolerance)</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>pairs_baboon <span class="op">=</span> pd.DataFrame(</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    [(df_baboon.at[i,<span class="st">"pos"</span>], df_baboon.at[j,<span class="st">"pos"</span>],</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>      df_baboon.at[i,<span class="st">"count"</span>], df_baboon.at[j,<span class="st">"count"</span>])</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>     <span class="cf">for</span> i, j <span class="kw">in</span> pairs_idx],</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>    columns<span class="op">=</span>[<span class="st">"pos1"</span>, <span class="st">"pos2"</span>, <span class="st">"count1"</span>, <span class="st">"count2"</span>]</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>n_obs <span class="op">=</span> <span class="bu">len</span>(pairs_baboon)</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>observations_baboon <span class="op">=</span> np.zeros((n_obs, nr_samples_baboon), dtype<span class="op">=</span><span class="bu">int</span>)</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, (c1, c2) <span class="kw">in</span> <span class="bu">enumerate</span>(pairs_baboon[[<span class="st">"count1"</span>, <span class="st">"count2"</span>]].values):</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> c1 <span class="op">&lt;</span> nr_samples_baboon: observations_baboon[i, <span class="bu">int</span>(c1)] <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> c2 <span class="op">&lt;</span> nr_samples_baboon: observations_baboon[i, <span class="bu">int</span>(c2)] <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Segregerende varianter: </span><span class="sc">{</span><span class="bu">len</span>(df_baboon)<span class="sc">:,}</span><span class="ss">"</span>)</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"SNP-par (afstand ~</span><span class="sc">{</span>distance<span class="sc">}</span><span class="ss"> bp): </span><span class="sc">{</span>n_obs<span class="sc">:,}</span><span class="ss">"</span>)</span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Observations-matrix: </span><span class="sc">{</span>observations_baboon<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="c6be24df" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Two-island model</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>graph_island <span class="op">=</span> Graph()</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>graph_island.add_population(<span class="st">"pop1"</span>)   <span class="co"># GOG</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>graph_island.add_population(<span class="st">"pop2"</span>)   <span class="co"># Filoha</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Konstant migration — ingen split</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>graph_island.add_migration(<span class="st">"pop1"</span>, <span class="st">"pop2"</span>, rate<span class="op">=</span><span class="st">"m12"</span>)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>graph_island.add_migration(<span class="st">"pop2"</span>, <span class="st">"pop1"</span>, rate<span class="op">=</span><span class="st">"m21"</span>)</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>priors_island <span class="op">=</span> PropertySet(</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    m12<span class="op">=</span>HalfCauchyPrior(<span class="fl">1e-4</span>),   <span class="co"># Migration GOG → Filoha</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    m21<span class="op">=</span>HalfCauchyPrior(<span class="fl">1e-4</span>),   <span class="co"># Migration Filoha → GOG</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Two-island model klar med parametre:"</span>)</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  m12: migrationrate GOG → Filoha"</span>)</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  m21: migrationrate Filoha → GOG"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="7ac58ef9" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Kør inferens</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>result_island <span class="op">=</span> graph_island.fit(</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    observations<span class="op">=</span>observations_baboon,</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    priors<span class="op">=</span>priors_island,</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adam(</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>        step_size<span class="op">=</span>ExpStepSize(<span class="fl">0.05</span>),</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>        regularization<span class="op">=</span>ExpRegularization(<span class="fl">1e-3</span>)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    steps<span class="op">=</span><span class="dv">500</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"=== Two-island model resultater ==="</span>)</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(result_island)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="5c7a5b69" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualiser posterior for migrationraterne</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="dv">4</span>))</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">hasattr</span>(result_island, <span class="st">'samples'</span>):</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="st">'m12'</span> <span class="kw">in</span> result_island.samples:</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>        sns.kdeplot(result_island.samples[<span class="st">'m12'</span>], ax<span class="op">=</span>ax,</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>                    label<span class="op">=</span><span class="st">'m12: GOG → Filoha'</span>, color<span class="op">=</span><span class="st">'C0'</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="st">'m21'</span> <span class="kw">in</span> result_island.samples:</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        sns.kdeplot(result_island.samples[<span class="st">'m21'</span>], ax<span class="op">=</span>ax,</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>                    label<span class="op">=</span><span class="st">'m21: Filoha → GOG'</span>, color<span class="op">=</span><span class="st">'C1'</span>)</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">"Migrationrate"</span>)</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">"Tæthed"</span>)</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">"Posterior fordeling af migrationrater</span><span class="ch">\n</span><span class="st">(Two-island model, bavian-data)"</span>)</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
 </section>
+<section id="samlet-modelsammenligning-alle-tre-modeller" class="level2">
+<h2 class="anchored" data-anchor-id="samlet-modelsammenligning-alle-tre-modeller">4. Samlet modelsammenligning: alle tre modeller</h2>
+<p>Jeg sammenligner nu alle modeller fra Notebooks 05–06. Dette er et centralt resultat i specialet: <em>hvilken demografisk model passer bedst til bavianernes genetiske data?</em></p>
+<p>Antallet af parametre varierer fra de tre modeller:</p>
+<ul>
+<li>Two-island: 2 parametre (m12, m21)</li>
+<li>IM-model: 3 parametre (T_split, m12, m21)</li>
+<li>Ghost-model: 3 parametre (T_anc, T_admix, p)</li>
+</ul>
+<div id="11832901" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Sammenligning — forudsætter at result_im og result_ghost er tilgængelige fra Notebook 5</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Kør Notebook 05 inden dette afsnit, eller sæt log-likelihood-værdier manuelt</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>models <span class="op">=</span> {</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Two-island"</span>: {<span class="st">"llk"</span>: result_island.log_likelihood, <span class="st">"n_params"</span>: <span class="dv">2</span>},</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Tilføj IM og ghost hvis tilgængelige</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    models[<span class="st">"IM-model"</span>] <span class="op">=</span> {<span class="st">"llk"</span>: result_im.log_likelihood, <span class="st">"n_params"</span>: <span class="dv">3</span>}</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    models[<span class="st">"Ghost-model"</span>] <span class="op">=</span> {<span class="st">"llk"</span>: result_ghost.log_likelihood, <span class="st">"n_params"</span>: <span class="dv">3</span>}</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">NameError</span>:</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"Kør Notebook 5 for at inkludere IM- og ghost-modeller i sammenligningen."</span>)</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"=== Samlet modelsammenligning ==="</span>)</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span><span class="st">'Model'</span><span class="sc">:&lt;15}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'Log-likelihood'</span><span class="sc">:&gt;16}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'Parametre'</span><span class="sc">:&gt;12}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'AIC'</span><span class="sc">:&gt;10}</span><span class="ss">"</span>)</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"-"</span> <span class="op">*</span> <span class="dv">58</span>)</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, vals <span class="kw">in</span> models.items():</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>    aic <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> vals[<span class="st">'n_params'</span>] <span class="op">-</span> <span class="dv">2</span> <span class="op">*</span> vals[<span class="st">'llk'</span>]</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">:&lt;15}</span><span class="ss"> </span><span class="sc">{</span>vals[<span class="st">'llk'</span>]<span class="sc">:&gt;16.2f}</span><span class="ss"> </span><span class="sc">{</span>vals[<span class="st">'n_params'</span>]<span class="sc">:&gt;12}</span><span class="ss"> </span><span class="sc">{</span>aic<span class="sc">:&gt;10.2f}</span><span class="ss">"</span>)</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"AIC (Akaike Information Criterion) straffer modeller for ekstra parametre."</span>)</span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Lavere AIC = bedre model givet dataenes kompleksitet."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="dfa8be60" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualiser sammenligning hvis alle tre modeller er tilgængelige</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">len</span>(models) <span class="op">==</span> <span class="dv">3</span>:</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    model_names <span class="op">=</span> <span class="bu">list</span>(models.keys())</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    llk_vals <span class="op">=</span> [models[m][<span class="st">'llk'</span>] <span class="cf">for</span> m <span class="kw">in</span> model_names]</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    aic_vals <span class="op">=</span> [<span class="dv">2</span> <span class="op">*</span> models[m][<span class="st">'n_params'</span>] <span class="op">-</span> <span class="dv">2</span> <span class="op">*</span> models[m][<span class="st">'llk'</span>] <span class="cf">for</span> m <span class="kw">in</span> model_names]</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    fig, (ax1, ax2) <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="dv">4</span>))</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    colors <span class="op">=</span> [<span class="st">'C0'</span>, <span class="st">'C1'</span>, <span class="st">'C2'</span>]</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    ax1.barh(model_names, llk_vals, color<span class="op">=</span>colors, alpha<span class="op">=</span><span class="fl">0.7</span>)</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    ax1.set_xlabel(<span class="st">"Log-likelihood"</span>)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    ax1.set_title(<span class="st">"Log-likelihood per model</span><span class="ch">\n</span><span class="st">(højere = bedre fit)"</span>)</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    ax2.barh(model_names, aic_vals, color<span class="op">=</span>colors, alpha<span class="op">=</span><span class="fl">0.7</span>)</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    ax2.set_xlabel(<span class="st">"AIC"</span>)</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    ax2.set_title(<span class="st">"AIC per model</span><span class="ch">\n</span><span class="st">(lavere = bedre givet parameterantal)"</span>)</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+
+
 </section>
 
 </main> <!-- /main -->
@@ -2436,8 +1095,8 @@ Attributes:
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../notebooks/05_IM_model.html" class="pagination-link" aria-label="IM model med ghost population i baboon data">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">IM model med ghost population i baboon data</span></span>
+      <a href="../notebooks/05_IM_model.html" class="pagination-link" aria-label="Isolation with migration (IM) model og ghost-population på bavian-data">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Isolation with migration (IM) model og ghost-population på bavian-data</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
@@ -2447,40 +1106,8 @@ Attributes:
   </div>
 </nav>
 </div> <!-- /content -->
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.dev/munch-group/emma-giraf/blob/main/notebooks/06_two_island_model.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/emma-giraf/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/emma-giraf/blob/main/notebooks/06_two_island_model.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></div></div></footer><script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","descPosition":"bottom","loop":false,"openEffect":"zoom","selector":".lightbox"});
-(function() {
-  let previousOnload = window.onload;
-  window.onload = () => {
-    if (previousOnload) {
-      previousOnload();
-    }
-    lightboxQuarto.on('slide_before_load', (data) => {
-      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
-      const href = trigger.getAttribute('href');
-      if (href !== null) {
-        const imgEl = window.document.querySelector(`a[href="${href}"] img`);
-        if (imgEl !== null) {
-          const srcAttr = imgEl.getAttribute("src");
-          if (srcAttr && srcAttr.startsWith("data:")) {
-            slideConfig.href = srcAttr;
-          }
-        }
-      } 
-    });
-  
-    lightboxQuarto.on('slide_after_load', (data) => {
-      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
-      if (window.Quarto?.typesetMath) {
-        window.Quarto.typesetMath(slideNode);
-      }
-    });
-  
-  };
-  
-})();
-          </script>
 
 
 
 
-</body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.dev/munch-group/emma-giraf/blob/main/notebooks/06_two_island_model.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/emma-giraf/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/emma-giraf/blob/main/notebooks/06_two_island_model.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></div></div></footer></body></html>
