@@ -239,7 +239,7 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../notebooks/01_markov_coalescent_basics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Markov-modeller og Coalescent-teori</span></a>
+  <a href="../notebooks/01_markov_coalescent_basics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Markov modeller og Coalescent teori</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -300,7 +300,6 @@ window.Quarto = {
   <li><a href="#to-populations-model-med-migration" id="toc-to-populations-model-med-migration" class="nav-link" data-scroll-target="#to-populations-model-med-migration">3. To-populations model med migration</a></li>
   <li><a href="#inferens-med-multiple-observationstyper-rewards" id="toc-inferens-med-multiple-observationstyper-rewards" class="nav-link" data-scroll-target="#inferens-med-multiple-observationstyper-rewards">4. Inferens med multiple observationstyper (rewards)</a></li>
   <li><a href="#joint-probability-inferens-med-mutationsdata" id="toc-joint-probability-inferens-med-mutationsdata" class="nav-link" data-scroll-target="#joint-probability-inferens-med-mutationsdata">5. Joint probability inferens med mutationsdata</a></li>
-  <li><a href="#opsummering" id="toc-opsummering" class="nav-link" data-scroll-target="#opsummering">Opsummering</a></li>
   </ul>
 <div class="toc-actions"><ul class="collapse"><li><a href="https://github.dev/munch-group/emma-giraf/blob/main/notebooks/02_inference.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/emma-giraf/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/emma-giraf/blob/main/notebooks/02_inference.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
     </div>
@@ -326,8 +325,7 @@ window.Quarto = {
 </header>
 
 
-<p>I Notebook 01 så jeg på hvordan man bygger Markov-modeller og beregne teoretiske fordelinger. Formålet med denne notebook er, at jeg nu vil jeg se på, når man har givet observerede genetiske data, hvilke parametre passer bedst. Dette er vigtigt, da det er det jeg vil gøre med bavian-data i de efterfølgende notebooks.</p>
-<p>I denne notebook vil jeg komme ind på følgende:</p>
+<p>I Notebook 01 så jeg på hvordan man bygger Markov modeller og beregne teoretiske fordelinger. Formålet med denne notebook er, at jeg nu vil jeg se på, når man har givet observerede genetiske data, hvilke parametre passer bedst. Dette er vigtigt, da det er det jeg vil gøre med bavian data i de efterfølgende notebooks. I denne notebook vil jeg derfor komme ind på følgende:</p>
 <ol type="1">
 <li><strong>Method of Moments (MoM)</strong> — hurtig, analytisk parameterestimering</li>
 <li><strong>Bayesiansk inferens med SVGD</strong> — fuld posterior-fordeling med usikkerhed</li>
@@ -335,35 +333,33 @@ window.Quarto = {
 <li><strong>Posterior predictive checks</strong> — validering af, om modellen passer til data</li>
 <li><strong>Joint probability inferens</strong> — brug af diskrete observationer (antal mutationer)</li>
 </ol>
-<p>For at forstå bavianernes evolutionære historie skal jeg estimere parametre som effektiv populationsstørrelse (<span class="math inline">\(N_e\)</span>) og migrationrater mellem populationer. Disse parametre fortæller os, hvornår populationer skiltes, og om der har været gene flow efterfølgende.</p>
-<div id="e3461d78" class="cell" data-execution_count="2">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Begræns JAX til én enhed — undgår sharding-fejl på HPC-systemer med flere GPU/CPU-enheder.</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Dette SKAL stå før alle andre imports, da JAX initialiseres ved første import.</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">"CUDA_VISIBLE_DEVICES"</span>] <span class="op">=</span> <span class="st">"0"</span>   <span class="co"># Brug kun GPU 0 (eller fjern linjen på CPU-maskiner)</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">"XLA_FLAGS"</span>] <span class="op">=</span> <span class="st">"--xla_force_host_platform_device_count=1"</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Importer nødvendige pakker</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># phasic skal altid importeres FØRST for at sætte JAX-backend korrekt</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    Graph, with_ipv, GaussPrior, MoMResult, ProbMatchResult,</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    Adam, ExpStepSize, ExpRegularization, clear_caches, dense_to_sparse,</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    StateIndexer, Property, set_log_level, HalfCauchyPrior, DataPrior,</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Optional</span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config InlineBackend.figure_format <span class="op">=</span> <span class="st">'svg'</span></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> tqdm.auto <span class="im">import</span> tqdm</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> set_vscode_theme</span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>set_log_level(<span class="st">'INFO'</span>)</span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>sns.set_palette(<span class="st">'tab10'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>For at forstå bavianernes evolutionære historie skal jeg estimere parametre som effektiv populationsstørrelse (<span class="math inline">\(N_e\)</span>) og migrationrater mellem populationer. Disse parametre fortæller, hvornår populationer skiltes, og om der har været gene flow efterfølgende.</p>
+<div id="e3461d78" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">"CUDA_VISIBLE_DEVICES"</span>] <span class="op">=</span> <span class="st">"0"</span>   <span class="co"># Brug kun GPU 0 (eller fjern linjen på CPU-maskiner)</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">"XLA_FLAGS"</span>] <span class="op">=</span> <span class="st">"--xla_force_host_platform_device_count=1"</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Importer nødvendige pakker</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co"># phasic skal altid importeres først for at sætte JAX-backend korrekt</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    Graph, with_ipv, GaussPrior, MoMResult, ProbMatchResult,</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    Adam, ExpStepSize, ExpRegularization, clear_caches, dense_to_sparse,</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    StateIndexer, Property, set_log_level, HalfCauchyPrior, DataPrior,</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Optional</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config InlineBackend.figure_format <span class="op">=</span> <span class="st">'svg'</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> tqdm.auto <span class="im">import</span> tqdm</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> set_vscode_theme</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>set_log_level(<span class="st">'INFO'</span>)</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>sns.set_palette(<span class="st">'tab10'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 
 <style>
@@ -481,7 +477,7 @@ table {
 </div>
 <section id="method-of-moments-mom" class="level2">
 <h2 class="anchored" data-anchor-id="method-of-moments-mom">1. Method of Moments (MoM)</h2>
-<p>Method of Moments er en statistisk metode: jeg <em>matcher empiriske momenter</em> (gennemsnit, varians, osv.) fra data med de <em>teoretiske momenter</em> fra modellen. Den parameter-kombination, der giver den bedste match, er mit estimat.</p>
+<p>Method of Moments er en statistisk metode: jeg <em>matcher empiriske momenter</em> (gennemsnit, varians, osv.) fra data med de <em>teoretiske momenter</em> fra modellen. Den parameter kombination, der giver den bedste match, er mit estimat.</p>
 <p>Jeg simulerer her data fra en model med <em>sand theta = 7</em> og forsøger at genfinde den.</p>
 <div id="097720b3" class="cell" data-execution_count="56">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Sæt sand parameter og simuler observationer</span></span>
@@ -542,8 +538,8 @@ Sammenligning af momenter:
 </section>
 <section id="bayesiansk-inferens-med-svgd" class="level2">
 <h2 class="anchored" data-anchor-id="bayesiansk-inferens-med-svgd">2. Bayesiansk inferens med SVGD</h2>
-<p>MoM giver os et tal. Men i genetik er usikkerhed afgørende og jeg ønsker at vide: hvad er sandsynlighedsfordelingen over mulige parameterværdier givet data?. Dette er den <em>posterior-fordeling</em> i Bayesiansk statistik.</p>
-<p>Phasic bruger <strong>SVGD</strong> (<em>Stein Variational Gradient Descent</em>): en algoritme der iterativt bevæger en sværm af “partikler” (kandidatparametre) mod den sande posterior ved hjælp af gradientinformation. Det er en alternativ til MCMC, der er bedre egnet til hurtig, differentiabel inferens.</p>
+<p>MoM giver os et tal. Men i genetik er usikkerhed afgørende og jeg ønsker at vide: hvad sandsynlighedsfordelingen er over mulige parameterværdier givet data. Dette er den <em>posterior-fordeling</em> i Bayesiansk statistik.</p>
+<p>Phasic bruger <strong>SVGD</strong> (<em>Stein Variational Gradient Descent</em>): en algoritme der gentagende bevæger en samling af partikler mod den sande posterior ved hjælp af gradientinformation. Det er et alternativ til MCMC, der er bedre egnet til hurtig, differentiabel inferens.</p>
 <p><strong>Prior-fordelingen</strong> udtrykker vores viden <em>før</em> data. Her bruger jeg et bredt prior, der afspejler stor usikkerhed om theta.</p>
 <div id="af74fa70" class="cell" data-execution_count="32">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simuler et større datasæt for mere præcis estimering</span></span>
@@ -621,8 +617,8 @@ Particles: 20, Iterations: 100</code></pre>
 </div>
 </div>
 </div>
-<div id="4bcf5036" class="cell" data-execution_count="43">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Konvergensplot: er partiklerne stoppet med at bevæge sig?</span></span>
+<div id="4bcf5036" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Konvergensplot: er partiklerne stoppet med at bevæge sig</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Fladende kurve = god konvergens</span></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence()</span>
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -636,14 +632,14 @@ Particles: 20, Iterations: 100</code></pre>
 </div>
 <section id="posterior-predictive-check" class="level3">
 <h3 class="anchored" data-anchor-id="posterior-predictive-check">Posterior Predictive Check</h3>
-<p>En god model kan <em>gengive de observerede data</em>. Jeg tjekker dette ved at sætte parametrene til posterior-gennemsnittet og sammenligne den modelbaserede PDF/CDF med de empiriske data. Tæt match = modellen forklarer data godt.</p>
-<div id="6c819bd2" class="cell" data-execution_count="45">
+<p>En god model kan gengive de observerede data. Jeg tjekker dette ved at sætte parametrene til posterior gennemsnittet og sammenligne den modelbaserede PDF/CDF med de empiriske data. Tæt match = modellen forklarer data godt.</p>
+<div id="6c819bd2" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> ecdf</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> ecdf(observed_data)</span>
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>x_ecdf, ecdf_vals <span class="op">=</span> res.cdf.quantiles, res.cdf.probabilities</span>
 <span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Opdater grafen med posterior-gennemsnittet</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Opdater grafen med posterior gennemsnittet</span></span>
 <span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>graph.update_weights(svgd.get_results()[<span class="st">'theta_mean'</span>])</span>
 <span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>fig, (ax1, ax2) <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="fl">3.5</span>))</span>
@@ -887,16 +883,16 @@ Particles: 40, Iterations: 100</code></pre>
 <section id="inferens-med-multiple-observationstyper-rewards" class="level2">
 <h2 class="anchored" data-anchor-id="inferens-med-multiple-observationstyper-rewards">4. Inferens med multiple observationstyper (rewards)</h2>
 <p>Frem for at bruge en statistik (fx gennemsnitlig coalesceringstid) kan jeg bruge <em>multiple features</em> samtidigt fx singleton, doubleton, tripleton. Disse er netop komponenterne i SFS’en fra Notebook 01.</p>
-<p>Fordelen er, at jeg udnytter mere af informationen i data, og estimater bliver mere præcise. Dette er relevant for bavian-data, hvor jeg kan udtrække hele SFS som observationsvektor.</p>
-<div id="741abbe5" class="cell" data-execution_count="63">
+<p>Fordelen er, at jeg udnytter mere af informationen i data, og estimater bliver mere præcise. Dette er relevant for bavian data, hvor jeg kan udtrække hele SFS som observationsvektor.</p>
+<div id="741abbe5" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Genbyg en-parameters model</span></span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>graph_1p <span class="op">=</span> Graph(coalescent_1param)</span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>true_theta_1p <span class="op">=</span> [<span class="dv">7</span>]</span>
 <span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>graph_1p.update_weights(true_theta_1p)</span>
 <span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Reward-matrix: én feature per lineage-type (singleton, doubleton, tripleton)</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Reward-matrix: en feature per lineage-type (singleton, doubleton, tripleton)</span></span>
 <span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>states <span class="op">=</span> graph_1p.states().T</span>
-<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> states[:<span class="op">-</span><span class="dv">1</span>]   <span class="co"># udelad den absorberende tilstand</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> states[:<span class="op">-</span><span class="dv">1</span>]   <span class="co"># udelad den absorberende state</span></span>
 <span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Reward-matrixens form: </span><span class="sc">{</span>rewards<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">"</span>)</span>
 <span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  → </span><span class="sc">{</span>rewards<span class="sc">.</span>shape[<span class="dv">0</span>]<span class="sc">}</span><span class="ss"> features (lineage-typer) × </span><span class="sc">{</span>rewards<span class="sc">.</span>shape[<span class="dv">1</span>]<span class="sc">}</span><span class="ss"> state"</span>)</span>
@@ -963,19 +959,19 @@ Model moments (n_features x nr_moments):
 </section>
 <section id="joint-probability-inferens-med-mutationsdata" class="level2">
 <h2 class="anchored" data-anchor-id="joint-probability-inferens-med-mutationsdata">5. Joint probability inferens med mutationsdata</h2>
-<p>I rigtige genomdata observerer jeg ikke coalesceringstider direkte. Man observerer antal mutationer fx antal SNPs der deles af præcis <span class="math inline">\(k\)</span> individer. Dette er diskrete tælledata. Joint probability-grafen kobler coalescent-teorien til mutationsmodellen og giver mig sandsynligheden for at observere et bestemt mønster af mutationstal.</p>
+<p>I rigtige genomdata observerer jeg ikke coalesceringstider direkte. Man observerer antal mutationer fx antal SNPs der deles af præcis <span class="math inline">\(k\)</span> individer. Dette er diskrete tælledata. Joint probability-grafen kobler coalescent teorien til mutationsmodellen og giver mig sandsynligheden for at observere et bestemt mønster af mutationstal.</p>
 <p>Modellen har nu to parametre:</p>
 <ul>
 <li><span class="math inline">\(\theta =\)</span> coalescence-rate (proportional med <span class="math inline">\(1/N_e\)</span>)</li>
 <li><span class="math inline">\(\mu =\)</span> mutationsrate (fikseret, estimeres separat)</li>
 </ul>
-<div id="815fc21a" class="cell" data-execution_count="3">
+<div id="815fc21a" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> partial</span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itertools <span class="im">import</span> combinations_with_replacement</span>
 <span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>all_pairs <span class="op">=</span> partial(combinations_with_replacement, r<span class="op">=</span><span class="dv">2</span>)</span>
 <span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Build the coalescent base graph</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Bygger coalescent basis grafen </span></span>
 <span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">3</span></span>
 <span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(</span>
@@ -1006,7 +1002,7 @@ Model moments (n_features x nr_moments):
 <span id="cb32-34"><a href="#cb32-34" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-35"><a href="#cb32-35" aria-hidden="true" tabindex="-1"></a>base_graph <span class="op">=</span> Graph(coalescent_1param)</span>
 <span id="cb32-36"><a href="#cb32-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-37"><a href="#cb32-37" aria-hidden="true" tabindex="-1"></a><span class="co"># Create joint probability graph</span></span>
+<span id="cb32-37"><a href="#cb32-37" aria-hidden="true" tabindex="-1"></a><span class="co"># joint probability graph</span></span>
 <span id="cb32-38"><a href="#cb32-38" aria-hidden="true" tabindex="-1"></a>mutation_rate <span class="op">=</span> <span class="fl">1.0</span></span>
 <span id="cb32-39"><a href="#cb32-39" aria-hidden="true" tabindex="-1"></a>joint_graph <span class="op">=</span> base_graph.joint_prob_graph(</span>
 <span id="cb32-40"><a href="#cb32-40" aria-hidden="true" tabindex="-1"></a>    indexer, tot_reward_limit<span class="op">=</span><span class="dv">2</span>, mutation_rate<span class="op">=</span>mutation_rate</span>
@@ -1102,8 +1098,8 @@ Model moments (n_features x nr_moments):
 <pre><code>Sampled 2000 observations, first 5: [(0, 0, 0), (2, 0, 0), (1, 0, 0), (0, 0, 0), (0, 0, 0)]</code></pre>
 </div>
 </div>
-<div id="48391056" class="cell" data-execution_count="6">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co">#kører `probability_matching()` med fixed mutation rate:</span></span>
+<div id="48391056" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co">#kører probability_matching() med fixed mutation rate:</span></span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>pm <span class="op">=</span> joint_graph.probability_matching(</span>
 <span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>    observations,</span>
 <span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">1</span>, mutation_rate)],</span>
@@ -1228,52 +1224,7 @@ Particles: 40, Iterations: 100</code></pre>
 </div>
 </div>
 </div>
-</section>
-<section id="opsummering" class="level2">
-<h2 class="anchored" data-anchor-id="opsummering">Opsummering</h2>
-<p>I denne notebook har jeg gennemgået de centrale inferens metoder, jeg vil anvende på bavian-data:</p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
-<col style="width: 33%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Metode</th>
-<th>Hvad den giver</th>
-<th>Hvornår jeg bruger den</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><strong>Method of Moments</strong></td>
-<td>Hurtigt punktestimat</td>
-<td>Startsæt for SVGD, hurtig sanity check</td>
-</tr>
-<tr class="even">
-<td><strong>SVGD (enkelt parameter)</strong></td>
-<td>Fuld posterior + usikkerhed</td>
-<td>Enkel en-populations model</td>
-</tr>
-<tr class="odd">
-<td><strong>SVGD (to parametre)</strong></td>
-<td>Joint posterior, korrelationer</td>
-<td>To-populations modeller med migration</td>
-</tr>
-<tr class="even">
-<td><strong>Multi-feature MoM</strong></td>
-<td>Bedre estimater via SFS</td>
-<td>Udnyt hele SFS, ikke kun gennemsnittet</td>
-</tr>
-<tr class="odd">
-<td><strong>Joint probability SVGD</strong></td>
-<td>Inferens fra tælledata</td>
-<td>Direkte på genomdata med SNP-tæller</td>
-</tr>
-</tbody>
-</table>
-<p>I de næste notebooks, vil jeg nu arbejde med rigtige bavian-data.</p>
+<p>I de næste notebooks 03-06, vil jeg nu arbejde med rigtige bavian-data.</p>
 
 
 </section>
@@ -1681,8 +1632,8 @@ Particles: 40, Iterations: 100</code></pre>
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../notebooks/01_markov_coalescent_basics.html" class="pagination-link" aria-label="Markov-modeller og Coalescent-teori">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Markov-modeller og Coalescent-teori</span></span>
+      <a href="../notebooks/01_markov_coalescent_basics.html" class="pagination-link" aria-label="Markov modeller og Coalescent teori">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Markov modeller og Coalescent teori</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
