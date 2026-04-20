@@ -301,6 +301,7 @@ window.Quarto = {
   <li><a href="#byg-im-modellen" id="toc-byg-im-modellen" class="nav-link" data-scroll-target="#byg-im-modellen">4. Byg IM-modellen</a></li>
   <li><a href="#sfs-under-im-modellen" id="toc-sfs-under-im-modellen" class="nav-link" data-scroll-target="#sfs-under-im-modellen">5. SFS under IM-modellen</a></li>
   <li><a href="#pdfcdf-og-tidsinhomogen-visualisering" id="toc-pdfcdf-og-tidsinhomogen-visualisering" class="nav-link" data-scroll-target="#pdfcdf-og-tidsinhomogen-visualisering">6. PDF/CDF og tidsinhomogen visualisering</a></li>
+  <li><a href="#simuleret-data" id="toc-simuleret-data" class="nav-link" data-scroll-target="#simuleret-data">7. Simuleret data</a></li>
   </ul>
 <div class="toc-actions"><ul class="collapse"><li><a href="https://github.dev/munch-group/emma-giraf/blob/main/notebooks/05_IM_model.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/emma-giraf/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/emma-giraf/blob/main/notebooks/05_IM_model.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
     </div>
@@ -342,6 +343,7 @@ window.Quarto = {
 <li>Tilføj migration-epoke (IM-modellen)</li>
 <li>SFS under IM-modellen</li>
 <li>PDF/CDF og tidsinhomogen visualisering</li>
+<li>Simlueret data</li>
 </ol>
 <section id="imports-og-data" class="level2">
 <h2 class="anchored" data-anchor-id="imports-og-data">1. Imports og data</h2>
@@ -798,6 +800,240 @@ Rewards shape:      (85, 10)  (vertices × SFS-bins)</code></pre>
 <p><a href="05_IM_model_files/figure-html/cell-11-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="05_IM_model_files/figure-html/cell-11-output-1.png" width="790" height="394" class="figure-img"></a></p>
 </figure>
 </div>
+</div>
+</div>
+</section>
+<section id="simuleret-data" class="level1">
+<h1>7. Simuleret data</h1>
+<div id="788feb8b" class="cell" data-execution_count="48">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> msprime</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config InlineBackend.figure_format <span class="op">=</span> <span class="st">'retina'</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> derived_counts(ts, rec_rate):</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    records <span class="op">=</span> []</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> var <span class="kw">in</span> ts.variants():</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>        p, g <span class="op">=</span> var.site.position, var.genotypes</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>        records.append((<span class="bu">int</span>(p), p<span class="op">*</span>rec_rate, g.<span class="bu">sum</span>()))</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> pd.DataFrame().from_records(</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>        records, columns<span class="op">=</span>[<span class="st">"pos"</span>, <span class="st">"gen_pos"</span>, <span class="st">"count"</span>]</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> df</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>mut_rate <span class="op">=</span> <span class="fl">5e-10</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>rec_rate <span class="op">=</span> <span class="fl">1e-8</span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>seq_length <span class="op">=</span> <span class="dv">100_000_000</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>pop1_size, pop2_size, anc_pop_size <span class="op">=</span> <span class="dv">20_000</span>, <span class="dv">10_000</span>, <span class="dv">15_000</span></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>migr_pop1_to_pop2 <span class="op">=</span> <span class="fl">1e-4</span></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>migr_pop2_to_pop1 <span class="op">=</span> <span class="fl">5e-4</span></span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>demography <span class="op">=</span> msprime.Demography()</span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>demography.add_population(name<span class="op">=</span><span class="st">"pop1"</span>, initial_size<span class="op">=</span>pop1_size)</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>demography.add_population(name<span class="op">=</span><span class="st">"pop2"</span>, initial_size<span class="op">=</span>pop2_size)</span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>demography.set_migration_rate(source<span class="op">=</span><span class="st">"pop1"</span>, dest<span class="op">=</span><span class="st">"pop2"</span>, rate<span class="op">=</span>migr_pop1_to_pop2)</span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>demography.set_migration_rate(source<span class="op">=</span><span class="st">"pop2"</span>, dest<span class="op">=</span><span class="st">"pop1"</span>, rate<span class="op">=</span>migr_pop2_to_pop1)</span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>demography.add_population(name<span class="op">=</span><span class="st">"ancestral"</span>, initial_size<span class="op">=</span>anc_pop_size)</span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>demography.add_population_split(time<span class="op">=</span><span class="dv">1000</span>, derived<span class="op">=</span>[<span class="st">"pop1"</span>, <span class="st">"pop2"</span>], ancestral<span class="op">=</span><span class="st">"ancestral"</span>)</span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>ts <span class="op">=</span> msprime.sim_ancestry(samples<span class="op">=</span>{<span class="st">"pop1"</span>: nr_samples, <span class="st">"pop2"</span>: <span class="dv">0</span>}, ploidy<span class="op">=</span><span class="dv">1</span>, </span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>                           demography<span class="op">=</span>demography, recombination_rate<span class="op">=</span>rec_rate, </span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a>                           sequence_length<span class="op">=</span>seq_length, random_seed<span class="op">=</span><span class="dv">12</span>)</span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a>ts <span class="op">=</span> msprime.sim_mutations(ts, rate<span class="op">=</span>mut_rate, random_seed<span class="op">=</span><span class="dv">5678</span>)</span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> derived_counts(ts, rec_rate)</span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>df.to_csv(<span class="st">"IM_model_derived_counts.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="6cc3dfc2" class="cell" data-execution_count="49">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pairs_in_range(nums, diff_lo, diff_hi):</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="bu">len</span>(nums)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    lo, hi <span class="op">=</span> <span class="dv">1</span>, <span class="dv">1</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    pairs <span class="op">=</span> []</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n):</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> lo <span class="op">&lt;=</span> i:</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>            lo <span class="op">=</span> i <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">while</span> lo <span class="op">&lt;</span> n <span class="kw">and</span> nums[lo] <span class="op">-</span> nums[i] <span class="op">&lt;</span> diff_lo:</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>            lo <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> hi <span class="op">&lt;=</span> i:</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>            hi <span class="op">=</span> i <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">while</span> hi <span class="op">&lt;</span> n <span class="kw">and</span> nums[hi] <span class="op">-</span> nums[i] <span class="op">&lt;=</span> diff_hi:</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>            hi <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(lo, hi):</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>            pairs.append((i, j))</span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pairs</span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">"IM_model_derived_counts.csv"</span>)</span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>col <span class="op">=</span> <span class="st">"pos"</span> <span class="co"># can also use "gen_pos"</span></span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>distance, tolerance <span class="op">=</span> <span class="dv">5000</span>, <span class="dv">500</span></span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>min_dist, max_dist <span class="op">=</span> distance <span class="op">-</span> tolerance, distance <span class="op">+</span> tolerance</span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>records <span class="op">=</span> []</span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, j <span class="kw">in</span> pairs_in_range(df[col].values, min_dist, max_dist):</span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>    records.append((df.at[i, col], df.at[j, col], df.at[i, <span class="st">"count"</span>], df.at[j, <span class="st">"count"</span>]))</span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>pairs <span class="op">=</span> pd.DataFrame.from_records(records, columns<span class="op">=</span>[<span class="st">"pos1"</span>, <span class="st">"pos2"</span>, <span class="st">"count1"</span>, <span class="st">"count2"</span>])</span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>pairs.head()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="49">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">pos1</th>
+<th data-quarto-table-cell-role="th">pos2</th>
+<th data-quarto-table-cell-role="th">count1</th>
+<th data-quarto-table-cell-role="th">count2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">0</th>
+<td>121835</td>
+<td>126784</td>
+<td>2</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">1</th>
+<td>130693</td>
+<td>135293</td>
+<td>2</td>
+<td>2</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">2</th>
+<td>962978</td>
+<td>967549</td>
+<td>2</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">3</th>
+<td>1645140</td>
+<td>1650545</td>
+<td>3</td>
+<td>4</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">4</th>
+<td>1679198</td>
+<td>1684665</td>
+<td>1</td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<div id="f28c5dac" class="cell" data-execution_count="50">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>mask <span class="op">=</span> (pairs.pos1 <span class="op">==</span> pairs.pos1.shift()) <span class="op">|</span> (pairs.pos2 <span class="op">==</span> pairs.pos2.shift())</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>filtered_pairs <span class="op">=</span> pairs.loc[<span class="op">~</span>mask, :]</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>filtered_pairs.head()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="50">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">pos1</th>
+<th data-quarto-table-cell-role="th">pos2</th>
+<th data-quarto-table-cell-role="th">count1</th>
+<th data-quarto-table-cell-role="th">count2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">0</th>
+<td>121835</td>
+<td>126784</td>
+<td>2</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">1</th>
+<td>130693</td>
+<td>135293</td>
+<td>2</td>
+<td>2</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">2</th>
+<td>962978</td>
+<td>967549</td>
+<td>2</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">3</th>
+<td>1645140</td>
+<td>1650545</td>
+<td>3</td>
+<td>4</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">4</th>
+<td>1679198</td>
+<td>1684665</td>
+<td>1</td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<div id="d0605b9d" class="cell" data-execution_count="51">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>plt.hist(filtered_pairs.pos2 <span class="op">-</span> filtered_pairs.pos1, bins<span class="op">=</span><span class="dv">10</span>) <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><a href="05_IM_model_files/figure-html/cell-15-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5"><img src="05_IM_model_files/figure-html/cell-15-output-1.png" width="435" height="328" class="figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="c883f46c" class="cell" data-execution_count="52">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="bu">len</span>(filtered_pairs)</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>observations <span class="op">=</span> np.zeros((n, nr_samples), dtype<span class="op">=</span><span class="bu">int</span>)</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>observations</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, pair <span class="kw">in</span> <span class="bu">enumerate</span>(filtered_pairs[[<span class="st">"count1"</span>, <span class="st">"count2"</span>]].values):</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    observations[i, pair] <span class="op">=</span> <span class="dv">1</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="d15779b0" class="cell" data-execution_count="53">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>msg <span class="op">=</span> <span class="ss">f"""</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="ss">Two-locus observations across </span><span class="sc">{</span>nr_samples<span class="sc">}</span><span class="ss"> samples of </span><span class="sc">{</span>seq_length<span class="op">/</span><span class="fl">1e6</span><span class="sc">:.0f}</span><span class="ss"> Mb:</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="ss">    Mutation rate:</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="ss">        </span><span class="sc">{</span>mut_rate<span class="sc">}</span><span class="ss"> events/site/generation</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="ss">    Recombination rate:</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="ss">        </span><span class="sc">{</span>rec_rate<span class="sc">}</span><span class="ss"> crossovers/base/generation</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="ss">    Haploid population sizes:</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="ss">        pop1: </span><span class="sc">{</span>pop1_size<span class="sc">}</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="ss">        pop2: </span><span class="sc">{</span>pop2_size<span class="sc">}</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a><span class="ss">    Migration rate:</span></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a><span class="ss">        pop1 -&gt; pop2: </span><span class="sc">{</span>migr_pop1_to_pop2<span class="sc">}</span></span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a><span class="ss">        pop2 -&gt; pop1: </span><span class="sc">{</span>migr_pop2_to_pop1<span class="sc">}</span></span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a><span class="ss">"""</span></span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(msg)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Two-locus observations across 5 samples of 100 Mb:
+    Mutation rate:
+        5e-10 events/site/generation
+    Recombination rate:
+        1e-08 crossovers/base/generation
+    Haploid population sizes:
+        pop1: 20000
+        pop2: 10000
+    Migration rate:
+        pop1 -&gt; pop2: 0.0001
+        pop2 -&gt; pop1: 0.0005
+</code></pre>
 </div>
 </div>
 
