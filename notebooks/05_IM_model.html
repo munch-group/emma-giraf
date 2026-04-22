@@ -329,15 +329,15 @@ window.Quarto = {
 
 <p>I notebook 04 byggede jeg en two-island model med konstant migration bagud i tid. På et tidspunkt i fortiden var de to bavian-populationer en fælles ancestral population Isolation with Migration (IM) modellen indfører dette:</p>
 <ul>
-<li><strong>Nutid → split-tid <span class="math inline">\(t_s\)</span>:</strong> to separate populationer med migration</li>
-<li><strong>Split-tid <span class="math inline">\(t_s\)</span> → fortid:</strong> en fælles ancestral population (ingen migration)</li>
+<li><strong>Nutid <span class="math inline">\(\rightarrow\)</span> split-tid <span class="math inline">\(t_s\)</span>:</strong> to separate populationer med migration</li>
+<li><strong>Split-tid <span class="math inline">\(t_s\)</span> <span class="math inline">\(\rightarrow\)</span> fortid:</strong> en fælles ancestral population (ingen migration)</li>
 </ul>
 <p>Dette er en time-inhomogen model, raterne ændrer sig på et fast tidspunkt. Phasic gør dette via <em>epoch-baseret konstruktion</em> (se notebook 06 for detaljer). I denne notebook bruger jeg metoden direkte til IM-modellen.</p>
 <p>I artiklen af Sørensen et al.&nbsp;(2023) ser man at <em>P. anubis</em> (olive) og <em>P. cynocephalus</em> (yellow) har et estimeret split for ca. 1 mio. år siden, efterfulgt af løbende admixture i den sydlige del af Tanzania. IM-modellen giver mig mulighed for både at estimere split-tid og post-split migration.</p>
 <p>I denne notebook vil jeg komme ind på følgende:</p>
 <ol type="1">
 <li>Epoch konstruktion</li>
-<li>Byg IM-modellen med 2 epoker</li>
+<li>Byg IM-modellen med <span class="math inline">\(2\)</span> epoker</li>
 <li>Teoretiske egenskaber — momenter og SFS</li>
 <li>Simuler data med <em>msprime</em></li>
 <li>SVGD inferens på simulerede data</li>
@@ -476,37 +476,36 @@ table {
 <li>Tilføjer “søsterstater” i næste epoke</li>
 <li>Udvider grafen med samme callback, men med opdateret <em>epoch_idx</em></li>
 </ol>
-<div id="c37b5c01" class="cell" data-execution_count="2">
+<div id="c37b5c01" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_epoch(graph, callback, epochs, epoch_idx, indexer):</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Udvider grafen med en ny epoke ved at route linjer der stadig er aktive</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># over til søsterstater i den nye epoke.</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    epoch <span class="op">=</span> epochs[epoch_idx]</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    stop_probs <span class="op">=</span> np.array(graph.stop_probability(epoch))</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    accum_v_time <span class="op">=</span> np.array(graph.accumulated_occupancy(epoch))</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> np.errstate(invalid<span class="op">=</span><span class="st">"ignore"</span>):</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        epoch_trans_rates <span class="op">=</span> stop_probs <span class="op">/</span> accum_v_time</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, graph.vertices_length() <span class="op">-</span> <span class="dv">1</span>):</span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> epoch_trans_rates <span class="kw">is</span> <span class="va">None</span> <span class="kw">or</span> np.isnan(epoch_trans_rates[i]):</span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> graph.vertex_at(i).edges_length() <span class="op">==</span> <span class="dv">0</span>:</span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        vertex <span class="op">=</span> graph.vertex_at(i)</span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        state <span class="op">=</span> vertex.state()</span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> state[indexer.epoch] <span class="op">==</span> epoch_idx <span class="op">-</span> <span class="dv">1</span>:</span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>        sister_state <span class="op">=</span> state.copy()</span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>        sister_state[indexer.epoch] <span class="op">=</span> epoch_idx</span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>        child <span class="op">=</span> graph.find_or_create_vertex(sister_state)</span>
-<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>        coeff <span class="op">=</span> np.zeros(graph.param_length())</span>
-<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>        coeff[<span class="op">-</span><span class="dv">1</span>] <span class="op">=</span> epoch_trans_rates[i]</span>
-<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>        vertex.add_edge(child, coeff)</span>
-<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    graph.extend(callback, epochs<span class="op">=</span>epochs, epoch_idx<span class="op">=</span>epoch_idx, indexer<span class="op">=</span>indexer)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Udvider grafen med en ny epoke ved at route linjer der stadig er aktive over til søsterstater i den nye epoke.</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    epoch <span class="op">=</span> epochs[epoch_idx]</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    stop_probs <span class="op">=</span> np.array(graph.stop_probability(epoch))</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    accum_v_time <span class="op">=</span> np.array(graph.accumulated_occupancy(epoch))</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> np.errstate(invalid<span class="op">=</span><span class="st">"ignore"</span>):</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        epoch_trans_rates <span class="op">=</span> stop_probs <span class="op">/</span> accum_v_time</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, graph.vertices_length() <span class="op">-</span> <span class="dv">1</span>):</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> epoch_trans_rates <span class="kw">is</span> <span class="va">None</span> <span class="kw">or</span> np.isnan(epoch_trans_rates[i]):</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> graph.vertex_at(i).edges_length() <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        vertex <span class="op">=</span> graph.vertex_at(i)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        state <span class="op">=</span> vertex.state()</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> state[indexer.epoch] <span class="op">==</span> epoch_idx <span class="op">-</span> <span class="dv">1</span>:</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>        sister_state <span class="op">=</span> state.copy()</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>        sister_state[indexer.epoch] <span class="op">=</span> epoch_idx</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>        child <span class="op">=</span> graph.find_or_create_vertex(sister_state)</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>        coeff <span class="op">=</span> np.zeros(graph.param_length())</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>        coeff[<span class="op">-</span><span class="dv">1</span>] <span class="op">=</span> epoch_trans_rates[i]</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>        vertex.add_edge(child, coeff)</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    graph.extend(callback, epochs<span class="op">=</span>epochs, epoch_idx<span class="op">=</span>epoch_idx, indexer<span class="op">=</span>indexer)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="byg-im-modellen" class="level2">
@@ -515,7 +514,7 @@ table {
 <ul>
 <li><em>descendants</em> — hvor mange samples en lineage bærer (til SFS)</li>
 <li><em>in_pop</em> — hvilken population lineagen befinder sig i (<span class="math inline">\(1\)</span> eller <span class="math inline">\(2\)</span>)</li>
-<li><em>epoch</em> — <span class="math inline">\(0\)</span> = nutid→<span class="math inline">\(t_s\)</span> (to populationer med migration), <span class="math inline">\(1\)</span> = <span class="math inline">\(t_s\)</span>→fortid (ancestral, populationer merged)</li>
+<li><em>epoch</em> — <span class="math inline">\(0\)</span> = nutid <span class="math inline">\(\rightarrow\)</span> <span class="math inline">\(t_s\)</span> (to populationer med migration), <span class="math inline">\(1\)</span> = <span class="math inline">\(t_s\)</span> <span class="math inline">\(\rightarrow\)</span> fortid (ancestral, populationer merged)</li>
 </ul>
 <p>Parametre (i coalescent-enheder):</p>
 <table class="caption-top table">
@@ -533,33 +532,33 @@ table {
 </thead>
 <tbody>
 <tr class="odd">
-<td>0</td>
+<td><span class="math inline">\(0\)</span></td>
 <td><span class="math inline">\(1/N_1\)</span></td>
-<td>Coalescence-rate i population 1</td>
+<td>Coalescence-rate i population <span class="math inline">\(1\)</span></td>
 </tr>
 <tr class="even">
-<td>1</td>
+<td><span class="math inline">\(1\)</span></td>
 <td><span class="math inline">\(1/N_2\)</span></td>
-<td>Coalescence-rate i population 2</td>
+<td>Coalescence-rate i population <span class="math inline">\(2\)</span></td>
 </tr>
 <tr class="odd">
-<td>2</td>
+<td><span class="math inline">\(2\)</span></td>
 <td><span class="math inline">\(m\)</span></td>
-<td>Migrationsrate pr. lineage (epoch 0)</td>
+<td>Migrationsrate pr. lineage (epoch <span class="math inline">\(0\)</span>)</td>
 </tr>
 <tr class="even">
-<td>3</td>
+<td><span class="math inline">\(3\)</span></td>
 <td><span class="math inline">\(1/N_a\)</span></td>
 <td>Coalescence-rate i ancestral pop</td>
 </tr>
 <tr class="odd">
-<td>4</td>
+<td><span class="math inline">\(4\)</span></td>
 <td>—</td>
 <td>Epoch-switch slot (sættes af <em>add_epoch</em>)</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Konvention for epoch 1 (post-split / ancestral):</strong> Efter split-tiden er de to populationer smeltet sammen til en ancestral population. Jeg modellerer dette ved at tillade coalescence mellem linjer uanset <em>in_pop</em>-label** (altså også mellem en pop-1-linje og en pop-2-linje). Migrationen slås fra. På den måde beholder jeg <em>in_pop`</em>. som hvor var linjen på nutidstidspunktet, men den funktionelle forskel forsvinder.</p>
+<p><strong>Konvention for epoch <span class="math inline">\(1\)</span> (post-split / ancestral):</strong> Efter split-tiden er de to populationer smeltet sammen til en ancestral population. Jeg modellerer dette ved at tillade coalescence mellem linjer uanset <em>in_pop</em>-label** (altså også mellem en pop-<span class="math inline">\(1\)</span>-linje og en pop-<span class="math inline">\(2\)</span>-linje). Migrationen slås fra. På den måde beholder jeg <em>in_pop</em>. som hvor var linjen på nutidstidspunktet, men den funktionelle forskel forsvinder.</p>
 <div id="4d4edade" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -675,8 +674,8 @@ table {
 Antal parametre:            5</code></pre>
 </div>
 </div>
-<div id="6027ce6d" class="cell" data-execution_count="5">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualiser grafen (kan være stor — brug wrap=False og begræns noder)</span></span>
+<div id="6027ce6d" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualiser grafen</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>graph_im.plot(size<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">8</span>), wrap<span class="op">=</span><span class="va">False</span>, max_nodes<span class="op">=</span><span class="dv">200</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="5">
 <div>
@@ -772,7 +771,7 @@ Varians:            2.0395</code></pre>
 <span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">"IM_model_derived_counts.csv"</span>)</span>
 <span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>col <span class="op">=</span> <span class="st">"pos"</span> <span class="co"># can also use "gen_pos"</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>col <span class="op">=</span> <span class="st">"pos"</span> <span class="co"># Kan også bruge "gen_pos"</span></span>
 <span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>distance, tolerance <span class="op">=</span> <span class="dv">5000</span>, <span class="dv">500</span></span>
 <span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>min_dist, max_dist <span class="op">=</span> distance <span class="op">-</span> tolerance, distance <span class="op">+</span> tolerance</span>
 <span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>records <span class="op">=</span> []</span>
@@ -948,7 +947,7 @@ Two-locus observations across 5 samples of 100 Mb:
 <section id="joint-probability-graf-og-svgd-inferens" class="level2">
 <h2 class="anchored" data-anchor-id="joint-probability-graf-og-svgd-inferens">5. Joint-probability graf og SVGD-inferens</h2>
 <p>Jeg laver en joint-probability graf baseret på SFS-komponenter og fitter modellen via SVGD.</p>
-<p>IM-modellen med flere parametre (og epoker) er sværere at identificere end den simple two-island model. Man har typisk brug for flere samples eller flere uafhængige loci for stabil inferens.</p>
+<p>IM-modellen med flere parametre og epoker er sværere at identificere end den simple two-island model. Man har typisk brug for flere samples eller flere uafhængige loci for stabil inferens.</p>
 <div id="58583920" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="im">import</span> msprime</span>
@@ -1133,7 +1132,7 @@ Deficit:              0.8281</code></pre>
 <pre><code>Simulerede observationer: 12,231</code></pre>
 </div>
 </div>
-<div id="89c39d1c" class="cell" data-execution_count="19">
+<div id="89c39d1c" class="cell" data-execution_count="16">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Parameter-indeks i joint_graph:</span></span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="co">#   0: 1/N1, 1: 1/N2, 2: m, 3: 1/Na, 4: epoch-switch, 5: mutations-rate</span></span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Både epoch-switch og mutationsrate er "ikke-fri" parametre: de fastholdes.</span></span>
@@ -1168,17 +1167,17 @@ Deficit:              0.8281</code></pre>
 <span id="cb22-32"><a href="#cb22-32" aria-hidden="true" tabindex="-1"></a>    svgd_sim.summary(ci_method<span class="op">=</span><span class="st">"hpd"</span>, ci_level<span class="op">=</span><span class="fl">0.95</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Parameter  Fixed      MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
-0          No         4.9280     3.6434     0.9357     1.9408       4.9289      
-1          No         1.4711     2.0350     0.9280     0.0000       3.6217      
-2          No         3.3543     1.8532     0.7369     0.1555       2.7398      
-3          No         2.4820     2.4805     0.6694     1.4321       3.8434      
+0          No         5.0677     3.6704     1.2161     1.2762       5.1939      
+1          No         1.4806     2.0960     1.0699     0.5659       4.1694      
+2          No         2.9146     2.0038     0.8147     0.1014       2.9700      
+3          No         3.0106     2.4753     0.7772     0.8826       3.6508      
 4          Yes        1.0000     NA         NA         NA           NA          
 5          Yes        1.0000     NA         NA         NA           NA          
 
 Particles: 80, Iterations: 120</code></pre>
 </div>
 </div>
-<div id="a2e91179" class="cell" data-execution_count="21">
+<div id="a2e91179" class="cell" data-execution_count="17">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> have_msprime <span class="kw">and</span> <span class="bu">len</span>(obs_sim) <span class="op">&gt;</span> <span class="dv">500</span>:</span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    svgd_sim.plot_ci(ci_method<span class="op">=</span><span class="st">"hpd"</span>, true_theta<span class="op">=</span>theta_joint)</span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    plt.suptitle(<span class="st">"Posterior CI — IM simulation"</span>)</span>
@@ -1206,8 +1205,8 @@ Particles: 80, Iterations: 120</code></pre>
 </section>
 <section id="anvendelse-på-bavian-data" class="level2">
 <h2 class="anchored" data-anchor-id="anvendelse-på-bavian-data">6. Anvendelse på bavian-data</h2>
-<p>Sørensen et al.&nbsp;(2023) dokumenterer løbende admixture mellem <em>Southern olive</em> (Tarangire) og <em>Eastern yellow</em> (Mikumi). Jeg fitter IM-modellen på en af dem, her <em>Southern olive</em>.</p>
-<div id="8c93d31c" class="cell" data-execution_count="22">
+<p>Sørensen et al.&nbsp;(<span class="math inline">\(2023\)</span>) dokumenterer løbende admixture mellem <em>Southern olive</em> (Tarangire) og <em>Eastern yellow</em> (Mikumi). Jeg fitter IM-modellen på en af dem, her <em>Southern olive</em>.</p>
+<div id="8c93d31c" class="cell" data-execution_count="18">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> load_baboon_ktons(path, n_samples_use, seed<span class="op">=</span><span class="dv">0</span>):</span>
 <span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> Path(path)</span>
 <span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> p.exists():</span>
@@ -1236,7 +1235,7 @@ Particles: 80, Iterations: 120</code></pre>
 <pre><code>Southern olive: 268,757 brugbare observationer</code></pre>
 </div>
 </div>
-<div id="4a486b0c" class="cell" data-execution_count="25">
+<div id="4a486b0c" class="cell" data-execution_count="19">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> k_oliv <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span> <span class="kw">and</span> <span class="bu">len</span>(obs_oliv) <span class="op">&gt;</span> <span class="dv">1000</span>:</span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(<span class="dv">1</span>)</span>
 <span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(obs_oliv) <span class="op">&gt;</span> <span class="dv">5000</span>:</span>
@@ -1281,10 +1280,10 @@ Particles: 80, Iterations: 120</code></pre>
 <span id="cb28-42"><a href="#cb28-42" aria-hidden="true" tabindex="-1"></a>    plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Parameter  Fixed      MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
-0          No         5.3323     3.8981     1.2011     1.5753       5.3683      
-1          No         1.3922     2.3272     1.2941     0.0000       4.5489      
-2          No         2.7538     2.0139     0.9013     0.0000       2.9356      
-3          No         3.5964     3.2126     0.8945     1.6884       4.8172      
+0          No         4.9693     3.8104     1.0384     1.6708       5.1060      
+1          No         0.7300     2.8242     1.4818     0.0000       5.0978      
+2          No         2.4050     1.9251     0.7740     0.0000       2.5549      
+3          No         3.1408     3.1248     0.8553     1.2536       4.3691      
 4          Yes        1.0000     NA         NA         NA           NA          
 5          Yes        1.0000     NA         NA         NA           NA          
 
@@ -1346,8 +1345,8 @@ Particles: 80, Iterations: 120</code></pre>
 <p><span class="math display">\[
 t_{\text{years}} = t_s \cdot 2 N_{\text{ref}} \cdot g_{\text{time}}
 \]</span></p>
-<p>hvor <span class="math inline">\(g_{\text{time}} = 11\)</span> år/generation (Sørensen et al.).</p>
-<div id="5de27bae" class="cell" data-execution_count="24">
+<p>hvor <span class="math inline">\(g_{\text{time}} = 11\)</span> år/generation (Sørensen et al.&nbsp;<span class="math inline">\(2023\)</span>).</p>
+<div id="5de27bae" class="cell" data-execution_count="20">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>pi_file <span class="op">=</span> OUT_DIR <span class="op">/</span> <span class="st">"pi_per_population.csv"</span></span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> pi_file.exists():</span>
 <span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>    pi_df <span class="op">=</span> pd.read_csv(pi_file, index_col<span class="op">=</span><span class="dv">0</span>)</span>
@@ -1384,10 +1383,10 @@ Split-tid i generationer:     109,409
 Split-tid i år:               1,203,497
 
 Estimater (bavian, posterior mean):
-  N1 (olive):      13,875
-  N2 (yellow):     21,367
-  N_ancestral:     18,015
-  m / generation:  1.67e-05</code></pre>
+  N1 (olive):      14,357
+  N2 (yellow):     19,370
+  N_ancestral:     17,507
+  m / generation:  1.76e-05</code></pre>
 </div>
 </div>
 <p>I notebook 06 udforsker jeg time-inhomogeneity i dybden og sammenligner phasic’s numeriske tilgang med Pool og Nielsens analytiske formler.</p>
