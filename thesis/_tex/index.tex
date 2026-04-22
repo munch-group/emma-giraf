@@ -1925,212 +1925,200 @@ hvor komplekse statistiske modeller og simulationer indgår.
 
 \chapter{Metode}\label{metode}
 
-\section{Modelopbygning}\label{modelopbygning}
+Analysen er opbygget som en sekventiel pipeline bestående af
+modellering, inferens og anvendelse på empiriske data. Alle beregninger
+er implementeret i Python ved brug af graf-baserede phase-type metoder,
+hvilket muliggør effektiv håndtering af komplekse state spaces i
+coalescent-modeller.
 
-Den genealogiske proces modelleres ved hjælp af en kontinuert
-Markov-kæde baseret på coalescent-teori. State space konstrueres
-eksplicit, hvor hver tilstand repræsenteres som en vektor, der angiver
-antallet af linjer med et givent antal efterkommere. Overgange mellem
-states svarer til coalescent-events, hvor to linjer smelter sammen til
-en.
+\section{Overordnet struktur}\label{overordnet-struktur}
 
-Modellen implementeres i Python ved brug af Phasic biblioteket, som
-repræsenterer processen som en graf. Dette gør det muligt effektivt at
-beregne forventninger, varians og fordelinger for ventetider og andre
-relevante størrelser.
-
-Mutationer modelleres som diskrete events langs grenene i træet.
-Mutationsraten antages at være proportional med antallet af aktive
-linjer, hvilket betyder at mutationer opstår hyppigere når flere linjer
-eksisterer samtidig.
-
-Størrelser såsom Site Frequency Spectrum (SFS) beregnes ved hjælp af
-reward-funktioner. Disse måler hvor lang tid processen tilbringer i
-tilstande med bestemte lineage-konfigurationer.
-
-Modelparametre såsom effektiv populationsstørrelse og mutationsrate
-indføres ved at parameterisere overgangsraterne. Dette gør det muligt at
-evaluere modellen for forskellige parameterkombinationer uden at
-rekonstruere state space.
-
-\subsection{Basal coalescent model}\label{basal-coalescent-model}
-
-Som udgangspunkt for analysen anvendes Kingman coalescent modellen, som
-beskriver den genealogiske struktur af en sample bagud i tid som en
-kontinuert-tids Markov proces.
-
-States af processen beskrives ved en vektor \[
-x = (x_1, x_2, \dots, x_n),
-\]
-
-hvor \(x_k\) angiver antallet af linjer med \(k\) efterkommere.
-Processen initialiseres i tilstanden \[
-(n, 0, \dots, 0),
-\]
-
-hvor alle linjer er singletons. Transitionsstrukturen er givet ved, at
-to linjer med størrelser \(i\) og \(j\) coalescerer til en linje med
-størrelse \(i+j\). Transition rates er givet ved \[
-\lambda_{ij} =
-\begin{cases}
-x_i x_j, & i \neq j \\
-\frac{x_i(x_i - 1)}{2}, & i = j
-\end{cases}
-\]
-
-som samlet kan skrives som \[
-\lambda_{ij} = \frac{x_i (x_j - \delta_{ij})}{1 + \delta_{ij}}.
-\]
-
-Modellen implementeres ved hjælp af phasic biblioteket, hvor Markov
-processen repræsenteres som en grafstruktur. Hver node svarer til en
-state, og kanter repræsenterer mulige transitions med tilhørende rater.
-Phasic anvender phase-type distributions til at beregne eksakte moments
-og fordelinger for absorptionstiden (tid til MRCA), hvilket muliggør
-præcis analyse uden brug af Monte Carlo simulering. Derudover kan
-modellen anvendes til at generere syntetiske data ved simulation,
-hvilket senere bruges til parameterestimation og modelvalidering.
-
-For at illustrere strukturen af modellen vises i Figur X et eksempel på
-state space grafen for coalescent processen med fire samples. Noder
-repræsenterer mulige states af lineage-strukturen, mens kanter
-repræsenterer mulige coalescent events med tilhørende rater. Figuren
-illustrerer hvordan processen bevæger sig mod en absorberende state
-svarende til den fælles stamfader.
-
-\subsection{Parameterestimation via Method of
-Moments}\label{parameterestimation-via-method-of-moments}
-
-For at estimere parametre i coalescent modellen anvendes Method of
-Moments (MoM). Metoden bygger på at matche teoretiske moments fra
-modellen med empiriske moments beregnet fra data. Formelt estimeres
-parameteren \(\theta\) ved at løse optimeringsproblemet \[
-\hat{\theta} = \arg\min_{\theta > 0} \| m(\theta) - \hat{m} \|^2,
-\]
-
-hvor \(\theta\) er modellens moments, og \(\hat{m}\) er de observerede
-moments. Moments beregnes eksakt ved hjælp af phase-type distributions
-implementeret i phasic, hvilket eliminerer behovet for Monte Carlo
-approksimationer. Metoden anvendes først på syntetiske data genereret
-fra modellen for at validere dens egenskaber. Herefter bruges den til at
-konstruere informerede prior fordelinger, som anvendes i efterfølgende
-Bayesian inference. Standardfejl for estimaterne beregnes via
-delta-metoden, hvilket muliggør kvantificering af usikkerhed. MoM giver
-en hurtig og stabil tilgang til parameterestimation og fungerer som et
-vigtigt første skridt før anvendelse af mere avancerede inferensmetoder
-som Stein Variational Gradient Descent (SVGD).
-
-\subsection{Time-inhomogeneous coalescent
-model}\label{time-inhomogeneous-coalescent-model}
-
-For at modellere populationshistorie udvides den klassiske coalescent
-model til en time-inhomogen proces, hvor parametre varierer over tid. I
-stedet for en konstant coalescent rate \(\theta\) antages en piecewise
-konstant funktion \(\theta(t)\), hvor tiden opdeles i intervaller
-(epochs), og parameteren antages konstant inden for hvert interval.
-Formelt beskrives modellen som en kontinuert-tids Markov proces med
-tidsafhængige transition rates: \[
-\lambda_{ij}(t) = \theta(t) \cdot \frac{x_i (x_j - \delta_{ij})}{1 + \delta_{ij}}.
-\]
-
-I praksis implementeres dette ved en step-wise konstruktion, hvor
-modellens parametre opdateres ved foruddefinerede tidspunkter. Dette
-muliggør effektiv beregning af fordelinger og moments ved hjælp af
-phase-type metoder. Som eksempel modelleres et populations-bottleneck
-ved at reducere den effektive populationsstørrelse i et tidsinterval,
-hvilket resulterer i øgede coalescent rater i denne periode. Effekten af
-tidsvariation analyseres gennem: - fordelingsfunktioner for coalescent
-tid - forventet opholdstid i states - udviklingen af site frequency
-spectrum (SFS) over tid Denne tilgang gør det muligt at koble
-observerede genetiske mønstre til historiske demografiske begivenheder.
-
-\subsection{Isolation-with-Migration
-model}\label{isolation-with-migration-model}
-
-For at modellere populationsstruktur udvides coalescent modellen til en
-Isolation with Migration (IM) model med to populationer. States
-beskrives ved en udvidet state-vektor, som angiver: - antallet af
-lineager med bestemte descendant-strukturer - hvilken population hver
-lineage befinder sig i
-
-Processen indeholder to typer transitions: 1. Coalescence: To lineager i
-samme population kan koalescere med rate \[
- \lambda_{coal} = \frac{x_i (x_j - \delta_{ij})}{1 + \delta_{ij}}.
-\]
+Workflowet er organiseret i en række Jupyter Notebooks, der afspejler
+analysens progression:
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
-\setcounter{enumi}{1}
 \tightlist
 \item
-  Migration: Lineager kan skifte population med rater \[
-  m_{12}, \quad m_{21}.
-  \]
+  Konstruktion af coalescent-modellen som en Markovproces\\
+\item
+  Statistisk inferens baseret på Site Frequency Spectrum (SFS)\\
+\item
+  Anvendelse på empiriske bavian-data\\
+\item
+  Udvidelse til strukturerede populationsmodeller\\
+\item
+  Analyse af isolation--migration (IM) modeller\\
+\item
+  Tidsinhomogene modeller
 \end{enumerate}
 
-Modellen implementeres som en kontinuert-tids Markov proces ved hjælp af
-phasic, hvor state space konstrueres automatisk via en callback
-funktion. Denne model tillader analyse af: - gene flow mellem
-populationer - divergence mellem populationer - effekten af migration på
-genealogiske strukturer
+Denne struktur sikrer en gradvis overgang fra teori til anvendelse.
 
-Ved at variere migrationsrater kan man undersøge overgangen mellem: -
-isolerede populationer - panmiktiske populationer
+\subsection{Konstruktion af
+coalescent-modellen}\label{konstruktion-af-coalescent-modellen}
 
-\subsection{Two-island model}\label{two-island-model}
+Som første skridt konstrueres den klassiske coalescent-model som en
+kontinuert tids Markovproces. State space defineres ved antallet af
+ancestrale lineager, og overgange svarer til coalescent-begivenheder med
+rate:
 
-For at modellere populationsstruktur anvendes en two-island model, hvor
-populationen består af to subpopulationer med migration mellem dem.
-States af modellen beskrives ved en vektor, som angiver fordelingen af
-lineager mellem de to populationer samt deres descendant-struktur.
-
-Modellen inkluderer to typer transitions: 1. Coalescence: Lineager inden
-for samme population kan koalescere med rate \[
-\lambda_{coal} = \frac{x_i (x_j - \delta_{ij})}{1 + \delta_{ij}}.
+\[
+\lambda_i = \binom{i}{2}.
 \]
 
-\begin{enumerate}
-\def\labelenumi{\arabic{enumi}.}
-\setcounter{enumi}{1}
+Modellen implementeres som en absorberende Markovproces, hvor absorption
+svarer til den seneste fælles forfader (MRCA). Ved at formulere modellen
+som en phase-type distribution bliver det muligt at beregne:
+
+\begin{itemize}
 \tightlist
 \item
-  Migration: Lineager kan skifte mellem populationerne med rate \$\$
-\end{enumerate}
+  forventet tid til MRCA\\
+\item
+  varians og højere momenter\\
+\item
+  fordelinger for genealogiske størrelser
+\end{itemize}
 
-\begin{enumerate}
-\def\labelenumi{\alph{enumi}.}
-\setcounter{enumi}{12}
+Der anvendes en graf-baseret repræsentation, hvor states og overgange
+konstrueres dynamisk. Dette reducerer den beregningsmæssige kompleksitet
+sammenlignet med klassiske matrixbaserede metoder.
+
+Derudover anvendes reward-transformationer til at udlede størrelser som:
+
+\begin{itemize}
 \tightlist
 \item
-  \$\$
-\end{enumerate}
+  total træ længde\\
+\item
+  ekstern grenlængde\\
+\item
+  bidrag til SFS
+\end{itemize}
 
-Modellen implementeres som en kontinuert-tids Markov proces ved hjælp af
-phasic, hvor state space konstrueres automatisk via en callback
-funktion. Two-island modellen udgør en fundamental model for
-populationsstruktur og giver et simpelt men framework til at analysere
-gene flow mellem populationer. Ved at variere migrationsraten kan man
-undersøge forskellige scenarier fra isolation til fuld panmixi.
+\chapter{Statistisk inferens}\label{statistisk-inferens}
 
-\subsection{Baboon data}\label{baboon-data}
+På baggrund af den konstruerede model udføres inferens af mutationsraten
+\(\theta\) baseret på observerede data.
 
-\subsection{Ghost population model}\label{ghost-population-model}
+Først anvendes Method of Moments (MoM), hvor teoretiske forventninger
+til SFS:
 
-For at modellere skjulte populationer udvides two-island modellen til at
-inkludere en tredje, uobserveret population (ghost population). Modellen
-består af tre populationer: - to observerede populationer - en skjult
-population
+\[
+E[\xi_i] = \frac{\theta}{i}
+\]
 
-Lineager kan migrere mellem alle populationer, men kun lineager fra de
-to observerede populationer indgår i data. Dette resulterer i en skjult
-Markov proces, hvor ghost populationen påvirker transition dynamics
-indirekte. Transitions inkluderer: - coalescence inden for populationer
-- migration mellem populationer
+matches med empiriske observationer. Dette giver et hurtigt punktestimat
+af \(\theta\).
 
-Ghost populationen introducerer yderligere kompleksitet og kan forklare
-genetiske mønstre som ikke kan forklares af simple to-populations
-modeller. Ved at analysere hvordan modellen påvirker coalescent tider og
-summary statistics kan man identificere signaler af skjult gene flow.
+Herefter anvendes en bayesiansk tilgang, hvor usikkerheden i
+parameterestimatet kvantificeres. Posteriorfordelingen approximeres ved
+hjælp af Stein Variational Gradient Descent (SVGD), som repræsenterer
+fordelingen ved et sæt partikler.
+
+Denne tilgang gør det muligt at:
+
+\begin{itemize}
+\tightlist
+\item
+  estimere hele posteriorfordelingen\\
+\item
+  kvantificere usikkerhed\\
+\item
+  sammenligne med punktestimater
+\end{itemize}
+
+Metoderne valideres på simulerede data, hvor den sande parameter er
+kendt.
+
+\section{Analyse af bavian-data}\label{analyse-af-bavian-data}
+
+Den udviklede metode anvendes derefter på empiriske genomiske data fra
+bavianer. Data behandles og omformes til statistiske størrelser såsom
+SFS, som fungerer som input til inferensproceduren.
+
+Da bavianers evolutionære historie er præget af hybridisering og gene
+flow, forventes afvigelser fra den klassiske panmiktiske
+coalescent-model. Dette motiverer brugen af mere avancerede modeller.
+
+\section{Strukturerede
+populationsmodeller}\label{strukturerede-populationsmodeller}
+
+For at modellere populationsstruktur udvides den klassiske coalescent
+til modeller med flere subpopulationer.
+
+Først analyseres en to-ø-model, hvor lineager kan:
+
+\begin{itemize}
+\tightlist
+\item
+  migrere mellem populationer\\
+\item
+  coalescere inden for populationer
+\end{itemize}
+
+Dette implementeres som en kontinuert tids Markovproces med states, der
+indeholder information om lineage-placering.
+
+Herefter anvendes en isolation--migration (IM) model, hvor populationer:
+
+\begin{itemize}
+\tightlist
+\item
+  splitter på et tidspunkt i fortiden\\
+\item
+  muligvis udveksler migration efter split
+\end{itemize}
+
+Denne model gør det muligt at analysere mere realistiske evolutionære
+scenarier.
+
+\section{Tidsinhomogene modeller}\label{tidsinhomogene-modeller}
+
+Som sidste skridt introduceres tidsinhomogene modeller, hvor parametre
+som populationsstørrelse og migrationsrate kan variere over tid.
+
+Dette implementeres ved at lade generator-matricen afhænge af tiden:
+
+\[
+Q = Q(t)
+\]
+
+Sådanne modeller gør det muligt at beskrive:
+
+\begin{itemize}
+\tightlist
+\item
+  demografiske ændringer\\
+\item
+  historiske begivenheder\\
+\item
+  variation i selektion og migration
+\end{itemize}
+
+\section{Samlet metode}\label{samlet-metode}
+
+Den samlede metode kombinerer:
+
+\begin{itemize}
+\tightlist
+\item
+  coalescent teori\\
+\item
+  Markovprocesser\\
+\item
+  phase-type distributioner\\
+\item
+  statistisk inferens
+\end{itemize}
+
+i et samlet framework, der gør det muligt at analysere komplekse
+populationsgenetiske data.
+
+Ved at anvende graf-baserede metoder opnås en skalerbar tilgang, som kan
+håndtere både simple og avancerede modeller, og som kan anvendes direkte
+på empiriske data såsom bavianpopulationer.
 
 \chapter{Resultater}\label{resultater}
 
