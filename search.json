@@ -228,55 +228,99 @@
     ]
   },
   {
-    "objectID": "thesis/index.html#overordnet-struktur",
-    "href": "thesis/index.html#overordnet-struktur",
+    "objectID": "thesis/index.html#overblik-over-analysen",
+    "href": "thesis/index.html#overblik-over-analysen",
     "title": "Markov modeller i populationsgenetik",
-    "section": "Overordnet struktur",
-    "text": "Overordnet struktur\nWorkflowet er organiseret i en række Jupyter Notebooks, der afspejler analysens progression:\n\nKonstruktion af coalescent-modellen som en Markovproces\n\nStatistisk inferens baseret på Site Frequency Spectrum (SFS)\n\nAnvendelse på empiriske bavian-data\n\nUdvidelse til strukturerede populationsmodeller\n\nAnalyse af isolation–migration (IM) modeller\n\nTidsinhomogene modeller\n\nDenne struktur sikrer en gradvis overgang fra teori til anvendelse.\n\nKonstruktion af coalescent-modellen\nSom første skridt konstrueres den klassiske coalescent-model som en kontinuert tids Markovproces. State space defineres ved antallet af ancestrale lineager, og overgange svarer til coalescent-begivenheder med rate:\n\\[\n\\lambda_i = \\binom{i}{2}.\n\\]\nModellen implementeres som en absorberende Markovproces, hvor absorption svarer til den seneste fælles forfader (MRCA). Ved at formulere modellen som en phase-type distribution bliver det muligt at beregne:\n\nforventet tid til MRCA\n\nvarians og højere momenter\n\nfordelinger for genealogiske størrelser\n\nDer anvendes en graf-baseret repræsentation, hvor states og overgange konstrueres dynamisk. Dette reducerer den beregningsmæssige kompleksitet sammenlignet med klassiske matrixbaserede metoder.\nDerudover anvendes reward-transformationer til at udlede størrelser som:\n\ntotal træ længde\n\nekstern grenlængde\n\nbidrag til SFS",
+    "section": "Overblik over analysen",
+    "text": "Overblik over analysen\nArbejdet er struktureret i seks Juptyer-notebooks i Python, som bygger sekventielt på hinanden:\n\n\n\n\n\n\nNote\n\n\n\nNB 01: Markov-modeller og coalescent-teori\n- grafkonstruktion, PDF/CDF, momenter, SFS, rewards, diskrete fordelinger\n↓\nNB 02: Inferensmetoder (på simulerede data)\n- Method of Moments, SVGD, posterior predictive checks, joint probability\n↓\nNB 03: Baviandata (chr20)\n- indlæsning, allele counts, foldet SFS, heterozygositet per population\n↓\nNB 04: Two-island modellen på baviandata\n- joint probability-graf, SVGD-inferens på eastern yellow\n↓\nNB 05: IM-modellen på baviandata\n- to-epoke model, SVGD-inferens på southern olive\n↓\nNB 06: Tidsinhomogenitet\n- bottleneck, epoch-wise momenter, validering mod Pool & Nielsen",
     "crumbs": [
       "Thesis",
       "<span class='chapter-number'>1</span>  <span class='chapter-title'>Markov modeller i populationsgenetik</span>"
     ]
   },
   {
-    "objectID": "thesis/index.html#analyse-af-bavian-data",
-    "href": "thesis/index.html#analyse-af-bavian-data",
+    "objectID": "thesis/index.html#grafkonstruktion-i-phasic",
+    "href": "thesis/index.html#grafkonstruktion-i-phasic",
     "title": "Markov modeller i populationsgenetik",
-    "section": "Analyse af bavian-data",
-    "text": "Analyse af bavian-data\nDen udviklede metode anvendes derefter på empiriske genomiske data fra bavianer. Data behandles og omformes til statistiske størrelser såsom SFS, som fungerer som input til inferensproceduren.\nDa bavianers evolutionære historie er præget af hybridisering og gene flow, forventes afvigelser fra den klassiske panmiktiske coalescent-model. Dette motiverer brugen af mere avancerede modeller.",
+    "section": "Grafkonstruktion i phasic",
+    "text": "Grafkonstruktion i phasic\nDet centrale beregningsredskab er phasic (Røikjer et al. 2022; Hobolth et al. 2024), et Python-bibliotek der implementerer grafbaserede algoritmer til phase-type fordelinger. Biblioteket er dokumenteret og tilgængeligt på munch-group.org/phasic.\nKernen i phasic er Graph-klassen. En Markov-model defineres ved en callback-funktion, der for en given statevektor returnerer alle mulige states og tilhørende overgangskoder. Phasic konstruerer automatisk det komplette staterum ved rekursivt at kalde funktionen fra startstate. For coalescensmodellen med \\(n=4\\) er implementeringen:\nfrom phasic import Graph, with_ipv\n(with_ipv?)([nr_samples] + [0] * (nr_samples - 1)) def coalescent_model(state): transitions = [] for i in range(state.size): for j in range(i, state.size): same = int(i == j) if same and state[i] &lt; 2: continue if not same and (state[i] &lt; 1 or state[j] &lt; 1): continue new = state.copy() new[i] -= 1; new[j] -= 1; new[i + j + 1] += 1 rate = state[i] * (state[j] - same) / (1 + same) transitions.append([new, [rate]]) return transitions\ngraph = Graph(coalescent_model)\nwith_ipv angiver startvektoren (initial population vector). Fordelinger og momenter beregnes herefter direkte på grafen:\ngraph.expectation() # E[T_MRCA] graph.variance() # Var[T_MRCA] graph.pdf(t_values) # tæthedsfunktion graph.cdf(t_values) # kumulativ fordelingsfunktion graph.moments(4) # første fire momenter graph.sample(10000) # simulerede samples til validering\nEn væsentlig egenskab ved grafrepræsentationen er, at den undgår at gemme hele \\(p \\times p\\) intensitetsmatricen. For sparsomme grafer reduceres hukommelseskompleksiteten fra \\(O(p^2)\\) til \\(O(p + e)\\), hvor \\(e\\) er antallet af kanter (Røikjer et al. 2022). Det er særlig relevant for modeller med populationsstruktur og epoch-information, hvor staterummet vokser markant.\nFigur 5 (NB 01 — simulering vs. analytisk PDF): Histogram af 10.000 simulerede coalesceringstider sammenholdt med den analytisk beregnede PDF. Den tætte overensstemmelse simuleret middelværdi inden for \\(10^{-3}\\) af graph.expectation() tjener som validering af korrekt modelimplementering.",
     "crumbs": [
       "Thesis",
       "<span class='chapter-number'>1</span>  <span class='chapter-title'>Markov modeller i populationsgenetik</span>"
     ]
   },
   {
-    "objectID": "thesis/index.html#strukturerede-populationsmodeller",
-    "href": "thesis/index.html#strukturerede-populationsmodeller",
+    "objectID": "thesis/index.html#rewards-og-sfs-i-praksis",
+    "href": "thesis/index.html#rewards-og-sfs-i-praksis",
     "title": "Markov modeller i populationsgenetik",
-    "section": "Strukturerede populationsmodeller",
-    "text": "Strukturerede populationsmodeller\nFor at modellere populationsstruktur udvides den klassiske coalescent til modeller med flere subpopulationer.\nFørst analyseres en to-ø-model, hvor lineager kan:\n\nmigrere mellem populationer\n\ncoalescere inden for populationer\n\nDette implementeres som en kontinuert tids Markovproces med states, der indeholder information om lineage-placering.\nHerefter anvendes en isolation–migration (IM) model, hvor populationer:\n\nsplitter på et tidspunkt i fortiden\n\nmuligvis udveksler migration efter split\n\nDenne model gør det muligt at analysere mere realistiske evolutionære scenarier.",
+    "section": "Rewards og SFS i praksis",
+    "text": "Rewards og SFS i praksis\nReward-transformationer beregnes via graph.reward_transform(reward_vector), der returnerer en ny graf, som udelukkende akkumulerer vægtet tid. Reward-matricen for SFS-beregning er state-matricen transponeret, så søjle \\(k\\) tæller antallet af \\(k\\)-tons lineages i hver state:\nreward_matrix = graph.states().T sfs = [graph.expectation(r) for r in reward_matrix]\nHele det forventede SFS beregnes analytisk i wt udtryk. Reward-transformerede fordelinger altså den fulde sandsynlighedsfordeling for tid brugt i en bestemt type lineage beregnes tilsvarende:\nfor i, rewards in enumerate(reward_matrix): rt_graph = graph.reward_transform(rewards) ax.plot(times, rt_graph.pdf(times), label=labels[i])",
     "crumbs": [
       "Thesis",
       "<span class='chapter-number'>1</span>  <span class='chapter-title'>Markov modeller i populationsgenetik</span>"
     ]
   },
   {
-    "objectID": "thesis/index.html#tidsinhomogene-modeller",
-    "href": "thesis/index.html#tidsinhomogene-modeller",
+    "objectID": "thesis/index.html#parameteriserede-modeller-og-epoch-konstruktion",
+    "href": "thesis/index.html#parameteriserede-modeller-og-epoch-konstruktion",
     "title": "Markov modeller i populationsgenetik",
-    "section": "Tidsinhomogene modeller",
-    "text": "Tidsinhomogene modeller\nSom sidste skridt introduceres tidsinhomogene modeller, hvor parametre som populationsstørrelse og migrationsrate kan variere over tid.\nDette implementeres ved at lade generator-matricen afhænge af tiden:\n\\[\nQ = Q(t)\n\\]\nSådanne modeller gør det muligt at beskrive:\n\ndemografiske ændringer\n\nhistoriske begivenheder\n\nvariation i selektion og migration",
+    "section": "Parameteriserede modeller og epoch-konstruktion",
+    "text": "Parameteriserede modeller og epoch-konstruktion\nFor modeller med flere populationer udtrykkes overgangskoderne som koefficient-vektorer, der angiver, hvilke parametre der bidrager til den pågældende overgang. For two-island modellen ser det ud som:\nCoalescence i population 1 coeff = [rate, 0, 0] # [1/N1, 1/N2, m]\nMigration fra population 1 til population 2 transitions.append([new, [0, 0, state[i]]])\nDenne struktur gør det muligt for phasic at beregne gradienter af likelihoodfunktionen med hensyn til parametrene, hvilket er forudsætningen for SVGD-inferens. For IM-modellen og andre tidsindhomogene modeller bruges en epoch-baseret konstruktion. Hvert state-vector tildeles en ekstra epoch-slot. Overgangen mellem epoker beregnes via:\ndef add_epoch(graph, callback, epochs, epoch_idx, indexer): stop_probs = np.array(graph.stop_probability(epoch)) accum_v_time = np.array(graph.accumulated_occupancy(epoch)) epoch_trans_rates = stop_probs / accum_v_time # Tilføj søsterstate og byg grafen videre i ny epoke graph.extend(callback, epochs=epochs, epoch_idx=epoch_idx, indexer=indexer)\nstop_probability(t) returnerer sandsynligheden for at befinde sig i hver state ved tid \\(t\\); accumulated_occupancy(t) returnerer forventet opholdstid op til \\(t\\). Forholdet giver de effektive overgangsrater til den nye epoke, og grafen bygges videre derfra med de ændrede parametre.",
     "crumbs": [
       "Thesis",
       "<span class='chapter-number'>1</span>  <span class='chapter-title'>Markov modeller i populationsgenetik</span>"
     ]
   },
   {
-    "objectID": "thesis/index.html#samlet-metode",
-    "href": "thesis/index.html#samlet-metode",
+    "objectID": "thesis/index.html#inferens-method-of-moments-og-svgd",
+    "href": "thesis/index.html#inferens-method-of-moments-og-svgd",
     "title": "Markov modeller i populationsgenetik",
-    "section": "Samlet metode",
-    "text": "Samlet metode\nDen samlede metode kombinerer:\n\ncoalescent teori\n\nMarkovprocesser\n\nphase-type distributioner\n\nstatistisk inferens\n\ni et samlet framework, der gør det muligt at analysere komplekse populationsgenetiske data.\nVed at anvende graf-baserede metoder opnås en skalerbar tilgang, som kan håndtere både simple og avancerede modeller, og som kan anvendes direkte på empiriske data såsom bavianpopulationer.",
+    "section": "Inferens: Method of Moments og SVGD",
+    "text": "Inferens: Method of Moments og SVGD\nTo komplementære inferensmetoder benyttes i projektet: Method of Moments (MoM) er en klassisk og beregningsmæssigt effektiv tilgang: de empiriske momenter (middelværdi, varians osv.) fra data matches med de tilsvarende teoretiske momenter fra modellen. Phasic løser matchingproblemet numerisk og returnerer et punktestimat med tilhørende standardfejl:\nmom = graph.method_of_moments(observed_data) mom.theta: estimerede parametre mom.sample_moments: empiriske momenter mom.model_moments: tilsvarende modelbaserede momenter\nMoM bruges primært som et hurtigt startestimat og til at generere informative priors til SVGD.\nBayesiansk inferens med SVGD (Stein Variational Gradient Descent, Liu & Wang 2016) giver den fulde posterior-fordeling over parametre. En samling af \\(M\\) partikler \\(\\{\\theta^{(m)}\\}_{m=1}^M\\) opdateres iterativt ved:\n\\[\n\\theta^{(m)} \\leftarrow \\theta^{(m)} + \\epsilon\\, \\hat{\\phi}^*(\\theta^{(m)})\n\\]\nhvor \\(\\hat{\\phi}^*\\) er den empiriske kerneliserede Stein-operator, der maksimerer nedstigningsretningen i KL-divergens mod posterior. SVGD kombinerer skalerbarhed fra variationel inferens med styrken fra partikelbaserede metoder, og er særlig velegnet til differentiable modeller som dem, phasic genererer. Læringsraten aftager eksponentielt over iterationer:\nsvgd = graph.svgd( observed_data, prior=GaussPrior(ci=[2, 5]), learning_rate=ExpStepSize(first_step=0.05, last_step=0.01, tau=30.0), n_particles=80, n_iterations=150, ) svgd.summary() # posterior-statistikker svgd.plot_ci() # konfidensinterval svgd.plot_convergence() # konvergensdiagnostik svgd.plot_pairwise() # korrelationsstruktur mellem parametre\nFigur 6 (NB 02 — posterior CI): Posterior-fordeling (95% HPD) for koalescensparameter \\(\\theta\\) estimeret med SVGD på 10.000 simulerede observationer. Den sande parameter er markeret, og posterior-medianen er i god overensstemmelse med denne.\nFigur 7 (NB 02 — posterior predictive check): Modellens tilpassede PDF og CDF sammenholdt med data, evalueret ved posterior-gennemsnittet. Det tætte match residual under \\(0.005\\) over hele støtten, bekræfter god modelfit.",
+    "crumbs": [
+      "Thesis",
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Markov modeller i populationsgenetik</span>"
+    ]
+  },
+  {
+    "objectID": "thesis/index.html#joint-probability-inferens-på-snp-data",
+    "href": "thesis/index.html#joint-probability-inferens-på-snp-data",
+    "title": "Markov modeller i populationsgenetik",
+    "section": "Joint probability-inferens på SNP-data",
+    "text": "Joint probability-inferens på SNP-data\nFor inferens på diskrete SNP-observationer benyttes phasics joint probability-graf, der kobler coalescent-modellen til en Poisson-mutationsmodel:\njoint_graph = graph.joint_prob_graph( indexer, reward_only=[“descendants”], reward_limit=1, tot_reward_limit=2, mutation_rate=mutation_rate, )\nGrafen beregner sandsynligheden \\(P(\\mathbf{k})\\) for at observere et mønster \\(\\mathbf{k}\\) af singleton-, doubleton- osv.-mutationsantal. Som startestimat anvendes probability matching:\npm = joint_graph.probability_matching(observations, fixed=[(1, mutation_rate)])\nHerefter køres SVGD over de frie parametre, mens mutationsraten fastholdes.",
+    "crumbs": [
+      "Thesis",
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Markov modeller i populationsgenetik</span>"
+    ]
+  },
+  {
+    "objectID": "thesis/index.html#databehandling-af-baviangenomet",
+    "href": "thesis/index.html#databehandling-af-baviangenomet",
+    "title": "Markov modeller i populationsgenetik",
+    "section": "Databehandling af baviangenomet",
+    "text": "Databehandling af baviangenomet\nGenomdata fra Sørensen et al. (2023) — kromosom 20 i phased Zarr-format — indlæses via sgkit:\nds = sg.load_dataset(DATA_DIR / “chr20.phased.rehead.vcz”)\nFor hver population beregnes derived allele counts og filtreres til segregerende SNPs (derived count \\(&gt; 0\\) og \\(&lt; n\\)). Da populationerne har forskellig samplingdybde, subsamples der til \\(n = 4\\) haplotyper via hypergeometrisk sampling, som er den korrekte fremgangsmåde for at undgå bias:\nk = rng.hypergeometric( ngood=df[“derived_count”].values, nbad=(df[“nr_samples”] - df[“derived_count”]).values, nsample=n_samples_use, )\nNukleotiddiversiteten \\(\\hat{\\pi}\\) estimeres som:\n\\[\n\\hat{\\pi} = \\frac{1}{L} \\sum_{\\ell} 2\\, \\frac{k_\\ell}{n} \\cdot \\frac{n - k_\\ell}{n}\n\\]\nog bruges til kalibrering af den absolutte referencepopulationsstørrelse: \\(N_\\text{ref} \\approx \\hat{\\pi} / (4\\mu)\\). Den foldede SFS beregnes for at undgå polariseringsfejl, idet kendskab til ancestral allel ikke forudsættes:\n\\[\n\\text{SFS}^\\text{foldet}_k = \\text{SFS}_k + \\text{SFS}_{n-k}, \\quad k = 1, \\ldots, \\lfloor n/2 \\rfloor\n\\]",
+    "crumbs": [
+      "Thesis",
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Markov modeller i populationsgenetik</span>"
+    ]
+  },
+  {
+    "objectID": "thesis/index.html#simuleringsvalidering-med-msprime",
+    "href": "thesis/index.html#simuleringsvalidering-med-msprime",
+    "title": "Markov modeller i populationsgenetik",
+    "section": "Simuleringsvalidering med msprime",
+    "text": "Simuleringsvalidering med msprime\nInden modellerne anvendes på empiriske data valideres de på datasæt simuleret med kendte parametre via msprime (Kelleher et al. 2016). For two-island modellen og IM-modellen specificeres demografien henholdsvis med og uden et split-tidspunkt:\ndemography = msprime.Demography() demography.add_population(name=“pop1”, initial_size=pop1_size) demography.add_population(name=“pop2”, initial_size=pop2_size) demography.set_migration_rate(source=“pop1”, dest=“pop2”, rate=migr_pop1_to_pop2)\nKun for IM-modellen: demography.add_population_split(time=t_split, derived=[“pop1”, “pop2”], ancestral=“ancestral”)\nTo-locus observationer dannes ved at identificere SNP-par med defineret fysisk afstand (\\(5\\) kb \\(±\\) \\(500\\) bp) og filtrere så hvert SNP indgår i højst et par. Posterior-medianerne fra SVGD-inferens sammenlignes med de sande simuleringsparametre som kontrol på inferensprocedurens troværdighed.",
+    "crumbs": [
+      "Thesis",
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Markov modeller i populationsgenetik</span>"
+    ]
+  },
+  {
+    "objectID": "thesis/index.html#software-og-biblioteker",
+    "href": "thesis/index.html#software-og-biblioteker",
+    "title": "Markov modeller i populationsgenetik",
+    "section": "Software og biblioteker",
+    "text": "Software og biblioteker\n\n\n\nTable 4.1: Oversigt over anvendte biblioteker, referencer og deres rolle i projektet.\n\n\n\n\n\n\n\n\n\n\nBibliotek\nReference\nAnvendelse\n\n\n\n\nphasic\nRøikjer et al. (2022);Hobolth et al. (2024)\nPhase-type modeller, grafkonstruktion, inferens\n\n\nmsprime\nKelleher et al. (2016)\nKoalescent-simulering\n\n\nsgkit\n—\nGenomdata (VCF/Zarr-format)\n\n\nJAX\nBradbury et al. (2018)\nDifferentiabel programmering og GPU-understøttelse\n\n\nnumpy, pandas\n—\nNumerisk databehandling\n\n\nmatplotlib, seaborn\n—\nVisualisering",
     "crumbs": [
       "Thesis",
       "<span class='chapter-number'>1</span>  <span class='chapter-title'>Markov modeller i populationsgenetik</span>"

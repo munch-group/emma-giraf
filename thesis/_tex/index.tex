@@ -527,6 +527,22 @@
   }
 }
 \makeatletter
+\@ifpackageloaded{tcolorbox}{}{\usepackage[skins,breakable]{tcolorbox}}
+\@ifpackageloaded{fontawesome5}{}{\usepackage{fontawesome5}}
+\definecolor{quarto-callout-color}{HTML}{909090}
+\definecolor{quarto-callout-note-color}{HTML}{0758E5}
+\definecolor{quarto-callout-important-color}{HTML}{CC1914}
+\definecolor{quarto-callout-warning-color}{HTML}{EB9113}
+\definecolor{quarto-callout-tip-color}{HTML}{00A047}
+\definecolor{quarto-callout-caution-color}{HTML}{FC5300}
+\definecolor{quarto-callout-color-frame}{HTML}{acacac}
+\definecolor{quarto-callout-note-color-frame}{HTML}{4582ec}
+\definecolor{quarto-callout-important-color-frame}{HTML}{d9534f}
+\definecolor{quarto-callout-warning-color-frame}{HTML}{f0ad4e}
+\definecolor{quarto-callout-tip-color-frame}{HTML}{02b875}
+\definecolor{quarto-callout-caution-color-frame}{HTML}{fd7e14}
+\makeatother
+\makeatletter
 \@ifpackageloaded{caption}{}{\usepackage{caption}}
 \AtBeginDocument{%
 \ifdefined\contentsname
@@ -2336,200 +2352,312 @@ hvor komplekse statistiske modeller og simulationer indgår.
 
 \chapter{Metode}\label{metode}
 
-Analysen er opbygget som en sekventiel pipeline bestående af
-modellering, inferens og anvendelse på empiriske data. Alle beregninger
-er implementeret i Python ved brug af graf-baserede phase-type metoder,
-hvilket muliggør effektiv håndtering af komplekse state spaces i
-coalescent-modeller.
+\section{Overblik over analysen}\label{overblik-over-analysen}
 
-\section{Overordnet struktur}\label{overordnet-struktur}
+Arbejdet er struktureret i seks Juptyer-notebooks i Python, som bygger
+sekventielt på hinanden:
 
-Workflowet er organiseret i en række Jupyter Notebooks, der afspejler
-analysens progression:
+\begin{tcolorbox}[enhanced jigsaw, arc=.35mm, bottomrule=.15mm, bottomtitle=1mm, breakable, colback=white, colbacktitle=quarto-callout-note-color!10!white, colframe=quarto-callout-note-color-frame, coltitle=black, left=2mm, leftrule=.75mm, opacityback=0, opacitybacktitle=0.6, rightrule=.15mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Note}, titlerule=0mm, toprule=.15mm, toptitle=1mm]
 
-\begin{enumerate}
-\def\labelenumi{\arabic{enumi}.}
-\tightlist
-\item
-  Konstruktion af coalescent-modellen som en Markovproces\\
-\item
-  Statistisk inferens baseret på Site Frequency Spectrum (SFS)\\
-\item
-  Anvendelse på empiriske bavian-data\\
-\item
-  Udvidelse til strukturerede populationsmodeller\\
-\item
-  Analyse af isolation--migration (IM) modeller\\
-\item
-  Tidsinhomogene modeller
-\end{enumerate}
+\textbf{NB 01: Markov-modeller og coalescent-teori}\\
+- grafkonstruktion, PDF/CDF, momenter, SFS, rewards, diskrete
+fordelinger
 
-Denne struktur sikrer en gradvis overgang fra teori til anvendelse.
+↓
 
-\subsection{Konstruktion af
-coalescent-modellen}\label{konstruktion-af-coalescent-modellen}
+\textbf{NB 02: Inferensmetoder (på simulerede data)}\\
+- Method of Moments, SVGD, posterior predictive checks, joint
+probability
 
-Som første skridt konstrueres den klassiske coalescent-model som en
-kontinuert tids Markovproces. State space defineres ved antallet af
-ancestrale lineager, og overgange svarer til coalescent-begivenheder med
-rate:
+↓
+
+\textbf{NB 03: Baviandata (chr20)}\\
+- indlæsning, allele counts, foldet SFS, heterozygositet per population
+
+↓
+
+\textbf{NB 04: Two-island modellen på baviandata}\\
+- joint probability-graf, SVGD-inferens på eastern yellow
+
+↓
+
+\textbf{NB 05: IM-modellen på baviandata}\\
+- to-epoke model, SVGD-inferens på southern olive
+
+↓
+
+\textbf{NB 06: Tidsinhomogenitet}\\
+- bottleneck, epoch-wise momenter, validering mod Pool \& Nielsen
+
+\end{tcolorbox}
+
+\section{Grafkonstruktion i phasic}\label{grafkonstruktion-i-phasic}
+
+Det centrale beregningsredskab er phasic (Røikjer et al.~2022; Hobolth
+et al.~2024), et Python-bibliotek der implementerer grafbaserede
+algoritmer til phase-type fordelinger. Biblioteket er dokumenteret og
+tilgængeligt på munch-group.org/phasic.
+
+Kernen i phasic er \emph{Graph}-klassen. En Markov-model defineres ved
+en \emph{callback-funktion}, der for en given statevektor returnerer
+alle mulige states og tilhørende overgangskoder. Phasic konstruerer
+automatisk det komplette staterum ved rekursivt at kalde funktionen fra
+startstate. For coalescensmodellen med \(n=4\) er implementeringen:
+
+from phasic import Graph, with\_ipv
+
+(\textbf{with\_ipv?})({[}nr\_samples{]} + {[}0{]} * (nr\_samples - 1))
+def coalescent\_model(state): transitions = {[}{]} for i in
+range(state.size): for j in range(i, state.size): same = int(i == j) if
+same and state{[}i{]} \textless{} 2: continue if not same and
+(state{[}i{]} \textless{} 1 or state{[}j{]} \textless{} 1): continue new
+= state.copy() new{[}i{]} -= 1; new{[}j{]} -= 1; new{[}i + j + 1{]} += 1
+rate = state{[}i{]} * (state{[}j{]} - same) / (1 + same)
+transitions.append({[}new, {[}rate{]}{]}) return transitions
+
+graph = Graph(coalescent\_model)
+
+\emph{with\_ipv} angiver startvektoren (initial population vector).
+Fordelinger og momenter beregnes herefter direkte på grafen:
+
+graph.expectation() \# E{[}T\_MRCA{]} graph.variance() \#
+Var{[}T\_MRCA{]} graph.pdf(t\_values) \# tæthedsfunktion
+graph.cdf(t\_values) \# kumulativ fordelingsfunktion graph.moments(4) \#
+første fire momenter graph.sample(10000) \# simulerede samples til
+validering
+
+En væsentlig egenskab ved grafrepræsentationen er, at den undgår at
+gemme hele \(p \times p\) intensitetsmatricen. For sparsomme grafer
+reduceres hukommelseskompleksiteten fra \(O(p^2)\) til \(O(p + e)\),
+hvor \(e\) er antallet af kanter (Røikjer et al.~2022). Det er særlig
+relevant for modeller med populationsstruktur og epoch-information, hvor
+staterummet vokser markant.
+
+\textbf{Figur 5 (NB 01 --- simulering vs.~analytisk PDF)}: Histogram af
+10.000 simulerede coalesceringstider sammenholdt med den analytisk
+beregnede PDF. Den tætte overensstemmelse simuleret middelværdi inden
+for \(10^{-3}\) af \emph{graph.expectation()} tjener som validering af
+korrekt modelimplementering.
+
+\section{Rewards og SFS i praksis}\label{rewards-og-sfs-i-praksis}
+
+Reward-transformationer beregnes via
+\emph{graph.reward\_transform(reward\_vector)}, der returnerer en ny
+graf, som udelukkende akkumulerer vægtet tid. Reward-matricen for
+SFS-beregning er state-matricen transponeret, så søjle \(k\) tæller
+antallet af \(k\)-tons lineages i hver state:
+
+reward\_matrix = graph.states().T sfs = {[}graph.expectation(r) for r in
+reward\_matrix{]}
+
+Hele det forventede SFS beregnes analytisk i wt udtryk.
+Reward-transformerede fordelinger altså den fulde
+sandsynlighedsfordeling for tid brugt i en bestemt type lineage beregnes
+tilsvarende:
+
+for i, rewards in enumerate(reward\_matrix): rt\_graph =
+graph.reward\_transform(rewards) ax.plot(times, rt\_graph.pdf(times),
+label=labels{[}i{]})
+
+\section{Parameteriserede modeller og
+epoch-konstruktion}\label{parameteriserede-modeller-og-epoch-konstruktion}
+
+For modeller med flere populationer udtrykkes overgangskoderne som
+koefficient-vektorer, der angiver, hvilke parametre der bidrager til den
+pågældende overgang. For two-island modellen ser det ud som:
+
+Coalescence i population 1 coeff = {[}rate, 0, 0{]} \# {[}1/N1, 1/N2,
+m{]}
+
+Migration fra population 1 til population 2 transitions.append({[}new,
+{[}0, 0, state{[}i{]}{]}{]})
+
+Denne struktur gør det muligt for phasic at beregne gradienter af
+likelihoodfunktionen med hensyn til parametrene, hvilket er
+forudsætningen for SVGD-inferens. For IM-modellen og andre
+tidsindhomogene modeller bruges en epoch-baseret konstruktion. Hvert
+state-vector tildeles en ekstra epoch-slot. Overgangen mellem epoker
+beregnes via:
+
+def add\_epoch(graph, callback, epochs, epoch\_idx, indexer):
+stop\_probs = np.array(graph.stop\_probability(epoch)) accum\_v\_time =
+np.array(graph.accumulated\_occupancy(epoch)) epoch\_trans\_rates =
+stop\_probs / accum\_v\_time \# Tilføj søsterstate og byg grafen videre
+i ny epoke graph.extend(callback, epochs=epochs, epoch\_idx=epoch\_idx,
+indexer=indexer)
+
+\emph{stop\_probability(t)} returnerer sandsynligheden for at befinde
+sig i hver state ved tid \(t\); \emph{accumulated\_occupancy(t)}
+returnerer forventet opholdstid op til \(t\). Forholdet giver de
+effektive overgangsrater til den nye epoke, og grafen bygges videre
+derfra med de ændrede parametre.
+
+\section{Inferens: Method of Moments og
+SVGD}\label{inferens-method-of-moments-og-svgd}
+
+To komplementære inferensmetoder benyttes i projektet: Method of Moments
+(MoM) er en klassisk og beregningsmæssigt effektiv tilgang: de empiriske
+momenter (middelværdi, varians osv.) fra data matches med de tilsvarende
+teoretiske momenter fra modellen. Phasic løser matchingproblemet
+numerisk og returnerer et punktestimat med tilhørende standardfejl:
+
+mom = graph.method\_of\_moments(observed\_data) mom.theta: estimerede
+parametre mom.sample\_moments: empiriske momenter mom.model\_moments:
+tilsvarende modelbaserede momenter
+
+MoM bruges primært som et hurtigt startestimat og til at generere
+informative priors til SVGD.
+
+\textbf{Bayesiansk inferens med SVGD} (\emph{Stein Variational Gradient
+Descent}, Liu \& Wang 2016) giver den fulde posterior-fordeling over
+parametre. En samling af \(M\) partikler \(\{\theta^{(m)}\}_{m=1}^M\)
+opdateres iterativt ved:
 
 \[
-\lambda_i = \binom{i}{2}.
+\theta^{(m)} \leftarrow \theta^{(m)} + \epsilon\, \hat{\phi}^*(\theta^{(m)})
 \]
 
-Modellen implementeres som en absorberende Markovproces, hvor absorption
-svarer til den seneste fælles forfader (MRCA). Ved at formulere modellen
-som en phase-type distribution bliver det muligt at beregne:
+hvor \(\hat{\phi}^*\) er den empiriske kerneliserede Stein-operator, der
+maksimerer nedstigningsretningen i KL-divergens mod posterior. SVGD
+kombinerer skalerbarhed fra variationel inferens med styrken fra
+partikelbaserede metoder, og er særlig velegnet til differentiable
+modeller som dem, phasic genererer. Læringsraten aftager eksponentielt
+over iterationer:
 
-\begin{itemize}
-\tightlist
-\item
-  forventet tid til MRCA\\
-\item
-  varians og højere momenter\\
-\item
-  fordelinger for genealogiske størrelser
-\end{itemize}
+svgd = graph.svgd( observed\_data, prior=GaussPrior(ci={[}2, 5{]}),
+learning\_rate=ExpStepSize(first\_step=0.05, last\_step=0.01, tau=30.0),
+n\_particles=80, n\_iterations=150, ) svgd.summary() \#
+posterior-statistikker svgd.plot\_ci() \# konfidensinterval
+svgd.plot\_convergence() \# konvergensdiagnostik svgd.plot\_pairwise()
+\# korrelationsstruktur mellem parametre
 
-Der anvendes en graf-baseret repræsentation, hvor states og overgange
-konstrueres dynamisk. Dette reducerer den beregningsmæssige kompleksitet
-sammenlignet med klassiske matrixbaserede metoder.
+\textbf{Figur 6 (NB 02 --- posterior CI)}: Posterior-fordeling (95\%
+HPD) for koalescensparameter \(\theta\) estimeret med SVGD på 10.000
+simulerede observationer. Den sande parameter er markeret, og
+posterior-medianen er i god overensstemmelse med denne.
 
-Derudover anvendes reward-transformationer til at udlede størrelser som:
+\textbf{Figur 7 (NB 02 --- posterior predictive check)}: Modellens
+tilpassede PDF og CDF sammenholdt med data, evalueret ved
+posterior-gennemsnittet. Det tætte match residual under \(0.005\) over
+hele støtten, bekræfter god modelfit.
 
-\begin{itemize}
-\tightlist
-\item
-  total træ længde\\
-\item
-  ekstern grenlængde\\
-\item
-  bidrag til SFS
-\end{itemize}
+\section{Joint probability-inferens på
+SNP-data}\label{joint-probability-inferens-puxe5-snp-data}
 
-\chapter{Statistisk inferens}\label{statistisk-inferens}
+For inferens på diskrete SNP-observationer benyttes phasics \emph{joint
+probability-graf}, der kobler coalescent-modellen til en
+Poisson-mutationsmodel:
 
-På baggrund af den konstruerede model udføres inferens af mutationsraten
-\(\theta\) baseret på observerede data.
+joint\_graph = graph.joint\_prob\_graph( indexer,
+reward\_only={[}``descendants''{]}, reward\_limit=1,
+tot\_reward\_limit=2, mutation\_rate=mutation\_rate, )
 
-Først anvendes Method of Moments (MoM), hvor teoretiske forventninger
-til SFS:
+Grafen beregner sandsynligheden \(P(\mathbf{k})\) for at observere et
+mønster \(\mathbf{k}\) af singleton-, doubleton- osv.-mutationsantal.
+Som startestimat anvendes probability matching:
+
+pm = joint\_graph.probability\_matching(observations, fixed={[}(1,
+mutation\_rate){]})
+
+Herefter køres SVGD over de frie parametre, mens mutationsraten
+fastholdes.
+
+\section{Databehandling af
+baviangenomet}\label{databehandling-af-baviangenomet}
+
+Genomdata fra Sørensen et al.~(2023) --- kromosom 20 i phased
+Zarr-format --- indlæses via sgkit:
+
+ds = sg.load\_dataset(DATA\_DIR / ``chr20.phased.rehead.vcz'')
+
+For hver population beregnes derived allele counts og filtreres til
+segregerende SNPs (derived count \(> 0\) og \(< n\)). Da populationerne
+har forskellig samplingdybde, subsamples der til \(n = 4\) haplotyper
+via hypergeometrisk sampling, som er den korrekte fremgangsmåde for at
+undgå bias:
+
+k = rng.hypergeometric( ngood=df{[}``derived\_count''{]}.values,
+nbad=(df{[}``nr\_samples''{]} - df{[}``derived\_count''{]}).values,
+nsample=n\_samples\_use, )
+
+Nukleotiddiversiteten \(\hat{\pi}\) estimeres som:
 
 \[
-E[\xi_i] = \frac{\theta}{i}
+\hat{\pi} = \frac{1}{L} \sum_{\ell} 2\, \frac{k_\ell}{n} \cdot \frac{n - k_\ell}{n}
 \]
 
-matches med empiriske observationer. Dette giver et hurtigt punktestimat
-af \(\theta\).
-
-Herefter anvendes en bayesiansk tilgang, hvor usikkerheden i
-parameterestimatet kvantificeres. Posteriorfordelingen approximeres ved
-hjælp af Stein Variational Gradient Descent (SVGD), som repræsenterer
-fordelingen ved et sæt partikler.
-
-Denne tilgang gør det muligt at:
-
-\begin{itemize}
-\tightlist
-\item
-  estimere hele posteriorfordelingen\\
-\item
-  kvantificere usikkerhed\\
-\item
-  sammenligne med punktestimater
-\end{itemize}
-
-Metoderne valideres på simulerede data, hvor den sande parameter er
-kendt.
-
-\section{Analyse af bavian-data}\label{analyse-af-bavian-data}
-
-Den udviklede metode anvendes derefter på empiriske genomiske data fra
-bavianer. Data behandles og omformes til statistiske størrelser såsom
-SFS, som fungerer som input til inferensproceduren.
-
-Da bavianers evolutionære historie er præget af hybridisering og gene
-flow, forventes afvigelser fra den klassiske panmiktiske
-coalescent-model. Dette motiverer brugen af mere avancerede modeller.
-
-\section{Strukturerede
-populationsmodeller}\label{strukturerede-populationsmodeller}
-
-For at modellere populationsstruktur udvides den klassiske coalescent
-til modeller med flere subpopulationer.
-
-Først analyseres en to-ø-model, hvor lineager kan:
-
-\begin{itemize}
-\tightlist
-\item
-  migrere mellem populationer\\
-\item
-  coalescere inden for populationer
-\end{itemize}
-
-Dette implementeres som en kontinuert tids Markovproces med states, der
-indeholder information om lineage-placering.
-
-Herefter anvendes en isolation--migration (IM) model, hvor populationer:
-
-\begin{itemize}
-\tightlist
-\item
-  splitter på et tidspunkt i fortiden\\
-\item
-  muligvis udveksler migration efter split
-\end{itemize}
-
-Denne model gør det muligt at analysere mere realistiske evolutionære
-scenarier.
-
-\section{Tidsinhomogene modeller}\label{tidsinhomogene-modeller}
-
-Som sidste skridt introduceres tidsinhomogene modeller, hvor parametre
-som populationsstørrelse og migrationsrate kan variere over tid.
-
-Dette implementeres ved at lade generator-matricen afhænge af tiden:
+og bruges til kalibrering af den absolutte
+referencepopulationsstørrelse:
+\(N_\text{ref} \approx \hat{\pi} / (4\mu)\). Den \emph{foldede} SFS
+beregnes for at undgå polariseringsfejl, idet kendskab til ancestral
+allel ikke forudsættes:
 
 \[
-Q = Q(t)
+\text{SFS}^\text{foldet}_k = \text{SFS}_k + \text{SFS}_{n-k}, \quad k = 1, \ldots, \lfloor n/2 \rfloor
 \]
 
-Sådanne modeller gør det muligt at beskrive:
+\section{Simuleringsvalidering med
+msprime}\label{simuleringsvalidering-med-msprime}
 
-\begin{itemize}
-\tightlist
-\item
-  demografiske ændringer\\
-\item
-  historiske begivenheder\\
-\item
-  variation i selektion og migration
-\end{itemize}
+Inden modellerne anvendes på empiriske data valideres de på datasæt
+simuleret med kendte parametre via msprime (Kelleher et al.~2016). For
+two-island modellen og IM-modellen specificeres demografien henholdsvis
+med og uden et split-tidspunkt:
 
-\section{Samlet metode}\label{samlet-metode}
+demography = msprime.Demography()
+demography.add\_population(name=``pop1'', initial\_size=pop1\_size)
+demography.add\_population(name=``pop2'', initial\_size=pop2\_size)
+demography.set\_migration\_rate(source=``pop1'', dest=``pop2'',
+rate=migr\_pop1\_to\_pop2)
 
-Den samlede metode kombinerer:
+Kun for IM-modellen: demography.add\_population\_split(time=t\_split,
+derived={[}``pop1'', ``pop2''{]}, ancestral=``ancestral'')
 
-\begin{itemize}
-\tightlist
-\item
-  coalescent teori\\
-\item
-  Markovprocesser\\
-\item
-  phase-type distributioner\\
-\item
-  statistisk inferens
-\end{itemize}
+To-locus observationer dannes ved at identificere SNP-par med defineret
+fysisk afstand (\(5\) kb \(±\) \(500\) bp) og filtrere så hvert SNP
+indgår i højst et par. Posterior-medianerne fra SVGD-inferens
+sammenlignes med de sande simuleringsparametre som kontrol på
+inferensprocedurens troværdighed.
 
-i et samlet framework, der gør det muligt at analysere komplekse
-populationsgenetiske data.
+\section{Software og biblioteker}\label{software-og-biblioteker}
 
-Ved at anvende graf-baserede metoder opnås en skalerbar tilgang, som kan
-håndtere både simple og avancerede modeller, og som kan anvendes direkte
-på empiriske data såsom bavianpopulationer.
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.1849}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.4034}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.4118}}@{}}
+\caption{Oversigt over anvendte biblioteker, referencer og deres rolle i
+projektet.}\label{tbl-bibliotek}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Bibliotek
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Reference
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Anvendelse
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Bibliotek
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Reference
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Anvendelse
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{phasic} & Røikjer et al.~(2022);Hobolth et al.~(2024) &
+Phase-type modeller, grafkonstruktion, inferens \\
+\texttt{msprime} & Kelleher et al.~(2016) & Koalescent-simulering \\
+\texttt{sgkit} & --- & Genomdata (VCF/Zarr-format) \\
+\texttt{JAX} & Bradbury et al.~(2018) & Differentiabel programmering og
+GPU-understøttelse \\
+\texttt{numpy}, \texttt{pandas} & --- & Numerisk databehandling \\
+\texttt{matplotlib}, \texttt{seaborn} & --- & Visualisering \\
+\end{longtable}
 
 \chapter{Resultater}\label{resultater}
 
