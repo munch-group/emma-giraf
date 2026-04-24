@@ -47,62 +47,115 @@ degree: Master of Science in Bioinformatics
 
 # Introduktion 
 
-## Bavianer som modelsystem 
+Et mål inden for populationsgenetik er at forstå, hvordan genetisk varition opstår og formes over tid. Denne variation opstår gennem forskellige evolutionære processer såsom genetisk drift, mutation, rekombination og selektion [@hobolth2019]. Disse processer påvirker de genetiske relationer mellem individer og er dermed afgørende for de mønstre, man observerer i DNA-sekvenser.
+Når man observerer DNA-sekvenser fra flere individer i en population, indeholder disse data indirekte information om deres fælles evolutionære historie [@hobolth2019]. Denne historie kan beskrives ved hjælp af et genealogisk træ, hvor grenene repræsenterer de observerede sekvenser, mens de indre knuder svarer til fælles forfædre. Det er dog vigtigt at bemærke, at et enkelt træ kun er tilstrækkeligt, hvis hele genomet deler samme historie. I seksuelt reproducerende populationer vil rekombination medføre, at forskellige dele af genomet har forskellige genealogier, hvilket kræver mere generelle strukturer end træer til at beskrive den evolutionære historie [@kelleher2019]. Derudover har nyere genomiske studier vist, at evolutionære relationer mellem populationer ofte ikke kan beskrives ved simple træstrukturer, men i stedet kræver mere komplekse netværk på grund af hybridisering og gene flow [@sorensen2023; @rogers2019; @vilgalys2022]. Ved at analysere strukturen af sådanne træer kan man derfor få viden omkring både populationshistorie og de evolutionære mekanismer, der ligger bag. Disse strukturer kan analyseres ved hjælp af matrixbaserede metoder såsom phase-type distributioner [@Hobolth2018; @Hobolth2024]. *Nyere arbejde har dog vist, at graf-baserede repræsentationer af phase-type distributioner kan være langt mere effektive, især for store og komplekse state spaces, som ofte opstår i populationsgenetik [@Roikjer2022].*
 
-Bavianerne (*Papio*-slægten) udgør en af de bedst dokumenterede primatsystemer til studiet af hybridisering og kompleks populationsstruktur. De seks nulevende arter:
+I populationsgenetik antager man ofte, at mutationer opstår tilfældigt langs grenene i et træ. Typisk modlleres dette som en poisson proces[@Hobolth2018; @hobolth2021]. Hvis mutationeraten er $\frac{\theta}{2}$, vil antallet af mutationer på en gren med længde $t$ være poisson fordelt $M \sim \text{Poisson}\left(\frac{\theta}{2} t \right)$
+Grenene i træet kan også beskrives ud fra, hvor mange efterkommere de har i det observerede sample. En gren med en efterkommer kaldes en *singleton lineage* og mutationer på denne gren vil kunne ses i en sekvens, disse kaldes singletons [@munchphasic]. På samme måde vil en gren med to efterkommere give mutationer der ses i præcis to sekvenser altså doubletons, på samme måde kan man definere tripletons, quadrupletons osv. [@munchphasic]. 
 
- * *Papio ursinus* (chacma), 
- * *P. kindae* (Kinda), 
- * *P. cynocephalus* (yellow), 
- * *P. anubis (olive)*, 
- * *P. hamadryas* (Hamadryas), 
- * *P. papio* (Guinea)
- 
-er udbredt over det meste af Afrika og danner tilsammen et fylogenetisk mønster, der ikke kan forklares med en simpelt artsstræ. Hybridisering og udveksling af genetisk materiale på tværs af artsgrænser er veldokumenteret både morfologisk og molekylært, og slægten betragtes i stigende grad som et eksempel på retikulær evolution [@rogers2019; @kopp2023].
+Hvis man har et sample bestående af $n$ sekvenser, kan man definere $\xi_i$ som antallet af mutationer, der forekommer i præcis $i$ sekvenser, hvor $i = 1,2,\dots,n-1.$ Vektoren $ \xi = (\xi_1,\xi_2,\dots,\xi_{n-1})$ kaldes Site Frequency Spectrum (SFS) [@hobolth2019; @hobolth2021]. SFS er en statistisk størrelse i populationsgenetik og bruges blandt andet til at estimere mutationsrater, undersøge populationsstørrelser, test for selektion og analysere populationshistorie [@hobolth2021; @spence2018].
 
-Studiet Sørensen et al. (2023), som sekventerede $225$ vilde bavianer fra $19$ lokaliter, viser dokumentation omkring admixture mellem *P. anubis* og *P. cynocephalus* i det sydlige Tanzania. Yderligere finder de tæt genealogisk forbindelse mellem Kinda baivanerne og western yellow populationerne.De finder også at Western yellow populationer ved Mahale og Katavi har tre-vejs admixture hvilket er nåede man ikke tidligere har observeret. Der estimeres en popluations mutationsrate på $\mu = 0.9 \times 10^{-8}$ per site per generation og en generationstid på $g=11$ år, dette anvendes i dette speciale som de biologiske konstanter. 
-
-Bavianerne fungerer her som et konkret biologisk case, der motiverer og underbygger de matematiske modeller. Fokus i specialet er primært på det matematiske at opbygge, forstå og implementere de relevante modeller i Python, og dernæst anvende dem på genomdata for at se, hvad de kan fortælle om bavianernes evolutionære historie.
-
-Dermed er formålet med dette speciale at undersøge, hvordan Markov-modeller og coalescent-teori kan anvendes til rekonstruktion af genetisk populationshistorie, med bavianer som konkret eksempel. Det overordnede mål er at opnå en forståelse af den matematiske struktur bag metoderne og at implementere og afprøve dem i Python via biblioteket phasic. Følgende spørgsmål undersøges:
-
-1. Hvordan kan coalescensprocessen beskrives som en phase-type fordeling, og hvad er de matematiske egenskaber herunder fordelinger, momenter og Site Frequency Spectrum?
-2. Hvordan udvides modellen til at inkludere populationsstruktur og migration, og hvilke demografiske parametre kan estimeres fra genomdata?
-3. Kan spor af historiske populationssplits og admixture identificeres i baviangenomerne ved hjælp af en Isolation with Migration-model?
-4. Hvad sker der, når demografien varierer over tid, og i hvilken grad stemmer phasics beregninger overens med analytiske referencer?
 
 ## Coalescent teorien 
 
-Coalescent-teorien [@Kingman1982] beskriver bagud i tid den stokastiske proces, hvori $n$ samtidige genetiske linjer gradvist samles i fælles forfædre. Det tidspunkt, hvor alle linjer er forenet i en fælles forfader, betegnes MRCA (*Most Recent Common Ancestor*). Teorien er i dag et af de mest centrale redskaber i populationsgenetik, da den forbinder den observerede genomiske variation direkte til demografiske parametre som effektiv populationsstørrelse og migrationrater.
+For at kunne beskrive den genealogiske struktur bag de observerede data bruges coalescent teori [@wakeley2009coalescent; @hobolth2019]. Ideen bag coalescenten er, at man følger genetiske linjer bagud i tid og ser på, hvornår de mødes i fælles forfædre. Hvis to genkopier kan spores tilbage til den samme forfader i en tidligere generation, siger man, at de coalescerer [@wakeley2009coalescent]. Set fremad i tid svarer dette til almindelig reproduktion, men bagud i tid giver det en mere systematisk beskrivelse af populationens slægtskabshistorie.
+Coalescent-teorien hænger tæt sammen med klassiske fremadrettede modeller i populationsgenetik, særligt Wright–Fisher- og Moran-modellerne [@wakeley2009coalescent]. I Wright–Fisher-modellen antages det, at hele populationen udskiftes fra generation til generation, og at populationsstørrelsen $N$ er konstant. Hver ny generation dannes ved tilfældig sampling fra forældregenerationen, hvilket medfører genetisk drift. Hvis der findes to alleler, $A_1$ og $A_2$, og der er $i$ kopier af $A_1$, er frekvensen $p = \frac{i}{N}$, og antallet af kopier i næste generation følger en binomialfordeling:
 
-For en haploid population af størrelse $N$ er sandsynligheden for at to tilfældigt valgte linjer deler forfader i foregående generation $\frac{1}{n}$. Når der er $k$ linjer tilbage, er der $\binom{k}{2}$ mulige par, og den samlede coalescencerate er:
+$$
+P_{ij} = \binom{N}{j} p^j (1-p)^{N-j}, \quad 0 \leq j \leq N
+$$
 
+Den forventede værdi er $\mathbb{E}[K_1] = Np = i$, mens variansen er $\mathbb{Var}[K_1] = Np(1-p)$. Selvom middelværdien er konstant, vil allelfrekvensen variere tilfældigt over tid, og på lang sigt vil en allel enten blive fikseret eller forsvinde. Et centralt mål for genetisk variation er heterozygositeten, som udvikler sig som:
+
+$$
+\mathbb{E}[H_t] = H_0(1-\frac{1}{N})^t \approx H_0 e^{-t/N}
+$$
+
+I Moran-modellen opdateres populationen løbende i stedet for i diskrete generationer, idet et individ reproducerer og et dør ved hvert tidsstep [@wakeley2009coalescent]. Hvis der er $i$ kopier af $A_1$, kan antallet i næste step stige med $1$, falde med $1$ eller forblive uændret med overgangssandsynligheder:
+
+$$
+P_{ij} = 
+\begin{cases} 
+p(1-p), & \text{hvis } j = i+1, \\
+p(1-p), & \text{hvis } j = i-1, \\
+p^2 + (1-p)^2, & \text{hvis } j = i, \\
+0, & \text{ellers.}
+\end{cases}
+$$
+
+Her er $\mathbb{E}[K_1] = Np$, mens variansen er $\mathbb{Var}[K_1] = 2p(1-p)$. Heterozygositeten udvikler sig som:
+$$
+\mathbb{E}[H_t] = H_0 \left( 1- \frac{2}{N^2} \right)^t \approx H_0 e^{-2t/N^2}.
+$$
+
+Ved at skalere tiden, så én generation svarer til $N$ opdateringer, fås:
+$$
+\mathbb{E}[H_t] \approx H_0 e^{-2t/N}
+$$
+
+hvilket viser, at genetisk drift i Moran-modellen sker dobbelt så hurtigt som i Wright–Fisher-modellen på samme tidsskala. Disse modeller konvergerer for store populationsstørrelser mod en kontinuert bagudrettet proces nemlig den standard coalescent.
+
+**Den standard coalescent**: udviklet af Kingman, beskriver den genealogiske struktur for en stikprøve ved at følge de ancestrale linjer bagud i tid [@Hobolth2024]. For en stikprøve af størrelse $n$ vil der ske $n-1$ coalescent begivenheder, hvor to linjer ad gangen smelter sammen til en fælles forfader. Processen fortsætter, indtil alle linjer er samlet i en, svarende til most recent common ancestor (MRCA) [@wakeley2009coalescent].
+Den resulterende struktur kan beskrives som et forgrenet træ, hvor hver sammenfletning reducerer antallet af linjer med en. Processen kan opdeles i tidsintervaller $T_i$, hvor der er præcis $i$ ancestrale linjer til stede.
+Coalescent-processen er stokastisk og bygger på to centrale egenskaber:
+
+ 1. Kun et par linjer kan coalescere ad gangen
+ 2. Alle par af linjer er lige sandsynlige til at coalescere 
+
+Når populationsstørrelsen $N$ er stor, konvergerer Wright–Fisher-modellen mod denne proces [@hobolth2019]. I denne grænse er ventetiderne mellem coalescent begivenheder uafhængige og eksponentielt fordelte. Tiden $T_i$ hvor der er $i$ linjer, har tæthed:
+$$
+f_{T_i}(t_i) = \left( \frac{2}{i} \right) e^{-\left( \frac{2}{i} \right) t_i}, \quad i = 2, \dots, n
+$$
+
+med
+
+$$
+\mathbb{E}[T_i] = \frac{i(i-1)}{2},
+\mathbb{Var}[T_i] = \left(\frac{i(i-1)}{2}\right)^2
+$$
+
+Dette betyder, at coalescent begivenheder sker hurtigt, når der er mange linjer, og langsommere når der er få. Især ligger MRCA typisk relativt langt tilbage i tiden.
+Da tiderne $T_i$ er uafhængige, kan den samlede tæthed skrives som:
+
+$$
+f_{T_n,\dots,T_2}(t_2, \dots, t_n) = \prod_{i=2}^n f_{T_i}(t_i) 
+$$
+
+Alle trætopologier er desuden lige sandsynlige, da alle par af linjer har samme sandsynlighed for at coalescere.
+Koblingen til Wright–Fisher-modellen kan ses ved:
+$$
+G_{i,i-1} = \frac{\binom{2}{i}}{N} + O\left(\frac{1}{N^2}\right)
+$$
+
+hvilket viser, at coalescent begivenheder er sjældne hændelser. Sandsynligheden for flere samtidige coalescent begivenheder er derfor negligerbar i grænsen [@wakeley2009coalescent].
+I Moran-modellen sker der kun en reproduktionsbegivenhed ad gangen, hvilket betyder, at der højst kan ske en coalescent begivenhed per tidsstep. Dette gør modellen naturligt kompatibel med kontinuert tid. En vigtig generalisering opnås ved Cannings-modeller, hvor reproduktionen varierer. Hvis $Y_i$ er antallet af afkom fra individ $i$, fås $N_e = \frac{N}{\sigma^2}$ hvilket viser, at effektiv populationsstørrelse afhænger af variansen i reproduktion. Stor variation fører til stærkere genetisk drift [@wakeley2009coalescent].
+
+
+Disse fremadrettede modeller danner grundlaget for den bagudrettede coalescent-proces. Kingman viste, at den genealogiske struktur for en stikprøve kan beskrives matematisk gennem $n$-coalescenten [@wakeley2009coalescent; @Kingman1982]. Her betragtes $n$ samtidige genetiske linjer, som bagud i tid gradvist samles i fælles forfædre, indtil de alle er forenet i en fælles forfar, betegnes MRCA (*Most Recent Common Ancestor*).
+For en haploid population af størrelse $N$ er sandsynligheden for, at to linjer coalescerer i den foregående generation $\frac{1}{N}$. Når der er $k$ linjer tilbage, er der $\binom{k}{2}$ mulige par, og den samlede coalescensrate er:
 $$
 \lambda_k = \binom{k}{2} \cdot \frac{1}{N} = \frac{k(k-1)}{2N}
 $$
 
-I *coalescent-enheder*, hvor tid normaliseres med $2N$ generationer, reduceres dette til $\lambda_k = \binom{k}{2}$. Ventetiden i fase $k$ er eksponentielt fordelt med denne rate, og den forventede ventetid er:
-
+I coalescent-enheder, hvor tiden skaleres med $2N$ generationer, reduceres dette til $\lambda_k = \binom{k}{2}$, og ventetiden mellem coalescensbegivenheder er eksponentielt fordelt med forventning:
 $$
 \mathbb{E}[T_k] = \frac{1}{\binom{k}{2}} = \frac{2}{k(k - 1)}
 $$
 
-Den samlede forventede tid til MRCA for $n$ linjer er summen over alle coalescensfaser:
-
+Den samlede forventede tid til MRCA for $n$ linjer er:
 $$
 \mathbb{E}[T_{\mathrm{MRCA}}] = \sum_{k=2}^{n} \frac{2}{k(k - 1)} = 2\left(1 - \frac{1}{n}\right)
 $$
 
-
-For $n=4$ prøver giver dette $\mathbb{E}[T_{\mathrm{MRCA}}] = \frac{3}{2}$ coalescent-enheder. Den effektive populationsstørrelse $N_e$ skalerer den absolutte tid lineært: en stor population giver lang forventet tid til MRCA, og en lille population giver tilsvarende kort. At estimere parametre fra genomdata er i princippet det samme som at estimere, hvad $N_e$​ har været på forskellige tidspunkter i fortiden.
+For eksempel giver $n=4$ prøver $\mathbb{E}[T_{\mathrm{MRCA}}] = \frac{3}{2}$ coalescent-enheder. Den effektive populationsstørrelse $N_e$ skalerer den absolutte tid lineært, hvilket gør det muligt at estimere historiske populationsstørrelser ud fra genetiske data. En vigtig pointe ved coalescent-teorien er, at den genealogiske proces kan analyseres uafhængigt af mutationsprocessen under antagelse af neutral evolution [@wakeley2009coalescent]. Dette gør det muligt først at modellere slægtskabsstrukturen og derefter inkludere mutationer.
 
 **Staterepræsentation**. En state repræsenteres som en vektor $\mathbf{s} = (s_1, s_2, \ldots, s_n)$, hvor $i$
-angiver antallet af lineages med netop $i$ efterkommere. Startstate er $(n, 0, \ldots, 0)$ og den absorberende state er $(0, \ldots, 0, 1)$ svarende til MRCA. En transition fra state $\mathbf{s}$ sker, når to lineages med henholdsvis $i$ og $j$ efterkommere coalescere til en lineage med $i+j$ efterkommere, og raten for denne transition er:
+angiver antallet af lineages med netop $i$ efterkommere. Startstaten er $(n, 0, \ldots, 0)$ og den absorberende state er $(0, \ldots, 0, 1)$ svarende til MRCA. En transition sker, når to lineages med henholdsvis $i$ og $j$ efterkommere coalescerer til en med $i+j$ efterkommere, med rate::
 $$
 q_{ij}(s) = \frac{s_i(s_j-\delta_{ij})}{1+\delta_{ij}} * \frac{1}{N_e}
 $$
 
-hvor $\delta_{ij}$  er Kronecker-delta, der korrigerer for coalescering, når $i=j$.
+hvor $\delta_{ij}$  er Kronecker-delta.
 
 **Figur 1 (NB 01 — graph.plot())**: Grafrepræsentation af coalescent-modellen for $n=4$. Noder repræsenterer state og pile repræsenterer mulige coalescenstransitioner med tilhørende rater. Startstate $(4,0,0,0)$ er øverst til venstre, og den absorberende state nås, når alle fire linjer er forenet.
 
@@ -227,239 +280,6 @@ Populationer, arter, lokalitet, antal individer og deres rolle i analysen.
 
 
 # Introduktion
-
-Et mål inden for populationsgenetik er at forstå, hvordan genetisk varition opstår og formes over tid. Denne variation opstår gennem forskellige evolutionære processer såsom genetisk drift, mutation, rekombination og selektion [@hobolth2019]. Disse processer påvirker de genetiske relationer mellem individer og er dermed afgørende for de mønstre, man observerer i DNA-sekvenser.
-Når man observerer DNA-sekvenser fra flere individer i en population, indeholder disse data indirekte information om deres fælles evolutionære historie [@hobolth2019]. Denne historie kan beskrives ved hjælp af et genealogisk træ, hvor grenene repræsenterer de observerede sekvenser, mens de indre knuder svarer til fælles forfædre. Det er dog vigtigt at bemærke, at et enkelt træ kun er tilstrækkeligt, hvis hele genomet deler samme historie. I seksuelt reproducerende populationer vil rekombination medføre, at forskellige dele af genomet har forskellige genealogier, hvilket kræver mere generelle strukturer end træer til at beskrive den evolutionære historie [@kelleher2019]. Derudover har nyere genomiske studier vist, at evolutionære relationer mellem populationer ofte ikke kan beskrives ved simple træstrukturer, men i stedet kræver mere komplekse netværk på grund af hybridisering og gene flow [@sorensen2023; @rogers2019; @vilgalys2022]. Ved at analysere strukturen af sådanne træer kan man derfor få viden omkring både populationshistorie og de evolutionære mekanismer, der ligger bag. Disse strukturer kan analyseres ved hjælp af matrixbaserede metoder som phase-type distributioner [@Hobolth2018; @Hobolth2024]. Nyere arbejde har dog vist, at graf-baserede repræsentationer af phase-type distributioner kan være langt mere effektive, især for store og komplekse state spaces, som ofte opstår i populationsgenetik [@Roikjer2022].
-
-I populationsgenetik antager man ofte, at mutationer opstår tilfældigt langs grenene i et træ. Typisk modlleres dette som en poisson proces[@Hobolth2018; @hobolth2021]. Hvis mutationeraten er $\frac{\theta}{2}$, vil antallet af mutationer på en gren med længde $t$ være poisson fordelt:
-
-$$
-M \sim \text{Poisson}\left(\frac{\theta}{2} t \right)
-$$
-
-Grenene i træet kan også beskrives ud fra, hvor mange efterkommere de har i det observerede sample. En gren med en efterkommer kaldes en *singleton lineage* og mutationer på denne gren vil kunne ses i en sekvens, disse kaldes singletons [@munchphasic]. På samme måde vil en gren med to efterkommere give mutationer der ses i præcis to sekvenser altså doubletons, på samme måde kan man definere tripletons, quadrupletons osv. [@munchphasic]. 
-
-Hvis man har et sample bestående af $n$ sekvenser, kan man definere $\xi_i$ som antallet af mutationer, der forekommer i præcis $i$ sekvenser, hvor
-
-$$
-i = 1,2,\dots,n-1.
-$$
-
-Vektoren
-
-$$
-\xi = (\xi_1,\xi_2,\dots,\xi_{n-1})
-$$
-
-kaldes Site Frequency Spectrum (SFS) [@hobolth2019; @hobolth2021]. SFS er en statistisk størrelse i populationsgenetik og bruges blandt andet til at estimere mutationsrater, undersøge populationsstørrelser, test for selektion og analysere populationshistorie [@hobolth2021; @spence2018].
-
-
-## Coalescent teori
-
-For at kunne beskrive den genealogiske struktur bag de observerede data bruger man coalescent teori [@wakeley2009coalescent; @hobolth2019]. Ideen bag coalescenten er, at man følger genetiske linjer bagud i tid og ser på, hvornår de mødes i fælles forfædre. Hvis to genkopier kan spores tilbage til den samme forfader i en tidligere generation, siger man at de coalescerer på et tidspunkt [@wakeley2009coalescent]. Set fremad i tid svarer det egentlig til almindelig reproduktion, men bagud i tid giver det en mere sysstematisk måde at beskrive populationens slægtskabshistorie på. Kingman viste, at denne proces kan beskrives matematisk gennem *n-coalescent*, som danner grundlaget for moderne populationsgenetik i dag [@wakeley2009coalescent].
-En vigtig pointe ved coalescent teorien er, at man kan analysere slægtskabsstrukturen uden direkte at tage højde for observeret genetisk variation. Dette skyldes, at enhver stikprøve af gener har en underliggende slægtsstruktur, uanset om man observerer mutationer eller ej. Ofte antager man neutral evolution, dvs. at mutationer ikke påvirker indivers fitness. Under denne antagelse kan man adskille den genealogiske proces fra mutationsprocessen, hvilket forenkler analysen betydeligt [@wakeley2009coalescent].
-To klassiske modeller som ofte bruges som udgangspunkt i populationsgenetik, er Wright Fisher modellen og Moran modellen [@wakeley2009coalescent]. 
-
-I Wright Fisher modellen antager man, at hele populationen udskiftes fra en generation til den næste og at populationsstørrelsen $N$ er konstant. Hver ny generation dannes ved tilfældig sampling af forældregenerationen, hvilket betyder at nogle genetiske varianter kan forsvinde, mens andre bliver mere udbredte [@wakeley2009coalescent].
-Hvis man antager der findes to alleler, $A_1$ og $A_2$ og at der er $i$ kopier af $A_1$ i populationen. Frekvensen er så $p=\frac{i}{N}$. Antallet af kopier i næste generation, $j$, følger en binomialfordeling:
-
-$$
-P_{ij} = \binom{N}{j} p^j (1-p)^{N-j}, \quad 0 \leq j \leq N
-$$
-
-Den forventede værdi er:
-$$
-E[K_1] = Np = i
-$$
-
-mens variansen er
-$$
-\text{Var}[K_1]=Np(1-p)
-$$
-
-Selom middelværdien ikke ændre sig, vil allelfrekvensen stadig varierer tilfældigt over tid. På lang sigt vil en allel enten bliver fikseret $(p=1)$ eller helt forsvinde $(p=0)$.
-Et vigtigt mål for genetisk variation er heterozygositeten, altså sandsynligheden for at to tilfældigt valgte genkopier er forskellige [@wakeley2009coalescent]. Hvis den initiale heterozygositet er $H_0=2p_0(1- p_0)$ kan man vise, at:
-
-$$
-E[H_t] = H_0(1-\frac{1}{N})^t \approx H_0 e^{-t/N}
-$$
-
-Det betyder, at den genetisk variation aftager eksponentielt over tid med en hasitighed på cirka $\frac{1}{N}$ per generation.
-
-I Moran modellen opdateres populationen løbende i stedet for i hele generationer. ved hvert tidsstep vælges et individ til at reproducere og et til at dø, så populationsstørrelsen stadig er konstant. I modsætning til Wright Fisher modellen overlapper generationerne derfor [@wakeley2009coalescent]. Hvis der er $i$ kopier af allelen $A_1$, kan antallet i næste tidsstep enten sige med $1$, falde med $1$ eller forblive det uændret Overgangssandsynlighederne er derfor givet ved:
-
-$$
-P_{ij} = 
-\begin{cases} 
-p(1-p), & \text{hvis } j = i+1, \\
-p(1-p), & \text{hvis } j = i-1, \\
-p^2 + (1-p)^2, & \text{hvis } j = i, \\
-0, & \text{ellers.}
-\end{cases}
-$$
-
-Den forventde værdi er igen uændret:
-$$
-E[K_1]=N_p
-$$
-
-mens variansen er:
-$$
-\text{Var}[K_1]=2p(1-p)
-$$
-
-Heterozygositeten udvikler sig i Moran modellen som:
-$$
-E[H_t] = H_0 \left( 1- \frac{2}{N^2} \right)^t \approx H_0 e^{-2t/N^2}.
-$$
-
-Hvis man skalerer tiden, så en generation svarer til $N$ opdateringer, får man:
-$$
-E[H_t] \approx H_0 e^{-2t/N}
-$$
-
-Dette viser, at genetisk drift i Moran modellen sker dobbelt så hurtigt som i Wright Fisher modellen, når man sammenligner på samme tidsskala [@wakeley2009coalescent].
-
-
-### Den standard coalescent model
-Den standard coalescent model, som blev udviklet af Kingman bruges til at beskrive den genealogiske struktur for en stikprøve ved at følge de ancestrale linjer bagud i tid [@Hobolth2024]. Hvis man har en sikprøve af størrelse $n$ vil der ske i alt $n-1$ coalescent begivenheder, hvor to linjer ad gangen smelter sammen til en fælles forfader. Processen fortsætter indtil alle linjer er coalesceret til en linje, som svarer til most recent common ancestor (MRCA) [@wakeley2009coalescent]. Den struktur man ender med, kan beskrives som et forgrenet træ, hvor hver sammenfletning reducerer antallet af linjer med en. Man kan opdele processen i tidsintervaller $T_i$ hvor der er præcis $i$ ancestrale linjer til stede. Disse intervaller er tilfældige og udgør tilsammen hele træet tidsstruktur. 
-Coalescent processen er stokastisk og bygger på to centrale egenskaber: 
- 1.	kun et par linjer kan coalescere ad gangen, og
- 2.	alle par af linjer er lige sandsynlige til at coalescere
-(Refence). 
-
-Når populationsstørrelsen $N$ er stor, konvergerer Wright Fisher modellen mod en kontinuert coalescent proces [@hobolth2019]. I denne grænse er ventetiderne mellem coalescent begivenhederne uafhængige og eksponentielt fordelte. Tiden $T_i$ hvor der er $i$ linjer, har tæthedsfunktionen:
-
-$$
-f_{T_i}(t_i) = \binom{i}{2} e^{- \binom{i}{2} t_i}, \quad t_i \geq 0, \quad i = 2, \dots, n
-$$
-
-Heraf følger:
-$$
-E[T_i]= \frac{2}{i(i-1)}
-$$
-
-$$
-\text{Var}[T_i] = \left( \frac{2}{i(i-1)} \right)^2
-$$
-
-Det betyder, at coalescent begivenheder sker hurtigere, når der er mange linjer, fordi antallet af mulige par er $\binom{i}{2}$. Omvendt vil de sidste coalescent begivenheder, når $i$ er lille tage længere tid i gennemsnit, hvilket betyder at MRCA ofte ligger relativt langt tilbage i tiden [@wakeley2009coalescent]. Da tiderne $T_i$ er uafhængige, kan den samlede tæthed skrives som et produkt:
-
-$$
-f_{T_n, \dots, T_2}(t_n, \dots, t_2) = \prod_{i=2}^n f_{T_i}(t_i)
-$$
-
-Derudover er alle mulige træstrukturer lige sandsynlige, hvilket følger af, at alle par af linjer har samme sandsynlighed for at coalescere ved hver begivenhed (Refernece).
-
-Hvis man ser på Wright Fisher modellen med endelige poplationsstørrelse, kan der i princippet ske flere coalescent begivenheder i samme generation. Sandsynligheden for dette bliver dog meget lille når $N$ er stor. Sandsynligheden for, at $i$ linjer reduceres til $i-1$ i en generation, kan approksimeres ved:
-
-$$
-G_{i,i-1} = \frac{\binom{i}{2}}{N} + O\left(\frac{1}{N^2}\right)
-$$
-
-Dette viser, coalescent begivenheder kan ses som sjældne hændelser med sandsynlighed propotional med $\frac{\binom{i}{2}}{N}$ [@wakeley2009coalescent]. Samtidig er sandsynligheden for at alle $i$ linjer har forskellige forfædre i forrige generationer, 
-
-$$
-G_{i,i} = \left( 1 - \frac{1}{N} \right) \left( 1 - \frac{2}{N} \right) \cdots \left( 1 - \frac{i-1}{N} \right) = 1 - \sum_{j=1}^{i-1} \frac{j}{N} + O\left( \frac{1}{N^2} \right)
-$$
-
-Dette viser, at sandsynligheden for flere samtidige coalescent begivenheder er sjældne og dermed forsvinder i grænsen [@wakeley2009coalescent]. 
-I Moran modellen ser der kun en reproduktions begivenhed ad gangen, hvilket betyder, at der højst kan ske en coalescent begivenhed per tidsstep [@wakeley2009coalescent]. Sandsynligheden for en coalescent begivenhed blandt $i$ linjer er givet ved:
-
-$$
-G_{i,i-1} = \left( 1 - \frac{1}{N} \right) \frac{i(i-1)}{N(N-1)} \approx \frac{\binom{i}{2}}{N^2}
-$$
-
-Det gør Moran modellen velegnet til at motivere den kontinuerte coalescent, fordi processen naturligt består af enkelt begivenheder i kontinuert tid. 
-
-
-I den standard coalescent-model antages det implicit, at alle individer bidrager ens til næste generation. Det er dog ikke altid realistisk og derfor kan man udvide modellen ved at tillade variation i antallet af afkom. Dette leder til Cannings modeller [@wakeley2009coalescent]. Hvis man lader $Y_i$ være antallet af afkom fra individ $i$ i en generation, så
-$$
-\sum_{i=1}^N Y_i = N
-$$
-
-Sandsynligheden for, at to lineager har samme forælder i den foregående generation er:
-$$
-P(\text{to har samme forælder} \mid Y_1, \dots, Y_N) = \frac{\sum_{i=1}^N Y_i(Y_i-1)}{N(N-1)}
-$$
-
-Tager man forventningen får man:
-$$
-G_{2,1} = E\left[ \frac{\sum_{i=1}^N Y_i(Y_i-1)}{N(N-1)} \right] = \frac{E[Y_i(Y_i-1)]}{N-1} = \frac{\text{Var}[Y_i]}{N-1} = \frac{\sigma^2}{N} + O\left( \frac{1}{N^2} \right)
-$$
-
-Dette leder til begrebet effektiv populationsstørrelse
-$$
-N_e = \frac{N}{\sigma^2}
-$$
-
-Pointen er, at det ikke kun er den faktiske populationsstørrelse, der betyder noget, men også hvor skæv reproduktionen er. Hvis nogle individer får mange flere afkom end andre, øges variansen og den effektive populationsstørrelse bliver mindre. Det betyder også at genetisk drift bliver stærkere [@wakeley2009coalescent]. 
-
-
-### Egenskaber ved coalescent genealogien 
-
-En af de store fordele ved coalescent teorien er, at den har pæn matematiske struktur. Som nævnt tidligere, er coalescenstiderne $T_i$ uafhængige og eksponentielt fordelte, hvilket gør det muligt at udlede præcise resultater for forskellige egenskaber genealogien [@wakeley2009coalescent].
-To af de vigtigste størrelser er MRCA og den totale længde af træet. De kan skrives som 
-
-$$
-T_{MRCA} = \sum_{i=2}^n T_i
-$$
-
-og
-$$
-T_{total} = \sum_{i=2}^n i T_i
-$$
-
-[@hobolth2019], hvor $T_i$ er den tid, hvor der er præcis $i$ linjer i træet.
-Da hvert $T_i$ er eksponentielt fordelt med parameter $\binom{i}{2} = \frac{i(i-1)}{2}$, kan man udlede forventningerne direkte. Man får:
-
-$$
-E[T_{total}] = 2 \sum_{i=1}^{n-1} \frac{1}{i}
-$$
-
-og
-$$
-E[T_{MRCA}] = 2 \left( 1 - \frac{1}{n} \right)
-$$
-
-Dette betyder, at den forventede tid til MRCA konvergerer mod $2$ (målt i enheder af $2N$ generationer), mens den totale træ længde vokser logaritmisk med stikprøvestørrelsen [@wakeley2009coalescent]. Variansen kan ligeledes udledes:
-
-$$
-\text{Var}(T_{total}) = 4 \sum_{i=1}^{n-1} \frac{1}{i^2}
-$$
-
-og 
-$$
-\text{Var}(T_{MRCA}) = 8 \sum_{i=2}^n \frac{1}{i^2} - 4 \left( 1 - \frac{1}{n} \right)^2
-$$
-
-For store $n$ konvergerer disse størrelser mod konstanter, specielt gælder 
-
-$$
-E[T_{MRCA}] \to 2, \quad \text{Var}(T_{MRCA}) \to \frac{2\pi^2}{3}
-$$
-
-Mens 
-$$
-E[T_{total}] \sim 2 \ln n
-$$
-
-Ud over middelværdi og varians kan man også beskrive de fulde fordelinger. Tiden til MRCA er summen af $n-1$ eksponentialfordelinger med forskellige rater [@wakeley2009coalescent]. Dens tæthed kan skrives som: 
-
-$$
-f_{T_{MRCA}}(t) = \sum_{i=2}^n \binom{i}{2} e^{- \binom{i}{2}t} \prod_{j \neq i} \frac{\binom{j}{2}}{\binom{j}{2} - \binom{i}{2}}
-$$
-
-Den totale træ længde er givet ved:
-$$
-T_{total} = \sum_{i=2}^n i T_i
-$$
-
-som er en sum af uafhængige, men ikke identisk fordelte eksponentialvariable. Dens tæthed kan udtrykkes som:
-
-$$
-f_{T_{total}}(t) = \sum_{i=2}^n \frac{i-1}{2} e^{- \frac{i-1}{2}t} \prod_{j \neq i} \frac{j-1}{j-i}
-$$
 
 
 ## Markovprocesser 
@@ -1140,14 +960,17 @@ Bavianernes evolutionære historie startede omkring to millioner år siden i Afr
 
 Hybridisering ved bavianer spiller en vigtigt rolle. Når genetisk materiale fra en art introgresses i en anden, kan selektion virke mod bestemte genetiske varianter. Studier af Olive og Yellow baboons i Afrika har vist, at genetisk oprindelse fra en art ofte reduceres over tid i populationer længere væk fra hybridzoner, hvilket tyder på negativ selektion mod visse introgressede genetiske varianter, særligt i funktionelle genomiske regioner [@vilgalys2022; @sorensen2023]. Denne proces kan være forårsaget af genetiske inkompatibiliteter mellem gener fra forskellige arter eller af tilpasning til forskellige miljøer. Nyere genomiske analyser har desuden vist, at denne selektion kan være udbredt på tværs af genomet og vedvare langt fra hybridzoner, samt at selektion mod admixture kan være markant stærkere på X-kromosomet end på autosomerne. I nogle populationer er der observeret op til syv gange stærkere selektion mod minor parent ancestry på X-kromosomet [@sorensen2023_selection].
 
+Studiet Sørensen et al. (2023), som sekventerede $225$ vilde bavianer fra $19$ lokaliter, viser dokumentation omkring admixture mellem *P. anubis* og *P. cynocephalus* i det sydlige Tanzania. Yderligere finder de tæt genealogisk forbindelse mellem Kinda baivanerne og western yellow populationerne.De finder også at Western yellow populationer ved Mahale og Katavi har tre-vejs admixture hvilket er nåede man ikke tidligere har observeret. Der estimeres en popluation mutationsrate på $\mu = 0.9 \times 10^{-8}$ per site per generation og en generationstid på $g=11$ år, dette anvendes i dette speciale som de biologiske konstanter. 
 
-Samlet gør disse egenskaber bavianer til et godt modelsystem. Kombinationen af flere nært beslægtede arter, naturlige hybridzoner og omfattende genomiske data giver mulighed for at undersøge, hvordan genetisk variation formes gennem samspillet mellem mutation, genetisk drift, selektion og gene flow. Ved at analysere genetiske data fra bavianpopulationer kan man derfor undersøge de processer, der styrer både artsdannelse og genetisk udveksling mellem populationer.
+Bavianerne fungerer her som et konkret modelsystem, der motiverer og underbygger de matematiske modeller. Fokus i specialet er primært på det matematiske at opbygge, forstå og implementere de relevante modeller i Python, og dernæst anvende dem på genomdata for at se, hvad de kan fortælle om bavianernes evolutionære historie.
 
-## Formål 
+Dermed er formålet med dette speciale at undersøge, hvordan Markov-modeller og coalescent-teori kan anvendes til rekonstruktion af genetisk populationshistorie, med bavianer som konkret eksempel. Det overordnede mål er at opnå en forståelse af den matematiske struktur bag metoderne og at implementere og afprøve dem i Python via biblioteket phasic. Følgende spørgsmål undersøges:
 
-Dette speciale har til formål at undersøge, hvordan Markovmodeller kan anvendes til at analysere genetiske data fra bavianpopulationer. Særligt fokuseres der sammenhængen mellem Markov processer, coalescent teori og phase-type distributioner. 
+1. Hvordan kan coalescensprocessen beskrives som en phase-type fordeling, og hvad er de matematiske egenskaber herunder fordelinger, momenter og Site Frequency Spectrum?
+2. Hvordan udvides modellen til at inkludere populationsstruktur og migration, og hvilke demografiske parametre kan estimeres fra genomdata?
+3. Kan spor af historiske populationssplits og admixture identificeres i baviangenomerne ved hjælp af en Isolation with Migration-model?
+4. Hvad sker der, når demografien varierer over tid, og i hvilken grad stemmer phasics beregninger overens med analytiske referencer?
 
-Ved at formulere genealogiske processer som absorberende Markovprocesser kan centrale genetiske størrelser beskrives ved hjælp af matrixbaserede metoder. Dette gør det muligt at beregne fordelinger, momenter og kovarianser for statistikker udledt fra genetiske data.
 
 ## Projektstruktur
 Projektets mappestruktur er designet med henblik på reproducerbarhed. 
@@ -1163,6 +986,7 @@ Denne tilgang understøtter direkte koblingen mellem teori (fx Markovprocesser o
 
 ### Git and GitHub
 Projektet er versionsstyret med git og hostet på GitHub. Dette muliggør: sporing af ændringer i kode og analyser, samarbejde og dokumentation, samt automatisk generering af projektets hjemmeside via GitHub Actions. Ved hver opdatering af projektet kan hele analysen reproduceres og dokumentationen opdateres automatisk, hvilket er centralt i et speciale, hvor komplekse statistiske modeller og simulationer indgår.
+
 
 
 # Metode
