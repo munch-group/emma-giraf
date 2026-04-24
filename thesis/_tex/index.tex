@@ -586,7 +586,7 @@
 \subtitle{Hvordan kan markov modeller anvendes til at analysere
 genetiske data fra bavianer}
 \author{Emma Christensen \and Kasper Munch \and Kasper Urup Kjeldsen}
-\date{April 22, 2026}
+\date{April 24, 2026}
 \begin{document}
 \frontmatter
 \cleardoublepage
@@ -631,7 +631,7 @@ genetiske data fra bavianer \par}
 {\bfseries\Large\textit{Master of Science in Bioinformatics} \par}
 \vspace{3ex}
 
-{\bfseries\large April 22, 2026 \par}
+{\bfseries\large April 24, 2026 \par}
 \vspace{3ex}
 
 \vspace{12ex}
@@ -663,6 +663,417 @@ conclude something. The perspectives of this result is something. \par
 \setstretch{1}
 \mainmatter
 \chapter{Introduktion}\label{introduktion}
+
+\section{Bavianer som modelsystem}\label{bavianer-som-modelsystem}
+
+Bavianerne (\emph{Papio}-slægten) udgør en af de bedst dokumenterede
+primatsystemer til studiet af hybridisering og kompleks
+populationsstruktur. De seks nulevende arter:
+
+\begin{itemize}
+\tightlist
+\item
+  \emph{Papio ursinus} (chacma),
+\item
+  \emph{P. kindae} (Kinda),
+\item
+  \emph{P. cynocephalus} (yellow),
+\item
+  \emph{P. anubis (olive)},
+\item
+  \emph{P. hamadryas} (Hamadryas),
+\item
+  \emph{P. papio} (Guinea)
+\end{itemize}
+
+er udbredt over det meste af Afrika og danner tilsammen et fylogenetisk
+mønster, der ikke kan forklares med en simpelt artsstræ. Hybridisering
+og udveksling af genetisk materiale på tværs af artsgrænser er
+veldokumenteret både morfologisk og molekylært, og slægten betragtes i
+stigende grad som et eksempel på retikulær evolution (Jolly 2001; Rogers
+et al.~2019; Kopp et al.~2023).
+
+Studiet Sørensen et al.~(2023), som sekventerede \(225\) vilde bavianer
+fra \(19\) lokaliter, viser dokumentation omkring admixture mellem
+\emph{P. anubis} og \emph{P. cynocephalus} i det sydlige Tanzania.
+Yderligere finder de tæt genealogisk forbindelse mellem Kinda baivanerne
+og western yellow populationerne.De finder også at Western yellow
+populationer ved Mahale og Katavi har tre-vejs admixture hvilket er
+nåede man ikke tidligere har observeret. Der estimeres en popluations
+mutationsrate på \(\mu = 0.9 \times 10^{-8}\) per site per generation og
+en generationstid på \(g=11\) år, dette anvendes i dette speciale som de
+biologiske konstanter.
+
+Bavianerne fungerer her som et konkret biologisk case, der motiverer og
+underbygger de matematiske modeller. Fokus i specialet er primært på det
+matematiske at opbygge, forstå og implementere de relevante modeller i
+Python, og dernæst anvende dem på genomdata for at se, hvad de kan
+fortælle om bavianernes evolutionære historie.
+
+Dermed er formålet med dette speciale at undersøge, hvordan
+Markov-modeller og coalescent-teori kan anvendes til rekonstruktion af
+genetisk populationshistorie, med bavianer som konkret eksempel. Det
+overordnede mål er at opnå en forståelse af den matematiske struktur bag
+metoderne og at implementere og afprøve dem i Python via biblioteket
+phasic. Følgende spørgsmål undersøges:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Hvordan kan coalescensprocessen beskrives som en phase-type fordeling,
+  og hvad er de matematiske egenskaber herunder fordelinger, momenter og
+  Site Frequency Spectrum?
+\item
+  Hvordan udvides modellen til at inkludere populationsstruktur og
+  migration, og hvilke demografiske parametre kan estimeres fra
+  genomdata?
+\item
+  Kan spor af historiske populationssplits og admixture identificeres i
+  baviangenomerne ved hjælp af en Isolation with Migration-model?
+\item
+  Hvad sker der, når demografien varierer over tid, og i hvilken grad
+  stemmer phasics beregninger overens med analytiske referencer?
+\end{enumerate}
+
+\section{Coalescent teorien}\label{coalescent-teorien}
+
+Coalescent-teorien (Kingman 1982a; 1982b) beskriver bagud i tid den
+stokastiske proces, hvori \(n\) samtidige genetiske linjer gradvist
+samles i fælles forfædre. Det tidspunkt, hvor alle linjer er forenet i
+en fælles forfader, betegnes MRCA (\emph{Most Recent Common Ancestor}).
+Teorien er i dag et af de mest centrale redskaber i populationsgenetik,
+da den forbinder den observerede genomiske variation direkte til
+demografiske parametre som effektiv populationsstørrelse og
+migrationrater.
+
+For en haploid population af størrelse \(N\) er sandsynligheden for at
+to tilfældigt valgte linjer deler forfader i foregående generation
+\(\frac{1}{n}\). Når der er \(k\) linjer tilbage, er der
+\((\binom{k}{2}\) mulige par, og den samlede coalescencerate er:
+
+\[
+\lambda_k = \binom{k}{2} \cdot \frac{1}{N} = \frac{k(k-1)}{2N}
+\]
+
+I \emph{coalescent-enheder}, hvor tid normaliseres med \(2N\)
+generationer, reduceres dette til \(\lambda_k = \binom{k}{2}\).
+Ventetiden i fase \(k\) er eksponentielt fordelt med denne rate, og den
+forventede ventetid er:
+
+\[
+\mathbb{E}[T_k] = \frac{1}{\binom{k}{2}} = \frac{2}{k(k - 1)}
+\]
+
+Den samlede forventede tid til MRCA for \(n\) linjer er summen over alle
+coalescensfaser:
+
+\[
+\mathbb{E}[T_{\mathrm{MRCA}}] = \sum_{k=2}^{n} \frac{2}{k(k - 1)} = 2\left(1 - \frac{1}{n}\right)
+\]
+
+For \(n=4\) prøver giver dette
+\(\mathbb{E}[T_{\mathrm{MRCA}}] = \frac{3}{2}\) coalescent-enheder. Den
+effektive populationsstørrelse \(N_e\) skalerer den absolutte tid
+lineært: en stor population giver lang forventet tid til MRCA, og en
+lille population giver tilsvarende kort. At estimere parametre fra
+genomdata er i princippet det samme som at estimere, hvad
+\(N_e\)\hspace{0pt} har været på forskellige tidspunkter i fortiden.
+
+\textbf{Staterepræsentation}. En state repræsenteres som en vektor
+\(\mathbf{s} = (s_1, s_2, \ldots, s_n)\), hvor \(i\) angiver antallet af
+lineages med netop \(i\) efterkommere. Startstate er
+\((n, 0, \ldots, 0)\) og den absorberende state er \((0, \ldots, 0, 1)\)
+svarende til MRCA. En transition fra state \(\mathbf{s}\) sker, når to
+lineages med henholdsvis \(i\) og \(j\) efterkommere coalescere til en
+lineage med \(i+j\) efterkommere, og raten for denne transition er: \[
+q_{ij}(s) = \frac{s_i(s_j-\delta_{ij})}{1+\delta_{ij}} * \frac{1}{N_e}
+\]
+
+hvor \(\delta_{ij}\) er Kronecker-delta, der korrigerer for
+coalescering, når \(i=j\).
+
+\textbf{Figur 1 (NB 01 --- graph.plot())}: Grafrepræsentation af
+coalescent-modellen for \(n=4\). Noder repræsenterer state og pile
+repræsenterer mulige coalescenstransitioner med tilhørende rater.
+Startstate \((4,0,0,0)\) er øverst til venstre, og den absorberende
+state nås, når alle fire linjer er forenet.
+
+\section{Phase-type fordelinger}\label{phase-type-fordelinger}
+
+Coalescenstiden kan analyseres inden for rammen af phase-type
+fordelinger, som er absorptionstider i tidskontinuerte, endelige
+Markov-kæder. Dette giver adgang til en veletableret matematisk teori og
+til effektive beregningsmetoder (Bladt \& Nielsen 2017; Hobolth et
+al.~2024).
+
+Coalescensprocessen er netop en sådan Markov-kæde: den har et endeligt
+staterum, konstante overgangsrater og en absorberende state (MRCA).
+Absorptionstiden er derfor per definition phase-type fordelt, og man kan
+direkte anvende teoriens resultater.
+
+\textbf{Definition}. Lad \(\alpha = (\alpha_1, \ldots, \alpha_p)\) være
+startfordelingen over \(p\) transiente state, og lad \(\mathbf{S}\) være
+\(p \times p\) sub-intensitetsmatricen med \(S_{ij} \geq 0\) for
+\(i \neq j\) og \(S_{ii} < 0\) (rækkesum \(\leq 0\)). Exitratevektoren
+er \(\mathbf{s} = -\mathbf{S}\mathbf{e}\), og absorptionstiden:
+
+\[
+\pi = \inf \{t \geq 0: X_t = p+1 \}
+\]
+
+Skrives \(\pi \sim PH_p(\alpha,S)\) (Neuts 1981; Bladt og Nielsen 2017).
+Tæthedsfunktion og kumulativ fordelingsfunktion er henholdvis:
+
+\[
+f_{\tau}(t) = \alpha e^{St}s, \quad
+F_{\tau}(t) = 1 - \alpha e^{St}e, \quad t \ge 0
+\]
+
+Her er \(e^{St}\) matrix-eksponentialet, hvis \((i,j)\)-indgang giver
+sandsynligheden for at befinde sig i transient state \(j\) på tidspunkt
+\(t\) givet start i state \(i\) (Bladt \& Nielsen 2017, Thm. 2.1). Disse
+formler er baggrunden for det, der sker, når man kalder graph.pdf(t) og
+graph.cdf(t) i phasic.
+
+Det \(n\)-te moment beregnes via \emph{Green-matricen}
+\(\mathbf{U} = (-\mathbf{S})^{-1}\):
+
+\[
+\mathbb{E}[\tau^n] = n!\, \alpha \mathbf{U}^n\, \mathbf{e}
+\]
+
+Green-matricens \((i,j)\)-indgang fortolkes som den forventede totale
+tid, processen tilbringer i state \(j\) givet start i state \(i\) (Bladt
+\& Nielsen 2017). Det er ikke blot en abstrakt størrelse det er præcis
+den, der bruges til at beregne SFS-komponenter, som beskrevet i næste
+afsnit. En motivation for at bruge phase-type rammen er, at komplekse og
+ellers tunge coalescent-formler reduceres til matrixoperationer (Hobolth
+et al.~2018; 2024). Som Hobolth et al.~(2024) formulerer det, er klassen
+af modeller, der tillader en detaljeret matematisk behandling, større
+end man måske ville forvente og phase-type teorien udvider den klasse
+betragtelig. Det er netop den egenskab, der gør det muligt at arbejde
+med two-island modellen, IM-modellen og tidsindhomogene modeller inden
+for den samme ramme.
+
+\textbf{Figur 2 (NB 01 --- PDF og CDF)}: Analytisk tæthedsfunktion og
+kumulativ fordelingsfunktion for \(T_\text{MRCA}\)\hspace{0pt} med
+\(n=4\). PDF'ens lange hale afspejler en reel sandsynlighed for meget
+sen koalescering. CDF-kurven illustrerer, at ca. \(90 \%\) af
+sandsynlighedsmassen er akkumuleret inden \(t \approx 2.5\)
+coalescent-enheder.
+
+\section{Reward-transformationer og Site Frequency Spectrum
+(SFS)}\label{reward-transformationer-og-site-frequency-spectrum-sfs}
+
+En vigtig udvidelse af phase-type teorien er
+\emph{reward-transformationer} (Bladt \& Nielsen 2017). I stedet for at
+måle den samlede absorptionstid tildeler man en ikke-negativ reward
+\(r_i \geq 0\) til hver transient state \(i\) og akkumulerer reward frem
+til absorption:
+
+\[
+\tilde{\tau} = \int_0^{\tau} r(X_t) dt
+\]
+
+Hvis alle rewards er strengt positive, er \(\tilde{\tau}\) igen
+phase-type fordelt:
+
+\[
+\tilde{\tau} \sim \mathrm{PH}_p\!\left(\alpha,\, \Delta(\mathbf{r})^{-1} \mathbf{S}\right)
+\]
+
+hvor \(\Delta(\mathbf{r})\) er diagonalmatricen med rewardvektoren på
+diagonalen (Bladt \& Nielsen 2017). Dette resultat er fundamentalt:
+klassen af phase-type fordelinger er stabil under positive
+reward-transformationer, og hele den matematiske apparatur --- momenter,
+tæthedsfunktioner, Laplace-transformer --- forbliver tilgængelig for den
+transformerede variabel.
+
+Reward-transformationer er centrale for beregningen af \emph{Site
+Frequency Spectrum (SFS)}. SFS er fordelingen af allel-frekvenser i
+genomet: \(SFS_k\) angiver antallet af SNP-sites, hvor det derived allel
+forekommer i præcis \(k\) ud af \(n\) prøver. Under en
+Poisson-mutationsmodel opstår en mutation på en gren med \(k\)
+efterkommere og tæller i \(k\)-binnet i SFS. Den forventede \(k\)-tons
+komponent er proportional med den forventede tid, processen tilbringer i
+state med \(k\)-tons lineages. Rewardvektoren
+\(\mathbf{r}_k\)\hspace{0pt} sættes til antallet af \(k\)-tons lineages
+i den pågældende state: \[
+\mathbb{E}[\text{SFS}_k] = \mu \cdot \alpha, \mathbf{U}\, \mathbf{r}_k
+\]
+
+Det betyder, at hele det forventede SFS kan beregnes analytisk direkte
+fra modellen, uden simulering.
+
+\textbf{Figur 3 (NB 01 --- SFS søjlediagram})**: Forventet SFS for
+\(n=4\) under standard-coalescent. Den aftagende form --- singletons
+dominerer over doubletons og tripletons --- er karakteristisk for en
+konstant population. Formen ændrer sig markant under for eksempel
+populationsvækst eller populationsstruktur.
+
+\textbf{Figur 4 (NB 01 --- reward-transformerede PDF'er)}: Fordelinger
+af tid brugt i hhv. singleton-, doubleton- og tripleton-lineages.
+Singletons dominerer, da processen tilbringer størstedelen af sin tid
+med mange uafhængige linjer tidligt i processen. Quadrupletonkomponenten
+er nul, da den absorberende state ikke bidrager til grenlængde.
+
+\section{Diskrete observationer og
+mutationsmodellen}\label{diskrete-observationer-og-mutationsmodellen}
+
+I genomdata observerer man ikke coalesceringstider direkte, men diskrete
+tælledata i form af SNPs. Givet en gren af varighed \(t\) forventes
+\(\mu \cdot t\) mutationer under en Poisson-mutationsmodel. For at binde
+det kontinuerte coalescent-framework til de diskrete observationer
+introduceres den \emph{diskrete phase-type fordeling} (Neuts 1981; Bladt
+\& Nielsen 2017). For en diskret phase-type fordeling
+\(\tau \sim \mathrm{DPH}_p(\alpha, \mathbf{T})\) er
+sandsynlighedsfunktionen:
+
+\[
+P(\tau = k) = \alpha \mathbf{T}^{k-1}\, \mathbf{t}, \quad k = 1, 2, \ldots
+\]
+
+hvor \(\mathbf{T}\) er sub-transitionsmatricen og
+\(\mathbf{t} = \mathbf{e} - \mathbf{T}\mathbf{e}\) er exitvektoren
+(Bladt \& Nielsen 2017, Def. 2.7). Phasic kobler den kontinuerte
+coalescent til mutationsmodellen via en \emph{joint probability-graf},
+der beregner sandsynligheden for et givet observationsmønster af
+singleton-, doubleton- osv.-mutationer. Det er denne konstruktion, der
+muliggør inferens direkte på SNP-data.
+
+\section{Populationsstruktur: two-island modellen og Isolation with
+migration
+(IM)-modellen}\label{populationsstruktur-two-island-modellen-og-isolation-with-migration-im-modellen}
+
+Kingmans standard-coalescent antager en homogen population. For
+bavianer, der lever i geografisk adskilte grupper med begrænset men
+tilstedeværende migration, er denne antagelse ikke mulig. To modeller
+for populationsstruktur benyttes i dette speciale.
+
+\textbf{To-island modellen} (\emph{ø-modellen}) tilføjer to populationer
+og symmetrisk migration med rate \(m\) per lineage per tidsenhed.
+Coalescering er udelukkende tilladt inden for samme population. Modellen
+har tre parametre: coalescence-raterne \(\frac{1}{N_1}\) og
+\(\frac{1}{N_2}\) for de to populationer samt migrationraten \(m\).
+Statevektoren udvides med en population-label
+\(\mathtt{in\_pop} \in \{1, 2\}\) for at spore, hvilken population den
+enkelte lineage befinder sig i. Modellen er tidshomogen migrationen er
+konstant bagud i tid og udgør den simpleste mulige model for
+populationsstruktur. Den anvendes i notebook 04 til at estimere
+migration mellem eastern yellow og Kinda-bavianer.
+
+\textbf{Isolation with Migration (IM)-modellen} (Nielsen \& Wakeley
+2001) tilføjer et split-tidspunkt \(t_s\)\hspace{0pt} og opdeler
+historien i to epoker:
+
+\begin{itemize}
+\tightlist
+\item
+  Epoke \(0\) (\(0 \to t_s\)): To adskilte populationer med størrelser
+  \(N_1\) og \(N_2\) og migration med rate \(m\)
+\item
+  Epoke \(1\) (\(t_s \to \infty\)): En fælles ancestral population med
+  størrelse \(N_a\) og ingen migration
+\end{itemize}
+
+IM-modellen er en \emph{tidsindhomogen} model, da raterne ændres
+diskontinuert ved \(t_s\)\hspace{0pt}. Modellen er motiveret af Sørensen
+et al.~(2023)'s fund om dokumenteret løbende admixture mellem olive og
+yellow i Tanzania og anvendes i notebook 05 på southern olive-data.
+Split-tid konverteres til absolutte enheder via: \[
+t_{\text{år}} = t_s \cdot 2N_{\text{ref}} \cdot g
+\]
+
+hvor referencepopulationsstørrelsen \(N_\text{ref}\) estimeres fra den
+observerede nukleotiddiversitet:
+\(\hat{\pi} \approx 4 N_\text{ref} \mu\).
+
+\section{Tidsindhomogenitet og validering mod Pool \&
+Nielsen}\label{tidsindhomogenitet-og-validering-mod-pool-nielsen}
+
+Standard phase-type fordelinger er tidshomogene. I praksis varierer den
+demografiske historie over tid, populationer vokser, falder, gennemgår
+flaskehalse og splitter. Notebook 06 undersøger to tilgange til
+tidsindhomogenitet i phasic:
+
+\textbf{Step-wise konstruktion} opdaterer raterne diskontinuert inden
+for et numerisk integrationsskema (distribution\_context). Dette
+benyttes til modellering af for eksempel en populations-bottleneck, hvor
+\(N_e\)\hspace{0pt} falder til \(N_\text{bottle}\) i et defineret
+tidsinterval.
+
+\textbf{Epoch-wise konstruktion} bygger grafen epoke for epoke og
+muliggør eksakt momentberegning. Metoden beregner sandsynligheds- og
+opholdstidsfordelingen ved epokegrænsen og anvender disse til at
+konstruere overgange til den næste epoke med ændrede rater. Det er denne
+metode, der bruges i IM-modellen.
+
+Som analytisk referencepunkt benyttes Pool \& Nielsen (2009), der
+udledte en lukket-formet rekursiv formel for den forventede pairwise
+coalesceringstid i en stykvist-konstant demografi. Sammenligningen i
+notebook 06 bekræfter, at phasics epoch-baserede beregninger er korrekte
+med en relativ fejl på under \(0.01\%\) i forhold til Pool \& Nielsen,
+og at de første fem momenter er i overensstemmelse med uafhængige
+beregninger med en relativ fejl på under \(10^{-4}\).
+
+\section{Populationer i dette
+speciale}\label{populationer-i-dette-speciale}
+
+Analyserne fokuserer på fem bavianpopulationer fra Sørensen et
+al.~(2023), defineret via sample-ID'er fra artiklens Tabel S2 og baseret
+på data fra kromosom 20:
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2604}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2292}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1146}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1146}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2812}}@{}}
+\caption{Populationer, arter, lokalitet, antal individer og deres rolle
+i analysen.}\label{tbl-populations}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Population
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Art
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Lokalitet
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Individer
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Rolle
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Population
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Art
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Lokalitet
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Individer
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Rolle
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Eastern yellow (Mikumi) & \emph{P. cynocephalus} & Tanzania & 35 &
+Referencepopulation \\
+Kinda (Chunga/Dendro) & \emph{P. kindae} & Zambia & 29 & To-island model
+(NB 04) \\
+Southern olive (Tarangire) & \emph{P. anubis} & Tanzania & 46 & IM-model
+(NB 05) \\
+Western yellow (Mahale) & \emph{P. cynocephalus} & Tanzania & 9 &
+Tre-vejs admixture \\
+Olive gog & \emph{P. anubis} & Etiopien & 26 & Referenceanalyse \\
+\end{longtable}
+
+\chapter{Introduktion}\label{introduktion-1}
 
 Et mål inden for populationsgenetik er at forstå, hvordan genetisk
 varition opstår og formes over tid. Denne variation opstår gennem
@@ -1768,7 +2179,7 @@ er tiden til absorption \[
 \tau \sim PH(\alpha,S).
 \]
 
-\section{Bavianer som modelsystem}\label{bavianer-som-modelsystem}
+\section{Bavianer som modelsystem}\label{bavianer-som-modelsystem-1}
 
 Bavianer (slægten \emph{Papio}) er en gruppe af nært beslægtede
 primater, der lever i store dele af Afrika (Kopp et al. 2023). Slægten
