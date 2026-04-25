@@ -47,19 +47,77 @@ degree: Master of Science in Bioinformatics
 
 # Introduktion 
 
-Et mål inden for populationsgenetik er at forstå, hvordan genetisk varition opstår og formes over tid. Denne variation opstår gennem forskellige evolutionære processer såsom genetisk drift, mutation, rekombination og selektion [@hobolth2019]. Disse processer påvirker de genetiske relationer mellem individer og er dermed afgørende for de mønstre, man observerer i DNA-sekvenser.
-Når man observerer DNA-sekvenser fra flere individer i en population, indeholder disse data indirekte information om deres fælles evolutionære historie [@hobolth2019]. Denne historie kan beskrives ved hjælp af et genealogisk træ, hvor grenene repræsenterer de observerede sekvenser, mens de indre knuder svarer til fælles forfædre. Det er dog vigtigt at bemærke, at et enkelt træ kun er tilstrækkeligt, hvis hele genomet deler samme historie. I seksuelt reproducerende populationer vil rekombination medføre, at forskellige dele af genomet har forskellige genealogier, hvilket kræver mere generelle strukturer end træer til at beskrive den evolutionære historie [@kelleher2019]. Derudover har nyere genomiske studier vist, at evolutionære relationer mellem populationer ofte ikke kan beskrives ved simple træstrukturer, men i stedet kræver mere komplekse netværk på grund af hybridisering og gene flow [@sorensen2023; @rogers2019; @vilgalys2022]. Ved at analysere strukturen af sådanne træer kan man derfor få viden omkring både populationshistorie og de evolutionære mekanismer, der ligger bag. Disse strukturer kan analyseres ved hjælp af matrixbaserede metoder såsom phase-type distributioner [@Hobolth2018; @Hobolth2024]. *Nyere arbejde har dog vist, at graf-baserede repræsentationer af phase-type distributioner kan være langt mere effektive, især for store og komplekse state spaces, som ofte opstår i populationsgenetik [@Roikjer2022].*
+Et mål inden for populationsgenetik er at forstå, hvordan genetisk varition opstår og formes over tid. Denne variation opstår gennem forskellige evolutionære processer såsom genetisk drift, mutation, rekombination og selektion [@hobolth2019]. Disse processer påvirker de genetiske relationer mellem individer og er dermed afgørende for de mønstre, man observerer i DNA-sekvenser. Når man observerer DNA-sekvenser fra flere individer i en population, indeholder disse data indirekte information om deres fælles evolutionære historie [@hobolth2019]. Denne historie kan beskrives ved hjælp af et genealogisk træ, hvor grenene repræsenterer de observerede sekvenser, mens de indre knuder svarer til fælles forfædre. Det er dog vigtigt at bemærke, at et enkelt træ kun er tilstrækkeligt, hvis hele genomet deler samme historie. I seksuelt reproducerende populationer vil rekombination medføre, at forskellige dele af genomet har forskellige genealogier, hvilket kræver mere generelle strukturer end træer til at beskrive den evolutionære historie [@kelleher2019]. Derudover har nyere genomiske studier vist, at evolutionære relationer mellem populationer ofte ikke kan beskrives ved simple træstrukturer, men i stedet kræver mere komplekse netværk på grund af hybridisering og gene flow [@sorensen2023; @rogers2019; @vilgalys2022]. Disse genealogiske strukturer kan analyseres ved hjælp af matrixbaserede metoder såsom phase-type distributioner [@Hobolth2018; @Hobolth2024]. Nyere arbejde har dog vist, at graf-baserede repræsentationer af phase-type distributioner kan være langt mere effektive, især for store og komplekse state spaces, som ofte opstår i populationsgenetik [@Roikjer2022]. 
 
 I populationsgenetik antager man ofte, at mutationer opstår tilfældigt langs grenene i et træ. Typisk modlleres dette som en poisson proces[@Hobolth2018; @hobolth2021]. Hvis mutationeraten er $\frac{\theta}{2}$, vil antallet af mutationer på en gren med længde $t$ være poisson fordelt $M \sim \text{Poisson}\left(\frac{\theta}{2} t \right)$
 Grenene i træet kan også beskrives ud fra, hvor mange efterkommere de har i det observerede sample. En gren med en efterkommer kaldes en *singleton lineage* og mutationer på denne gren vil kunne ses i en sekvens, disse kaldes singletons [@munchphasic]. På samme måde vil en gren med to efterkommere give mutationer der ses i præcis to sekvenser altså doubletons, på samme måde kan man definere tripletons, quadrupletons osv. [@munchphasic]. 
 
-Hvis man har et sample bestående af $n$ sekvenser, kan man definere $\xi_i$ som antallet af mutationer, der forekommer i præcis $i$ sekvenser, hvor $i = 1,2,\dots,n-1$. Vektoren $\xi = (\xi_1,\xi_2,\dots, \xi_{n-1})$ kaldes Site Frequency Spectrum (SFS) [@hobolth2019; @hobolth2021]. SFS er en statistisk størrelse i populationsgenetik og bruges blandt andet til at estimere mutationsrater, undersøge populationsstørrelser, test for selektion og analysere populationshistorie [@hobolth2021; @spence2018].
+Hvis man har et sample bestående af $n$ sekvenser, kan man definere $\xi_i$ som antallet af mutationer, der forekommer i præcis $i$ sekvenser, hvor $i = 1,2,\dots,n-1$. Vektoren $\xi = (\xi_1,\xi_2,\dots, \xi_{n-1})$ kaldes *Site Frequency Spectrum* (SFS) [@hobolth2019; @hobolth2021]. SFS er en statistisk størrelse i populationsgenetik og bruges blandt andet til at estimere mutationsrater, undersøge effektive populationsstørrelser, test for selektion og analysere populationshistorie [@hobolth2021; @spence2018].
+
+
+## Markovprocesser 
+
+For at kunne modellere genetiske processer er det nødvendigt med en matematisk ramme til at beskrive stokastiske systemer, der udvikler sig over tid. Markovprocesser udgør netop en sådan ramme, da de beskriver systemer, hvor fremtiden kun afhænger af den nuværende state og ikke af den tidligere historie [ @wakeley2009coalescent].
+En diskret-tids Markovprocs er en stokastisk procs ${X_t}_{t=0,1,2,\dots}$, der opfylder Markov egenskaben (*Markov properperty*) [@kemeny1976]: 
+
+$$
+P(X_{t+1} = j \mid X_t = i, X_{t-1}, \dots, X_0) = P(X_{t+1} = j \mid X_t = i) = P_{ij}.
+$$
+
+Her er $P_{ij}$ overgangssandsynligheden fra state $i$ til state $j$. Disse samles i en overgangsmatrix: 
+
+$$
+P =
+\begin{bmatrix}
+P_{11} & P_{12} & \cdots & P_{1n} \\
+P_{21} & P_{22} & \cdots & P_{2n} \\
+\vdots & \vdots & \ddots & \vdots \\
+P_{n1} & P_{n2} & \cdots & P_{nn}
+\end{bmatrix},
+$$
+
+hvor hver række summerer til 1. De $t$-trins overgangssandsynligheder kan udtrykkes ved matrixpotenser $P^{(t)} = P^t$, der opfylder Chapman-Kolmogorov-ligningerne[@kemeny1976]:
+$$
+P^{(t+s)} = P^{(t)} P^{(s)}.
+$$
+
+Efter mange skridt konvergerer processen mod en stationær fordeling, uafhængigt af startstaten, processen "glemmer" sin start på lang sigt. [@kemeny1976]. 
+
+### Continuous-time Markovprocesser
+
+I mange biologiske modeller er overgange ikke bundet til diskrete tidstrin. En diskret-tids Markovkæde med overgangsmatrix $P=I+A$ kan i grænsen approksimeres ved en *continuous-time* Markovproces. Når alle overgangssandsynligheder er infinitesimalt små, fås:
+
+$$
+P^{\lfloor N_a t \rfloor} = (I + A)^{\lfloor N_a t \rfloor} \to e^{tQ} \quad \text{for } N_a \to \infty,
+
+$$
+
+hvor $Q$ er *rategeneratoren* med elementern $Q_{ij} = N_a a_{ij}$. Diagonalelementerne er givet ved:
+$$
+Q_{ii}=-\sum_{j \neq i} Q_{ij},
+$$
+
+så rækkerne summerer til nul. En nyttig repræsentation er via *jump chains*: ventetiden i state $i$ er eksponentielt fordelt med rate $\lambda_i = \sum_{j \neq i} q_{ij}$, og den tilhørende diskrete jump chain beskriver sandsynligheden for næste state givet, at et spring finder sted [@wakeley2009coalescent].
+Et centralt redskab er *first-step analysis*, hvor man opstiller rekursive ligninger for størrelser af interesse ved at se på, hvad der sker i første trin. For den forventede tid fra state $i$ til state $j$ fås:
+$$
+\mathbb{E}[T_{ij}] = E[\tau_i] + \sum_{k \neq i} P^*_{ik} E[T_{kj}],
+$$
+
+og for variansen:
+$$
+\mathbb{Var}[T_{ij}] = \mathbb{Var}[\tau_i] + \sum_{k \neq i} P^*_{ik} \left( \mathbb{Var}[T_{kj}] + \mathbb{E}[T_{kj}]^2 \right) - \left( \sum_{k \neq i} P^*_{ik} E[T_{kj}] \right)^2.
+$$
+
+Disse rekursive relationer er direkte anvendelige i analyse af coalescent-modeller med populationsstruktur.
 
 
 ## Coalescent teorien 
 
-For at kunne beskrive den genealogiske struktur bag de observerede data bruges coalescent teori [@wakeley2009coalescent; @hobolth2019]. Ideen bag coalescenten er, at man følger genetiske linjer bagud i tid og ser på, hvornår de mødes i fælles forfædre. Hvis to genkopier kan spores tilbage til den samme forfader i en tidligere generation, siger man, at de coalescerer [@wakeley2009coalescent]. Set fremad i tid svarer dette til almindelig reproduktion, men bagud i tid giver det en mere systematisk beskrivelse af populationens slægtskabshistorie.
-Coalescent-teorien hænger tæt sammen med klassiske fremadrettede modeller i populationsgenetik, særligt Wright–Fisher- og Moran-modellerne [@wakeley2009coalescent]. I Wright–Fisher-modellen antages det, at hele populationen udskiftes fra generation til generation, og at populationsstørrelsen $N$ er konstant. Hver ny generation dannes ved tilfældig sampling fra forældregenerationen, hvilket medfører genetisk drift. Hvis der findes to alleler, $A_1$ og $A_2$, og der er $i$ kopier af $A_1$, er frekvensen $p = \frac{i}{N}$, og antallet af kopier i næste generation følger en binomialfordeling:
+For at kunne beskrive den genealogiske struktur bag de observerede data bruges coalescent teori [@wakeley2009coalescent; @hobolth2019]. Ideen er, at man følger genetiske linjer bagud i tid og ser på, hvornår de mødes i fælles forfædre. Hvis to genkopier kan spores tilbage til den samme forfader i en tidligere generation, siger man, at de *coalescerer* [@wakeley2009coalescent]. 
+
+### Wright-Fisher- og MOran-modellerne
+
+Coalescent-teorien hænger tæt sammen med klassiske fremadrettede modeller i populationsgenetik. I *Wright–Fisher-modellen* antages det, at hele populationen udskiftes fra generation til generation, at med konstant størrelse $N$. Hver ny generation dannes ved tilfældig sampling fra forældregenerationen, hvilket medfører genetisk drift. Hvis der findes to alleler, $A_1$ og $A_2$, og der er $i$ kopier af $A_1$, er frekvensen $p = \frac{i}{N}$, og antallet af kopier i næste generation følger en binomialfordeling:
 
 $$
 P_{ij} = \binom{N}{j} p^j (1-p)^{N-j}, \quad 0 \leq j \leq N
@@ -71,8 +129,7 @@ $$
 \mathbb{E}[H_t] = H_0(1-\frac{1}{N})^t \approx H_0 e^{-t/N}
 $$
 
-I Moran-modellen opdateres populationen løbende i stedet for i diskrete generationer, idet et individ reproducerer og et dør ved hvert tidsstep [@wakeley2009coalescent]. Hvis der er $i$ kopier af $A_1$, kan antallet i næste step stige med $1$, falde med $1$ eller forblive uændret med overgangssandsynligheder:
-
+I *Moran-modellen* opdateres populationen løbende: et individ reproducerer og et dør ved hvert tidsstep [@wakeley2009coalescent]. Overgangssandsynligheder er:
 $$
 P_{ij} = 
 \begin{cases} 
@@ -83,55 +140,24 @@ p^2 + (1-p)^2, & \text{hvis } j = i, \\
 \end{cases}
 $$
 
-Her er $\mathbb{E}[K_1] = Np$, mens variansen er $\mathbb{Var}[K_1] = 2p(1-p)$. Heterozygositeten udvikler sig som:
-$$
-\mathbb{E}[H_t] = H_0 \left( 1- \frac{2}{N^2} \right)^t \approx H_0 e^{-2t/N^2}.
-$$
+Her er $\mathbb{E}[K_1] = Np$, mens variansen er $\mathbb{Var}[K_1] = 2p(1-p)$. Heterozygositeten aftager som $\mathbb{E}[H_t] \approx H_0 e^{-2t/N}$ på en skaleret tidsskala, hvilket viser, at genetisk drift i Moran-modellen sker dobbelt så hurtigt som i Wright–Fisher-modellen. For store populationsstørrelser konvergerer begge modeller mod den standard coalescent.
 
-Ved at skalere tiden, så én generation svarer til $N$ opdateringer, fås:
+### Den standard coalescent:
+
+Den standard coalescent udviklet af Kingman, beskriver den genealogiske struktur for en stikprøve ved at følge de ancestrale linjer bagud i tid [@Hobolth2024; @Kingman1982]. For $n$ linjer sker der $n-1$ coalescent begivenheder, hvor to linjer ad gangen coalescere sammen til en fælles forfader, indtil alle linjer er samlet i MRCA (*most recent common ancestor*) [@wakeley2009coalescent].
+
+Coalescent-processen bygger på to centrale egenskaber: kun et par linjer kan coalescere ad gangen, og alle par er lige sandsynlige. Når populationsstørrelsen $N$ er stor, er ventetiderne eksponentielt fordelte. Tiden $T_k$, hvor der er $k$ linjer, har tæthed:
 $$
-\mathbb{E}[H_t] \approx H_0 e^{-2t/N}
-$$
-
-hvilket viser, at genetisk drift i Moran-modellen sker dobbelt så hurtigt som i Wright–Fisher-modellen på samme tidsskala. Disse modeller konvergerer for store populationsstørrelser mod en kontinuert bagudrettet proces nemlig den standard coalescent.
-
-**Den standard coalescent**: udviklet af Kingman, beskriver den genealogiske struktur for en stikprøve ved at følge de ancestrale linjer bagud i tid [@Hobolth2024]. For en stikprøve af størrelse $n$ vil der ske $n-1$ coalescent begivenheder, hvor to linjer ad gangen smelter sammen til en fælles forfader. Processen fortsætter, indtil alle linjer er samlet i en, svarende til most recent common ancestor (MRCA) [@wakeley2009coalescent].
-Den resulterende struktur kan beskrives som et forgrenet træ, hvor hver sammenfletning reducerer antallet af linjer med en. Processen kan opdeles i tidsintervaller $T_i$, hvor der er præcis $i$ ancestrale linjer til stede.
-Coalescent-processen er stokastisk og bygger på to centrale egenskaber:
-
- 1. Kun et par linjer kan coalescere ad gangen
- 2. Alle par af linjer er lige sandsynlige til at coalescere 
-
-Når populationsstørrelsen $N$ er stor, konvergerer Wright–Fisher-modellen mod denne proces [@hobolth2019]. I denne grænse er ventetiderne mellem coalescent begivenheder uafhængige og eksponentielt fordelte. Tiden $T_i$ hvor der er $i$ linjer, har tæthed:
-$$
-f_{T_i}(t_i) = \left( \frac{2}{i} \right) e^{-(\frac{2}{i}) t_i}, \quad i = 2, \dots, n
+f_{T_k}(t_k) = \binom{k}{2} e^{-\binom{k}{2} t_k}, \quad k = 2, \dots, n,
 $$
 
 med
-
 $$
-\mathbb{E}[T_i] = \frac{i(i-1)}{2},
-\mathbb{Var}[T_i] = \left(\frac{i(i-1)}{2}\right)^2
+\mathbb{E}[T_k] = \frac{2}{k(k-1)}, \qquad \mathbb{Var}[T_k] = \left(\frac{2}{k(k-1)}\right)^2.
 $$
 
 Dette betyder, at coalescent begivenheder sker hurtigt, når der er mange linjer, og langsommere når der er få. Især ligger MRCA typisk relativt langt tilbage i tiden.
-Da tiderne $T_i$ er uafhængige, kan den samlede tæthed skrives som:
 
-$$
-f_{T_n,\dots,T_2}(t_2, \dots, t_n) = \prod_{i=2}^n f_{T_i}(t_i) 
-$$
-
-Alle trætopologier er desuden lige sandsynlige, da alle par af linjer har samme sandsynlighed for at coalescere.
-Koblingen til Wright–Fisher-modellen kan ses ved:
-$$
-G_{i,i-1} = \frac{\binom{2}{i}}{N} + O\left(\frac{1}{N^2}\right)
-$$
-
-hvilket viser, at coalescent begivenheder er sjældne hændelser. Sandsynligheden for flere samtidige coalescent begivenheder er derfor negligerbar i grænsen [@wakeley2009coalescent].
-I Moran-modellen sker der kun en reproduktionsbegivenhed ad gangen, hvilket betyder, at der højst kan ske en coalescent begivenhed per tidsstep. Dette gør modellen naturligt kompatibel med kontinuert tid. En vigtig generalisering opnås ved Cannings-modeller, hvor reproduktionen varierer. Hvis $Y_i$ er antallet af afkom fra individ $i$, fås $N_e = \frac{N}{\sigma^2}$ hvilket viser, at effektiv populationsstørrelse afhænger af variansen i reproduktion. Stor variation fører til stærkere genetisk drift [@wakeley2009coalescent].
-
-
-Disse fremadrettede modeller danner grundlaget for den bagudrettede coalescent-proces. Kingman viste, at den genealogiske struktur for en stikprøve kan beskrives matematisk gennem $n$-coalescenten [@wakeley2009coalescent; @Kingman1982]. Her betragtes $n$ samtidige genetiske linjer, som bagud i tid gradvist samles i fælles forfædre, indtil de alle er forenet i en fælles forfar, betegnes MRCA (*Most Recent Common Ancestor*).
 For en haploid population af størrelse $N$ er sandsynligheden for, at to linjer coalescerer i den foregående generation $\frac{1}{N}$. Når der er $k$ linjer tilbage, er der $\binom{k}{2}$ mulige par, og den samlede coalescensrate er:
 $$
 \lambda_k = \binom{k}{2} \cdot \frac{1}{N} = \frac{k(k-1)}{2N}
@@ -147,398 +173,31 @@ $$
 \mathbb{E}[T_{\mathrm{MRCA}}] = \sum_{k=2}^{n} \frac{2}{k(k - 1)} = 2\left(1 - \frac{1}{n}\right)
 $$
 
-For eksempel giver $n=4$ prøver $\mathbb{E}[T_{\mathrm{MRCA}}] = \frac{3}{2}$ coalescent-enheder. Den effektive populationsstørrelse $N_e$ skalerer den absolutte tid lineært, hvilket gør det muligt at estimere historiske populationsstørrelser ud fra genetiske data. En vigtig pointe ved coalescent-teorien er, at den genealogiske proces kan analyseres uafhængigt af mutationsprocessen under antagelse af neutral evolution [@wakeley2009coalescent]. Dette gør det muligt først at modellere slægtskabsstrukturen og derefter inkludere mutationer.
+For $n=4$ giver dette $\mathbb{E}[T_{\mathrm{MRCA}}] = \frac{3}{2}$ coalescent-enheder. Den effektive populationsstørrelse $N_e$ skalerer den absolutte tid lineært, hvilket gør det muligt at estimere historiske populationsstørrelser ud fra genetiske data. En vigtig pointe ved coalescent-teorien er, at den genealogiske proces kan analyseres uafhængigt af mutationsprocessen under antagelse af neutral evolution [@wakeley2009coalescent], hvilket gør det muligt først at modellere slægtskabsstrukturen og derefter inkludere mutationer.
 
-**Staterepræsentation**. En state repræsenteres som en vektor $\mathbf{s} = (s_1, s_2, \ldots, s_n)$, hvor $i$
-angiver antallet af lineages med netop $i$ efterkommere. Startstaten er $(n, 0, \ldots, 0)$ og den absorberende state er $(0, \ldots, 0, 1)$ svarende til MRCA. En transition sker, når to lineages med henholdsvis $i$ og $j$ efterkommere coalescerer til en med $i+j$ efterkommere, med rate::
+**Staterepræsentation**. En state repræsenteres som en vektor $\mathbf{s} = (s_1, s_2, \ldots, s_n)$, hvor $s_i$
+angiver antallet af lineages med netop $i$ efterkommere. Startstaten er $(n, 0, \ldots, 0)$ og den absorberende state er $(0, \ldots, 0, 1)$ svarende til MRCA. En transition sker, når to lineages med henholdsvis $i$ og $j$ efterkommere coalescerer til en med $i+j$ efterkommere, med rate:
 $$
 q_{ij}(s) = \frac{s_i(s_j-\delta_{ij})}{1+\delta_{ij}} * \frac{1}{N_e}
 $$
 
-hvor $\delta_{ij}$  er Kronecker-delta.
+hvor $\delta_{ij}$ er Kronecker-delta, der korrigerer for selvcoalescering.
 
 **Figur 1 (NB 01 — graph.plot())**: Grafrepræsentation af coalescent-modellen for $n=4$. Noder repræsenterer state og pile repræsenterer mulige coalescenstransitioner med tilhørende rater. Startstate $(4,0,0,0)$ er øverst til venstre, og den absorberende state nås, når alle fire linjer er forenet.
 
+## Populationsstruktur og coalescenstider 
 
-## Phase-type fordelinger
-
-Coalescenstiden kan analyseres inden for rammen af phase-type fordelinger, som er absorptionstider i tidskontinuerte, endelige Markov-kæder. Dette giver adgang til en veletableret matematisk teori og til effektive beregningsmetoder [@BladtNielsen2017; @Hobolth2024].
-
-Coalescensprocessen er netop en sådan Markov-kæde: den har et endeligt staterum, konstante overgangsrater og en absorberende state (MRCA). Absorptionstiden er derfor per definition phase-type fordelt, og man kan direkte anvende teoriens resultater.
-
-**Definition**. Lad $\alpha = (\alpha_1, \ldots, \alpha_p)$ være startfordelingen over $p$ transiente state, og lad $\mathbf{S}$ være $p \times p$ sub-intensitetsmatricen med $S_{ij} \geq 0$ for $i \neq j$ og $S_{ii} < 0$ (rækkesum $\leq 0$). Exitratevektoren er $\mathbf{s} = -\mathbf{S}\mathbf{e}$, og absorptionstiden:
-
-$$
-\pi = \inf \{t \geq 0: X_t = p+1 \}
-$$
-
-Skrives $\pi \sim PH_p(\alpha,S)$ [@Neuts1981; @BladtNielsen2017].
-Tæthedsfunktion og kumulativ fordelingsfunktion er henholdvis:
-
-$$
-f_{\tau}(t) = \alpha e^{St}s, \quad
-F_{\tau}(t) = 1 - \alpha e^{St}e, \quad t \ge 0
-$$
-
-Her er $e^{St}$ matrix-eksponentialet, hvis $(i,j)$-indgang giver sandsynligheden for at befinde sig i transient state $j$ på tidspunkt $t$ givet start i state $i$ [@BladtNielsen2017]. Disse formler er baggrunden for det, der sker, når man kalder graph.pdf(t) og graph.cdf(t) i phasic.
-
-Det $n$-te moment beregnes via *Green-matricen* $\mathbf{U} = (-\mathbf{S})^{-1}$:
-
-$$
-\mathbb{E}[\tau^n] = n!\, \alpha \mathbf{U}^n\, \mathbf{e}
-$$
-
-Green-matricens $(i,j)$-indgang fortolkes som den forventede totale tid, processen tilbringer i state $j$ givet start i state $i$ [@BladtNielsen2017]. Det er ikke blot en abstrakt størrelse det er præcis den, der bruges til at beregne SFS-komponenter, som beskrevet i næste afsnit.
-En motivation for at bruge phase-type rammen er, at komplekse og ellers tunge coalescent-formler reduceres til matrixoperationer [@Hobolth2018; @Hobolth2024]. Som Hobolth et al. (2024) formulerer det, er klassen af modeller, der tillader en detaljeret matematisk behandling, større end man måske ville forvente og phase-type teorien udvider den klasse betragtelig. Det er netop den egenskab, der gør det muligt at arbejde med two-island modellen, IM-modellen og tidsindhomogene modeller inden for den samme ramme.
-
-**Figur 2 (NB 01 — PDF og CDF)**: Analytisk tæthedsfunktion og kumulativ fordelingsfunktion for $T_\text{MRCA}$​ med $n=4$. PDF'ens lange hale afspejler en reel sandsynlighed for meget sen koalescering. CDF-kurven illustrerer, at ca. $90 \%$ af sandsynlighedsmassen er akkumuleret inden $t \approx 2.5$ coalescent-enheder.
-
-
-## Reward-transformationer og Site Frequency Spectrum (SFS)
-
-En vigtig udvidelse af phase-type teorien er *reward-transformationer* [@BladtNielsen2017]. I stedet for at måle den samlede absorptionstid tildeler man en ikke-negativ reward $r_i \geq 0$ til hver transient state $i$ og akkumulerer reward frem til absorption:
-
-$$
-\tilde{\tau} = \int_0^{\tau} r(X_t) dt
-$$
-
-Hvis alle rewards er strengt positive, er $\tilde{\tau}$ igen phase-type fordelt:
-
-$$
-\tilde{\tau} \sim \mathrm{PH}_p\!\left(\alpha,\, \Delta(\mathbf{r})^{-1} \mathbf{S}\right)
-$$
-
-hvor $\Delta(\mathbf{r})$ er diagonalmatricen med rewardvektoren på diagonalen [@BladtNielsen2017]. Dette resultat er fundamentalt: klassen af phase-type fordelinger er stabil under positive reward-transformationer, og hele den matematiske apparatur momenter, tæthedsfunktioner, Laplace-transformer forbliver tilgængelig for den transformerede variabel.
-
-Reward-transformationer er centrale for beregningen af *Site Frequency Spectrum (SFS)*. SFS er fordelingen af allel-frekvenser i genomet: $SFS_k$ angiver antallet af SNP-sites, hvor det derived allel forekommer i præcis $k$ ud af $n$ prøver. Under en Poisson-mutationsmodel opstår en mutation på en gren med $k$ efterkommere og tæller i $k$-binnet i SFS. Den forventede $k$-tons komponent er proportional med den forventede tid, processen tilbringer i state med $k$-tons lineages. Rewardvektoren $\mathbf{r}_k$​ sættes til antallet af $k$-tons lineages i den pågældende state:
-$$
-\mathbb{E}[\text{SFS}_k] = \mu \cdot \alpha, \mathbf{U}\, \mathbf{r}_k
-$$
-
-Det betyder, at hele det forventede SFS kan beregnes analytisk direkte fra modellen, uden simulering. 
-
-**Figur 3 (NB 01 — SFS søjlediagram**)**: Forventet SFS for $n=4$ under standard-coalescent. Den aftagende form — singletons dominerer over doubletons og tripletons — er karakteristisk for en konstant population. Formen ændrer sig markant under for eksempel populationsvækst eller populationsstruktur.
-
-
-**Figur 4 (NB 01 — reward-transformerede PDF'er)**: Fordelinger af tid brugt i hhv. singleton-, doubleton- og tripleton-lineages. Singletons dominerer, da processen tilbringer størstedelen af sin tid med mange uafhængige linjer tidligt i processen. Quadrupletonkomponenten er nul, da den absorberende state ikke bidrager til grenlængde.
-
-## Diskrete observationer og mutationsmodellen
-
-I genomdata observerer man ikke coalesceringstider direkte, men diskrete tælledata i form af SNPs. Givet en gren af varighed $t$ forventes $\mu \cdot t$  mutationer under en Poisson-mutationsmodel. For at binde det kontinuerte coalescent-framework til de diskrete observationer introduceres den *diskrete phase-type fordeling* [@Neuts1981; @BladtNielsen2017].
-For en diskret phase-type fordeling $\tau \sim \mathrm{DPH}_p(\alpha, \mathbf{T})$ er sandsynlighedsfunktionen:
-
-$$
-P(\tau = k) = \alpha \mathbf{T}^{k-1}\, \mathbf{t}, \quad k = 1, 2, \ldots
-$$
-
-hvor $\mathbf{T}$ er sub-transitionsmatricen og $\mathbf{t} = \mathbf{e} - \mathbf{T}\mathbf{e}$ er exitvektoren [@BladtNielsen2017]. Phasic kobler den kontinuerte coalescent til mutationsmodellen via en *joint probability-graf*, der beregner sandsynligheden for et givet observationsmønster af singleton-, doubleton- osv.-mutationer. Det er denne konstruktion, der muliggør inferens direkte på SNP-data.
-
-## Populationsstruktur: two-island modellen og Isolation with migration (IM)-modellen
-
-Kingmans standard-coalescent antager en homogen population. For bavianer, der lever i geografisk adskilte grupper med begrænset men tilstedeværende migration, er denne antagelse ikke mulig. To modeller for populationsstruktur benyttes i dette speciale.
-
-**To-island modellen** (*ø-modellen*) tilføjer to populationer og symmetrisk migration med rate $m$ per lineage per tidsenhed. Coalescering er udelukkende tilladt inden for samme population. Modellen har tre parametre: coalescence-raterne $\frac{1}{N_1}$ og $\frac{1}{N_2}$ for de to populationer samt migrationraten $m$. Statevektoren udvides med en population-label $\mathtt{in\_pop} \in \{1, 2\}$ for at spore, hvilken population den enkelte lineage befinder sig i. Modellen er tidshomogen migrationen er konstant bagud i tid og udgør den simpleste mulige model for populationsstruktur. Den anvendes i notebook 04 til at estimere migration mellem eastern yellow og Kinda-bavianer.
-
-**Isolation with Migration (IM)-modellen** [@wakeley2009coalescent] tilføjer et split-tidspunkt $t_s$​ og opdeler historien i to epoker:
-
- * Epoke $0$ ($0 \to t_s$): To adskilte populationer med størrelser $N_1$ og $N_2$ og migration med rate $m$
- * Epoke $1$ ($t_s \to \infty$): En fælles ancestral population med størrelse $N_a$ og ingen migration
-
-IM-modellen er en *tidsindhomogen* model, da raterne ændres diskontinuert ved $t_s$​. Modellen er motiveret af Sørensen et al. (2023)'s fund om dokumenteret løbende admixture mellem olive og yellow i Tanzania og anvendes i notebook 05 på southern olive-data. Split-tid konverteres til absolutte enheder via:
-$$
-t_{\text{år}} = t_s \cdot 2N_{\text{ref}} \cdot g
-$$
-
-hvor referencepopulationsstørrelsen $N_\text{ref}$ estimeres fra den observerede nukleotiddiversitet: $\hat{\pi} \approx 4 N_\text{ref} \mu$.
-
-## Tidsindhomogenitet og validering mod Pool & Nielsen
-
-Standard phase-type fordelinger er tidshomogene. I praksis varierer den demografiske historie over tid, populationer vokser, falder, gennemgår flaskehalse og splitter. Notebook 06 undersøger to tilgange til tidsindhomogenitet i phasic:
-
-**Step-wise konstruktion** opdaterer raterne diskontinuert inden for et numerisk integrationsskema (distribution_context). Dette benyttes til modellering af for eksempel en populations-bottleneck, hvor $N_e$​ falder til $N_\text{bottle}$ i et defineret tidsinterval.
-
-**Epoch-wise konstruktion** bygger grafen epoke for epoke og muliggør eksakt momentberegning. Metoden beregner sandsynligheds- og opholdstidsfordelingen ved epokegrænsen og anvender disse til at konstruere overgange til den næste epoke med ændrede rater. Det er denne metode, der bruges i IM-modellen.
-
-Som analytisk referencepunkt benyttes Pool & Nielsen (2009), der udledte en lukket-formet rekursiv formel for den forventede pairwise coalesceringstid i en stykvist-konstant demografi. Sammenligningen i notebook 06 bekræfter, at phasics epoch-baserede beregninger er korrekte med en relativ fejl på under $0.01\%$ i forhold til Pool & Nielsen, og at de første fem momenter er i overensstemmelse med uafhængige beregninger med en relativ fejl på under $10^{-4}$.
-
-## Populationer i dette speciale
-Analyserne fokuserer på fem bavianpopulationer fra Sørensen et al. (2023), defineret via sample-ID'er fra artiklens Tabel S2 og baseret på data fra kromosom 20:
-
-::: {#tbl-populations .striped}
-
-| Population              | Art                  | Lokalitet | Individer | Rolle                     |
-|:------------------------|:---------------------|:----------|----------:|:--------------------------|
-| Eastern yellow (Mikumi) | *P. cynocephalus*    | Tanzania  |        35 | Referencepopulation       |
-| Kinda (Chunga/Dendro)   | *P. kindae*          | Zambia    |        29 | To-island model (NB 04)   |
-| Southern olive (Tarangire)| *P. anubis*        | Tanzania  |        46 | IM-model (NB 05)          |
-| Western yellow (Mahale) | *P. cynocephalus*    | Tanzania  |         9 | Tre-vejs admixture        |
-| Olive gog               | *P. anubis*          | Etiopien  |        26 | Referenceanalyse          |
-
-Populationer, arter, lokalitet, antal individer og deres rolle i analysen.
-:::
-
-
-
-# Introduktion
-
-
-## Markovprocesser 
-
-For at kunne modellere mere realistiske populationer er det nødvendigt at udvide den klassiske coalescent. Her spiller Markovprocesser en central rolle, de de giver en naturlig ramme til at beskrive stokastiske systemer, hvor udviklingen over tid afhænger af den nuværende state [@wakeley2009coalescent].
-En diskret-tids Markovproces er en stokastisk proces ${X_t}_{t=0,1,2,\dots}$, hvor state ved tid $t+1$ kun afhænger af state ved tid $t$. Dette kaldes Markov egenskaben (*Markov properperty*) [@kemeny1976] og kan skrives som
-
-$$
-P(X_{t+1} = j \mid X_t = i, X_{t-1}, \dots, X_0) = P(X_{t+1} = j \mid X_t = i) = P_{ij}.
-$$
-
-Her er $P_{ij}$ overgangssandsynligheden fra state $i$ til state $j$. Disse sandsynligheder samles i en overgangsmatrix [@kemeny1976]: 
-
-$$
-P =
-\begin{bmatrix}
-P_{11} & P_{12} & \cdots & P_{1n} \\
-P_{21} & P_{22} & \cdots & P_{2n} \\
-\vdots & \vdots & \ddots & \vdots \\
-P_{n1} & P_{n2} & \cdots & P_{nn}
-\end{bmatrix},
-$$
-
-hvor hver række summerer til 1:
-$$
-\sum_{j=1}^{n} P_{ij} = 1 \quad \text{for alle } i
-$$
-
-Et centralt begreb er de $t$ trins overgangssandsynligheder, defineret som
-$$
-P^{(t)}_{ij} = P(X_{s+t} = j \mid X_s = i),
-$$
-
-som kan udtrykkes ved matrixpotenser:
-$$
-P^{(t)} = P^t.
-$$
-
-Disse opfylder Chapman–Kolmogorov ligningerne [@kemeny1976]:
-$$
-P^{(t+s)}_{ij} = \sum_{k=1}^n P^{(t)}_{ik} P^{(s)}_{kj},
-$$
-
-eller i matrixnotation
-$$
-P^{(t+s)} = P^{(t)} P^{(s)}.
-$$
-
-Som et konkret eksempel kan man betragte en Markovkæde med to states og overgangsmatrix [@wakeley2009coalescent]:
-
-$$
-P =
-\begin{bmatrix}
-0.90 & 0.10 \\
-0.25 & 0.75
-\end{bmatrix}.
-$$
-
-Efter to skridt fås
-$$
-P^2 =
-\begin{bmatrix}
-0.835 & 0.165 \\
-0.412 & 0.588
-\end{bmatrix},
-$$
-
-og efter fem skridt
-$$
-P^5 =
-\begin{bmatrix}
-0.747 & 0.253 \\
-0.631 & 0.369
-\end{bmatrix}.
-$$
-
-Efter mange skridt konvergerer systemet mod en stationær fordeling, uafhængigt af startstate [@kemeny1976]. For eksempel:
-$$
-P^{20} =
-\begin{bmatrix}
-0.7143 & 0.2857 \\
-0.7142 & 0.2858
-\end{bmatrix}.
-$$
-
-Dette illustrerer, at processen på lang sigt “glemmer” sin start.(Refernence).
-
-Disse Markovprocesser danner det matematiske fundament for den strukturerede coalescent. I den klassiske coalescent antages det, at alle linjer er udskiftelige, men dette er ofte urealistisk i biologiske populationer, som typisk er opdelt i subpopulationer med begrænset migration [@wakeley2009coalescent].
-Et klassisk eksempel er Wrights ø-model hvor individer er fordelt på flere øer og migration sker med en sandsynlighed $m$ per generation. I den strukturerede coalescent følger man stadig linjer bagud i tid, men nu kan man også skifte mellem subpopulationer. I grænsen, hvor populationsstørrelsen går mod uendelig, men $Nm$ holdes konstant, opstår en kontinuert proces, hvor både migration og coalescens sker på samme tidsinterval (Refernece). En forskel fra den klassiske model er, at linjer nu har labels (fx geografisk oprindelse), som påvirker sandsynligheden for at coalescere [@wakeley2009coalescent].
-
-### Continuous-time Markovprocesser
-
-For at analysere den strukturerede coalescent mere præcist er det nødvendigt at udvide Markovrammen til også at omfatte continuous-time processer [@wakeley2009coalescent]. I denne sammenhæng kan en diskret-tids Markovkæde med overgangsmatrix $P$ skrives som
-
-$$
-P = I + A,
-$$
-
-hvor $I$ er identitetsmatricen, og $A$ indeholder de infinitesimale ændringer:
-$$
-A =
-\begin{bmatrix}
-a_{11} & a_{12} & \cdots & a_{1n} \\
-a_{21} & a_{22} & \cdots & a_{2n} \\
-\vdots & \vdots & \ddots & \vdots \\
-a_{n1} & a_{n2} & \cdots & a_{nn}
-\end{bmatrix}.
-$$
-
-Da rækkerne i $P$ summerer til 1, gælder
-$$
-\sum_{j=1}^{n} a_{ij} = 0 \quad \text{for alle } i.
-$$
-
-De diagonale elementer repræsenterer overgangssandsynligheder ($a_{ij} = p_{ij}$ for $i \neq j$), mens diagonalelementerne er givet ved
-$$
-a_{ii} = - \sum_{j \neq i} a_{ij}.
-$$
-
-Når alle overgangssandsynligheder er små, kan processen approksimeres ved en continuous-time Markovproces. I grænsen fås
-$$
-P^{\lfloor N_a t \rfloor} = (I + A)^{\lfloor N_a t \rfloor} \to e^{tQ} \quad \text{for } N_a \to \infty,
-$$
-
-hvor $Q$ er rat -matricen med elementer
-$$
-Q_{ij} = N_a a_{ij}.
-$$
-
-Denne formulering gør det muligt at beskrive processer, hvor spring mellem states sker på kontinuerlig tidsskala. En nyttig repræsentation af continuous-time Markovprocesser er via *jump chains*. Her betragtes processen som en sekvens af spring mellem states, hvor ventetiden i en state er eksponentielt fordelt med parameter ([@wakeley2009coalescent]: 
-$$
-\lambda_i = \sum_{j \neq i} q_{ij}.
-$$
-
-Den tilhørende diskrete jump chain har overgangsmatrix
-$$
-P^* =
-\begin{bmatrix}
-0 & \frac{q_{12}}{q_{12}+q_{13}} & \frac{q_{13}}{q_{12}+q_{13}} \\
-\frac{q_{21}}{q_{21}+q_{23}} & 0 & \frac{q_{23}}{q_{21}+q_{23}} \\
-0 & 0 & 1
-\end{bmatrix}.
-$$
-
-Denne matrix beskriver sandsynligheden for næste state givet, at et spring finder sted.
-
-Et centralt værktøj i analysen er first-step analysis. Ideen er, at man kan udtrykke en størrelse rekursivt ved at se på hvad der sker i første trin. 
-For eksempel for en continuous-time proces kan fordelingen af tiden $T_{ij}$ til at nå state $j$ fra state $i$ skrives som en konvolution:
-$$
-f_{T_{ij}}(t) =
-\int_0^\infty f_{\tau_i}(x)
-\sum_{k \neq i} P^*_{ik} f_{T_{kj}}(t - x)\, dx.
-$$
-
-Her er $\tau_i$ ventetiden i state $i$. Dette fører til rekursive ligninger for forventningen:
-$$
-E[T_{ij}] = E[\tau_i] + \sum_{k \neq i} P^*_{ik} E[T_{kj}],
-$$
-
-og tilsvarende for variansen:
-$$
-\mathrm{Var}[T_{ij}] =
-\mathrm{Var}[\tau_i]
-+ \sum_{k \neq i} P^*_{ik} \left( \mathrm{Var}[T_{kj}] + E[T_{kj}]^2 \right)
-- \left( \sum_{k \neq i} P^*_{ik} E[T_{kj}] \right)^2.
-$$
-
-I diskret tid får man tilsvarende rekursive relationer:
-$$
-E[T_{ij}] = 1 + \sum_{k} P_{ik} E[T_{kj}],
-\mathrm{Var}[T_{ij}] =
-\sum_k P_{ik} \left( \mathrm{Var}[T_{kj}] + E[T_{kj}]^2 \right)
-- \left( \sum_k P_{ik} E[T_{kj}] \right)^2.
-$$
-
-Disse ideer anvendes direkte i analysen af den strukturerede coalescent. Her modelleres genealogien bagud i tid som en Markovproces med tre states:
- - state 1: coalescens uden mutation (absorberende),
- - state 2: ingen coalescens endnu (transient),
- - state 3: mutation er sket (absorberende).
-[@munchphasic]. En passende overgangsmatrix kan skrives som
-$$
-P =
-\begin{bmatrix}
-1 & 0 & 0 \\
-\frac{(1-u)^2}{N} & (1-u)^2\left(1 - \frac{1}{N}\right) & 1 - (1-u)^2 \\
-0 & 0 & 1
-\end{bmatrix}.
-$$
-
-Her er sandsynligheden for identity by descent (IBD) netop sandsynligheden for at nå state 1 før state 3 [@wakeley2009coalescent].
-Ved hjælp af first-step analysis introduceres indikatorvariablen $\mathbf{1}_{\mathrm{IBD}}$, og man opnår den rekursive ligning
-$$
-E[\mathbf{1}_{\mathrm{IBD}} \mid X_0 = 2]
-= \sum_{i=1}^3 E[\mathbf{1}_{\mathrm{IBD}} \mid X_1 = i, X_0 = 2] P_{2i}.
-$$
-
-Ved brug af Markov egenskaben reduceres dette til
-$$
-E[\mathbf{1}_{\mathrm{IBD}} \mid X_0 = 2]
-= P_{21} + E[\mathbf{1}_{\mathrm{IBD}} \mid X_0 = 2] P_{22},
-$$
-
-som kan løses eksplicit og giver sandsynligheden for IBD.
-
-
-## Populationsstruktur, coalescenstider og migration
-
-Efter at have introduceret den strukturerede coalscent og Markov processen bag den, er det vigtigt også at se på, hvordan populationsstruktur konkret påvirker genealogier. En af de vigtigste størrelser i denne sammenhæng er tiden til ophav for to sekvenser.  Man skelner typisk mellem to tilfælde: enten er de to sekvenser samplet fra samme subpopulation (*within*), eller også er de samplet fra forskellige subpopulationer (*between*) [@wakeley2009coalescent]. De tilsvarende coalescenstider betegnes henholdsvis $T_w$ og $T_b$.
-
-Ved hjælp af first-step analysis kan man opstille rekursive ligninger for disse forventede tider. I en symmetrisk model med $D$ subpopulationer og migrationsrate $M$ fås: 
-
-$$
-E[T_w] = \frac{1}{M+1} + \frac{M}{M+1} E[T_b],
-$$
-
-$$
-E[T_b] = \frac{1}{M} + \frac{1}{D-1} E[T_w] + \frac{D-2}{D-1} E[T_b].
-$$
-
-Ved løsning af disse ligninger opnås
-$$
-E[T_w] = D,
-$$
-
-$$
-E[T_b] = D\left(1 + \frac{D-1}{M D}\right).
-$$
-
-Disse resultater illustrerer to vigtige pointer. Tiden til coalescens for to sekvenser fra samme subpopulation afhænger ikke af migrationsraten, men kun af antallet af subpopulationer. Til gengæld er $T_b$ større og afhænger stærkt af migrationen: hvis migrationen er lav, tager det længere tid, før linjerne overhovedet befinder sig i samme subpopulation og kan coalescere [@wakeley2009coalescent].
-
-Variansen af disse tider giver yderligere indsigt i processens struktur. Ved brug af tidligere generelle resultater for varians opnås
-$$
-\mathrm{Var}[T_w] = D^2 + \frac{2(D-1)^2}{M},
-$$
-
-$$
-\mathrm{Var}[T_b] = D^2 + \frac{2(D-1)^2}{M} + \frac{(D-1)^2}{M^2}.
-$$
-
-Disse udtryk viser, at variansen vokser markant, når migrationsraten $M$ bliver lille. Dette skyldes, at linjer kan være adskilt i lang tid før de mødes [@wakeley2009coalescent].
-
-Fordelingen af $T_w$ og $T_b$ kan visualiseres via deres tæthedsfunktioner. For små værdier af $D$ (fx $D=2$) er forskellen mellem *within* og *between* tydelig: $T_w$ har høj sandsynlighed for små tider, mens $T_b$ typisk har en forskudt fordeling med større forventning [@wakeley2009coalescent]. Når antallet af subpopulationer øges (fx $D=10$), bliver forskellen endnu større, da sandsynligheden for at to linjer befinder sig i samme subpopulation reduceres til
-$$
-\frac{1}{D-1}.
-$$
-
-Dette betyder, at linjer ofte skal gennem flere migrationsbegivenheder, før de kan coalescere.
-I grænsen $M \to \infty$, forsvinder populationsstrukturen og modellen reduceres til den klassiske coalescent med effektiv populationsstørrelse
+I den klassiske coalescent antages en homogen population. I biologiske populationer opdelt i subpopulationer med begrænset migration er denne antagelse imidlertid urealistisk [@wakeley2009coalescent]. I den strukturerede coalescent følger man stadig linjer bagud i tid, men lineages kan nu skifte subpopulation via migration. Man skelner typisk mellem coalescenstiden for to sekvenser samplet fra samme subpopulation (*within*, $T_w$) og fra forskellige subpopulationer (*between*, $T_b$). I en symmetrisk model med $D$ subpopulationer og migrationsrate $M$ fås via first-step analysis [@wakeley2009coalescent]:
 $$
-N_e = D N.
+E[T_w] = D, \qquad E[T_b] = D\left(1 + \frac{D-1}{MD}\right).
 $$
 
-I denne grænse bliver
+$T_w$ afhænger ikke af migrationsraten, mens $T_b$ afhænger stærkt af $M$: lav migration fører til markant længere coalescenstid mellem subpopulationer. Variansen vokser ligeledes kraftigt for lav $M$:
 $$
-E[T_b] \to E[T_w],
+\mathrm{Var}[T_w] = D^2 + \frac{2(D-1)^2}{M}, \qquad \mathrm{Var}[T_b] = D^2 + \frac{2(D-1)^2}{M} + \frac{(D-1)^2}{M^2}.
 $$
 
-og forskellen mellem *within* og *between* forsvinder [@wakeley2009coalescent]. Omvendt, når $M \to 0$, divergerer $E[T_b]$, hvilket afspejler, at linjer i forskellige subpopulationer næsten aldrig mødes. Samtidig bliver fordelingerne mere skæve, og variansen vokser kraftigt.
-Samlet viser disse resultater, hvordan populationsstruktur og migration påvirker genealogiske processer. Mens forventningen af coalescenstid inden for en subpopulation er robust over for migration, er tiden mellem subpopulationer stærkt afhængig af migrationsraten. Varians og fordelinger giver yderligere indsigt i den stokastiske variation i processen og er centrale for statistiske anvendelser, fx inferens af populationsstruktur ud fra genetiske data [@wakeley2009coalescent].
+I grænsen $M \to \infty$ forsvinder populationsstrukturen og modellen reduceres til den klassiske coalescent med $N_e = DN$. Omvendt divergerer $E[T_b]$ når $M \to 0$ [@wakeley2009coalescent].
 
 ### Geografisk struktur
 
@@ -593,115 +252,50 @@ som svarer til de tre state. Denne formulering viser tydeligt separationen melle
  * migration (rate proportional med $M$)
 [@wakeley2009coalescent].
 
-Ud over island-modellen findes mere realistiske modeller, hvor migration afhænger af geografisk afstand. I *stepping-stonemodeller* er subpopulationer arrangeret enten lineært (1D) eller på et gitter (2D), og migration sker primært mellem naboer. Disse modeller fører til fænomenet *isolation by distance*, hvor genetisk lighed aftager med geografisk afstand. I sådanne modeller afhænger coalescenstider ikke kun af migrationsraten, men også af den rumlige struktur og afstanden mellem samples [@wakeley2009coalescent]. Dette giver en mere nuanceret beskrivelse af genetisk variation i naturlige populationer.
-
 
 ### Selektion
-Indtil videre har fokus primært været på neutrale modeller, hvor genetisk variation kun påvirkes af genetisk drift og migration. I mange biologiske situationer spiller naturlig selektion en vigtig rolle. 
-Når selektion er til stede, er lineager ikke længere udskiftelige, fordi deres alleltype påvirker deres reproduktive succes. Det betyder, at coalescent-processen også påvirkes, og man må udvide modellen.
-I Wright-Fisher modellen med selektion betragtes en population med to alleler $A_1$ og $A_2$. Hvis frekvensen af $A_1$ i generation $t$ er $p$, vil selektion ændre denne frekvens til $p'$ før sampling til næste generation. Under diploid viability selection med fitness-parametre $w_{11}, w_{12}, w_{22}$ fås:
-
+Indtil videre har fokus været på neutrale modeller. Når selektion er til stede, er lineages ikke længere udskiftelige, og coalescent-processen påvirkes. I Wright–Fisher-modellen med diploid viability selection med fitness-parametre $w_{11}, w_{12}, w_{22}$ ændres allelfrekvensen fra $p$ til:
 $$
-\bar{w} = p^2 w_{11} + 2pq w_{12} + q^2 w_{22},
-$$
-
-$$
-p' = \frac{p(p w_{11} + q w_{12})}{\bar{w}},
-$$
-
-hvor $q=1-p$. Denne rekursion beskriver hvordan selektion ændrer allelfrekvenser over tid. 
-Et indre ligevægtspunkt (hvis det eksisterer) er givet ved:
-$$
-\hat{p} = \frac{w_{12} - w_{22}}{2w_{12} - w_{11} - w_{22}}.
+p' = \frac{p(p\, w_{11} + q\, w_{12})}{\bar{w}}, \quad \bar{w} = p^2 w_{11} + 2pq\, w_{12} + q^2 w_{22}.
 $$
 
 Afhængigt af fitnessparametrene kan man skelne mellem:
  * positiv retningsbestemt selektion: en allel favoriseres og fikseres
  * balancerende selektion: begge alleler opretholdes i populationen
  * negativ (purifying) selektion: skadelige mutationer fjernes
-I en endelig population vil genetisk drift føre til stokastiske afvigelser fra den deterministiske bane, men for store populationer vil udviklingen ligge tæt på denne [@wakeley2009coalescent].
+I  genealogisk sammenhæng betyder selektion, at ikke alle linjer er udskiftelige, og man må udvide coalescent-modellen tilsvarende [@wakeley2009coalescent].
 
 
-## Phase-type distributions
+## Phase-type fordelinger
 
-Mange genealogiske størrelser i coalescent modellen kan beskrives som summen af eksponentielt fordelte ventetider. Disse fordelinger tilhører phase-type distributions [@Hobolth2024].
-En Phase-type distribution defineres som tiden til absorption i en kontinuert tids Markovproces [@Hobolth2024]. 
+Coalescenstiden kan analyseres inden for rammen af *phase-type fordelinger*, som er absorptionstider i tidskontinuerte, endelige Markov-kæder [@Hobolth2024]. Dette giver adgang til en veletableret matematisk teori og til effektive beregningsmetoder [@BladtNielsen2017; @Hobolth2024].
+Coalescensprocessen er netop en sådan Markov-kæde: den har et endeligt staterum, konstante overgangsrater og en absorberende state (MRCA). Absorptionstiden er derfor per definition phase-type fordelt.
 
-Antag en Markovproces med states:
+**Definition (Continupis phase-type fordeling)**. Lad $\alpha = (\alpha_1, \ldots, \alpha_p)$ være startfordelingen over $p$ transiente state, og lad $\mathbf{S}$ være $p \times p$ sub-intensitetsmatricen med $S_{ij} \geq 0$ for $i \neq j$ og $S_{ii} < 0$ (rækkesum $\leq 0$). Exitratevektoren er $\mathbf{s} = -\mathbf{S}\mathbf{e}$, og absorptionstiden:
 $$
-E = \{1,2,\dots,p,p+1\}.
-$$
-
-Hvor $1,\dots,p$ er transiente tilstande og $p+1$ er en absorberende tilstand. 
-
-Generatormatrixen kan skrives som
-
-$$
-\Lambda =
-\begin{pmatrix}
-S & s \\
-0 & 0
-\end{pmatrix}.
+\tau = \inf\{t \geq 0 : X_t = p+1\}
 $$
 
-Hvor $S$ er en $p\times p$ sub-generator matrix og $s$ er en vektor af exit-rater til den absorberende tilstand. 
+skrives $\tau \sim \mathrm{PH}_p(\alpha, \mathbf{S})$ [@Neuts1981; @BladtNielsen2017].
+Tæthedsfunktion og kumulativ fordelingsfunktion er henholdvis:
 
-Da rækkerne i generatoren summer til nul gælder
 $$
-s = -Se.
-$$
-
-Hvis initialfordelingen over de transiente tilstande er 
-$$
-\alpha = (\alpha_1, \dots, \alpha_p),
+f_{\tau}(t) = \alpha e^{St}s, \quad
+F_{\tau}(t) = 1 - \alpha e^{St}e, \quad t \ge 0
 $$
 
-defineres absorptionstiden som 
+Her er $e^{St}$ matrix-eksponentialet, hvis $(i,j)$-indgang giver sandsynligheden for at befinde sig i transient state $j$ på tidspunkt $t$ givet start i state $i$ [@BladtNielsen2017]. Disse formler er baggrunden for det, der sker, når man kalder graph.pdf(t) og graph.cdf(t) i phasic.
+Det $n$-te moment beregnes via *Green-matricen* $\mathbf{U} = (-\mathbf{S})^{-1}$ [@munchphasic; @BladtNielsen2017]:
 $$
-\tau = \inf\{t>0 : X_t = p+1\}.
-$$
-
-Man skriver da
-$$
-\tau \sim PH(\alpha, S).
+\mathbb{E}[\tau^n] = n!\, \alpha \mathbf{U}^n\, \mathbf{e}
 $$
 
-Tæthedsfunktionen er
-$$
-f_{\tau}(t) = \alpha e^{St}s.
-$$
+Indgangen $U_{ij}$ fortolkes som den forventede totale tid, processen tilbringer i state $j$ givet start i state $i$. Det er netop denne størrelse, der bruges til at beregne SFS-komponenter (se næste afsnit). Den forventede absorptionstid er $\mathbb{E}[\tau] = \alpha \mathbf{U}\mathbf{e}$.
+En central motivation for at bruge phase-type rammen er, at komplekse coalescent-formler reduceres til matrixoperationer [@Hobolth2018; @Hobolth2024]. Hobolth et al. (2024) viser, at klassen af modeller, der tillader en detaljeret matematisk behandling, er større end man måske ville forvente — og phase-type teorien udvider denne klasse betragtelig. Det er netop det, der gør det muligt at arbejde med two-island modellen, IM-modellen og tidsindhomogene modeller inden for den samme ramme.
 
-Mens fordelingsfunktionen kan skrives
-$$
-F_{\tau}(t)=1 - \alpha e^{st}e.
-$$
+### Phase-type repræsentation af coalescenten
 
-Den forventede værdi kan beregnes ved
-$$
-E[\tau] = \alpha (-S)^{-1} e.
-$$
-
-og variansen er
-$$
-Var(\tau) = 2 \alpha{-S}^{-2}e-(\alpha(-S)^{-1}e)^2.
-$$
-
-### Phase-type repræsentation af coalescent modellen 
-
-Phase-type distributioner har vist sig at være et generelt og analytisk tractable framework for coalescent modeller [@Hobolth2024]. Traditionelle matrixbaserede beregninger kan dog blive beregningsmæssigt uoverskuelige for store state spaces. Graf-baserede algoritmer giver en mere effektiv og skalerbar tilgang til analyse af phase-type distributioner 
-og deres anvendelser i populationsgenetik [@Roikjer2022].
-
-Coalescent processen kan formuleres som en absorberende Markovproces hvor states svarer til antallet af lineager i genealogien [@Hobolth2024]. Hvis samplet består at $n$ sekvenser, er state space
-$$
-{n,n-1,\dots, 2,1}
-$$
-
-State $1$ er absorberende, da den repræsenterer den seneste fælles forfader. Når processen er i state $1$ lineager, sker næste coalescnet begivenhed med rate 
-$$
-\lambda_i = \binom{i}{2}
-$$
-
-Generatormatrixen får derfor formen:
+Coalescent-processen kan formuleres som en absorberende Markovproces, hvor state svarer til antallet af lineages [@Hobolth2024]. For et sample af størrelse $n$ er staterummet $\{n, n-1, \dots, 2, 1\}$, og coalescensraten i tilstand $i$ er $\lambda_i = \binom{i}{2}$. Generatormatricen har formen:
 $$
 \begin{pmatrix}
 -\lambda_n & \lambda_n & 0 & \cdots & 0 \\
@@ -712,223 +306,113 @@ $$
 \end{pmatrix}
 $$
 
-Den initiale tilstand svarer til $n$ lineager
+Med startvektor $\alpha = (1, 0, \dots, 0)$ er træhøjden:
 $$
-\alpha = (1,0,\dots,0)
-$$
-
-Træhøjden
-$$
-H = \sum_{i=2}^{n} H_i.
+H = \sum_{i=2}^{n} H_i \sim \mathrm{PH}(\alpha, \mathbf{S}),
 $$
 
-Kan dermed beskrives som en phase-type distribution 
-$$
-H \sim PH(\alpha,S).
-$$
+svarende til en generaliseret Erlang-fordeling som sum af eksponentielt fordelte ventetider med forskellige rater [@Hobolth2018].
 
-Dette svarer til en generaliseret Erlang fordeling, da $H$ er summen af eksponentialfordelt ventetider med forskellige rater [@Hobolth2018].
+**Figur 2 (NB 01 — PDF og CDF)**: Analytisk tæthedsfunktion og kumulativ fordelingsfunktion for $T_\text{MRCA}$​ med $n=4$. PDF'ens lange hale afspejler en reel sandsynlighed for meget sen koalescering. CDF-kurven illustrerer, at ca. $90 \%$ af sandsynlighedsmassen er akkumuleret inden $t \approx 2.5$ coalescent-enheder.
 
-### Reward transformationer
+## Reward-transformationer og Site Frequency Spectrum (SFS)
 
-En vigtig fordel ved phase-type teori er brugen af såkaldte reward transformations. Ideen er at vægte den tid processen tilbringer i hver state [@munchphasic]. Hvis processen tilbringer tid $H_i$ i state $i$, kan en generel størrelse skrives
+En vigtig udvidelse af phase-type teorien er *reward-transformationer* [@BladtNielsen2017; @munchphasic]. I stedet for at måle den samlede absorptionstid tildeler man en ikke-negativ reward $r_i \geq 0$ til hver transient state $i$ og akkumulerer reward frem til absorption:
 
 $$
-R = \sum_{i=2}^{n} r_i H_i.
+\tilde{\tau} = \int_0^{\tau} r(X_t)\, dt.
 $$
 
-Hvor $r_i$ er en vægt. 
+Ideen er at vægte den tid, processen tilbringer i hver state. Eksempler inkluderer:
 
-Eksempler:
-Træhøjde, her er alle vægte lig 1
-$$
-H = \sum_{i=2}^{n} H_i.
-$$
+ - **Træhøjde** ($r_i = 1$): $H = \sum_{i=2}^n H_i$
+ - **Total grenlængde** ($r_i = i$): $L = \sum_{i=2}^n i\, H_i$
+ - **Ekstern grenlængde** ($r_i = 1$ for singleton-state, ellers $0$)
 
-Total træ længde her svarer vægten til antallet af lineager
-$$
-L = \sum_{i=2}^{n} iH_i.
-$$
-
-Ekstern grenlængde, den totale længde af grene med en efterkommer kan også beskrives som en reward transformation. Disse størrelser kan alle beskrives som phase-type fordelinger, hvilket gør det muligt at beregne deres momenter og fordelinger ved hjælp af matrixoperationer [@Hobolth2024].
-
-
-## Site Frequency Spectrum (SFS)
-
-Graf-baserede phase-type metoder er blandt andet blevet anvendt til effektiv beregning af site frequency spectra i strukturerede populationsmodeller [@Roikjer2022]. 
-SFS er en statistisk størrelse i populationsgenetik. Hvis $\xi_i$ betegner antallet af mutationer der forekommer i præcis $i$ ud af $n$ sekvenser, defineres
+Hvis alle rewards er strengt positive, er $\tilde{\tau}$ igen phase-type fordelt [@BladtNielsen2017]:
 
 $$
-\xi = (\xi_1,\xi_2,\dots,\xi_{n-1}).
+\tilde{\tau} \sim \mathrm{PH}_p\!\left(\boldsymbol{\alpha},\, \Delta(\mathbf{r})^{-1} \mathbf{S}\right),
 $$
 
-Mutationer på forskellige grene i træet giver forskellige frekvenser i samplet:
- * mutationer på grene med en efterkommer giver singletons
- * Mutationer på grene med to efterkommere giver doubletons
- * Mutationer på grene med tre efterkommere giver tripletons
-[@munchphasic]. Hvis $Y_i$ er den totale længde af grene med $i$ efterkommere, fås
-
+hvor $\Delta(\mathbf{r})$ er diagonalmatricen med rewardvektoren på diagonalen. Dette lukkethedresultat er fundamentalt: klassen af phase-type fordelinger er stabil under positive reward-transformationer.
+Reward-transformationer er centrale for beregningen af SFS. Mutationer på grene med $k$ efterkommere tæller i $k$-binnet. Hvis $Y_i$ er den totale grenlængde med $i$ efterkommere, er:
 $$
-E[\xi_i \mid Y_i] = \frac{\theta}{2}Y_i.
+E[\xi_i \mid Y_i] = \frac{\theta}{2} Y_i, \quad \text{så} \quad E[\xi_i] = \frac{\theta}{2} E[Y_i] = \frac{\theta}{i}.
 $$
 
-Dermed 
+Rewardvektoren $\mathbf{r}_k$ sættes til antallet af $k$-tons lineages i den pågældende state:
 $$
-E[\xi_i] = \frac{\theta}{2}E[Y_i].
-$$
-
-Det kan vises at
-$$
-E[Y_i] = \frac{2}{i}.
+\mathbb{E}[\text{SFS}_k] = \mu \cdot \boldsymbol{\alpha}\, \mathbf{U}\, \mathbf{r}_k.
 $$
 
-Dermed fås
+Dermed kan hele det forventede SFS beregnes analytisk direkte fra modellen, uden simulering [@Hobolth2024; @munchphasic].
+For multivariate phase-type fordelinger, hvor flere reward-vektorer anvendes simultant, er det andet krydsmoment givet ved [@Hobolth2024]:
 $$
-E[\xi_i] = \frac{\theta}{i}.
-$$
-
-Dette viser, at mutationernes frekvensfordeling direkte afhænger af strukturen af det genealogiske træ.
-
-### Phase-type distributioner for SFS
-
-Mutationer opstår langs grenene i træet som en Poissonproces med rate $\theta/2$ [@hobolth2019]. Hvis $Y_i$ er den totale længde af grene med $i$ efterkommere, fås
-$$
-\xi_i \mid Y_i \sim \text{Poisson}\left(\frac{\theta}{2} Y_i\right)
+\mathbb{E}[Y_i Y_j] = \alpha, \mathbf{U}\, \Delta(\mathbf{R}_{\cdot i})\, \mathbf{U}\, \Delta(\mathbf{R}_{\cdot j})\, \mathbf{e} + \alpha, \mathbf{U}\, \Delta(\mathbf{R}_{\cdot j})\, \mathbf{U}\, \Delta(\mathbf{R}_{\cdot i})\, \mathbf{e}.
 $$
 
-Da grenlængderne $Y_i$ selv kan beskrives ved phase-type fordelinger, følger det at SFS kan beskrives ved multivariate phase-type distributions [@hobolth2021, @Hobolth2024]. Specifikt gælder
+Denne formel muliggør præcis beregning af kovariansstrukturen i SFS.
+
+**Figur 3 (NB 01 — SFS søjlediagram**)**: Forventet SFS for $n=4$ under standard-coalescent. Den aftagende form — singletons dominerer over doubletons og tripletons — er karakteristisk for en konstant population. Formen ændrer sig markant under for eksempel populationsvækst eller populationsstruktur.
+
+
+**Figur 4 (NB 01 — reward-transformerede PDF'er)**: Fordelinger af tid brugt i hhv. singleton-, doubleton- og tripleton-lineages. Singletons dominerer, da processen tilbringer størstedelen af sin tid med mange uafhængige linjer tidligt i processen. Quadrupletonkomponenten er nul, da den absorberende state ikke bidrager til grenlængde.
+
+## Diskrete observationer og mutationsmodellen
+
+I genomdata observerer man ikke coalesceringstider direkte, men diskrete tælledata i form af SNPs. Givet en gren af varighed $t$ forventes $\mu \cdot t$ mutationer under en Poisson-mutationsmodel. For at binde det kontinuerte framework til de diskrete observationer introduceres den *diskrete phase-type fordeling* [@Neuts1981; @BladtNielsen2017].
+For en diskret phase-type fordeling $\tau \sim \mathrm{DPH}_p(\alpha, \mathbf{T})$ er sandsynlighedsfunktionen:
 $$
-E[\xi_i] = \frac{i}{\theta} 
+P(\tau = k) = \alpha \mathbf{T}^{k-1}\, \mathbf{t}, \quad k = 1, 2, \ldots
 $$
 
-Flere estimators for mutationsraten $\theta$ kan skrives som lineære funktioner af SFS
-$$
-\hat{\theta} = \sum_{i=1}^{n-1} c_i \xi_i
-$$
-
-Et eksempel er Wattersons estimator
-$$
-\hat{\theta}_W = \frac{1}{a_1} \sum_{i=1}^{n-1} \xi_i
-$$
-
-Hvor
-$$
-a_1 = \sum_{i=1}^{n-1} \frac{1}{i}
-$$
-
-Et andet eksempel er stimator baseret på parvise forskelle
-$$
-\hat{\theta}^{\pi} = \frac{2}{n(n-1)} \sum_{i=1}^{n-1} i(n-i)\xi_i
-$$
-
-Disse estimatorer spiller en central rolle i statistiske test for neutral evolution såsom Tajima's $D$, der sammenligner forskellige estimatorer af mutationsraten baseret på SFS [@hobolth2021].
-
+hvor $\mathbf{T}$ er sub-transitionsmatricen og $\mathbf{t} = \mathbf{e} - \mathbf{T}\mathbf{e}$ er exitvektoren [@BladtNielsen2017]. Det kan vises, at den totale grenlængde $S_{\text{total}}$ er diskret phase-type fordelt [@Hobolth2024]. Phasic kobler den kontinuerte coalescent til mutationsmodellen via en *joint probability-graf*, der beregner sandsynligheden for et givet observationsmønster af singleton-, doubleton- osv.-mutationer. Det er denne konstruktion, der muliggør inferens direkte på SNP-data.
 
 ## Ancestral Recombination Graph (ARG)
 
-Den klassiske coalescent model antager, at hele genomet deler samme genealogiske træ. I virkeligheden sker der dog rekombination, hvor forskellige dele af genomet kan have forskellige genealogiske historier. Dette betyder, at en enkelt træstruktur ikke er tilstrækkelig til at beskrive den fulde evolutionære historie, og man må i stedet anvende mere generelle netværksstrukturer [@kelleher2019]. 
+Den klassiske coalescent antager, at hele genomet deler samme genealogiske træ. I virkeligheden medfører rekombination, at forskellige dele af genomet kan have forskellige genealogier. Den fulde ancestrale struktur beskrives da ved *Ancestral Recombination Graph* (ARG), som repræsenterer både coalescens- og rekombinationsbegivenheder i en samlet struktur [@kelleher2019].
+Ligesom coalescenten kan ARG-processen beskrives som en continuous-time Markovproces, men staterummet skal nu indeholde information om, hvilke loci de enkelte lineages er ancestrale til. I den simpleste to-locus model beskrives en state som $(i, j, k)$, hvor $i$ er antallet af lineages ancestrale til begge loci, $j$ til kun locus 1 og $k$ til kun locus 2 [@wakeley2009coalescent].
+Mulige begivenheder for $i$ lineages ancestrale til begge loci inkluderer:
 
-Når rekombination inkluderes i modellen, beskrives den fulde ancestrale struktur ved Ancestral Recombination Graph (ARG), som repræsenterer både coalescens- og rekombinationsbegivenheder i én samlet struktur [@kelleher2019]. Under the SMC approximation kan genealogien langs genomet modelleres som en Markovproces, hvilket muliggør anvendelsen af hidden Markov modeller til inferens af populationshistorie [@spence2018]. ARG'en indeholder i princippet al information om den genetiske historie af et sample, men har historisk været vanskelig at inferere på grund af høj beregningsmæssig kompleksitet [@kelleher2019]. Empiriske studier af hele genomer har vist, at evolutionære historier i mange arter, herunder bavianer, er præget af gentagne episoder af gene flow og admixture mellem populationer, hvilket fører til forgrenet genealogier frem for simple træer [@sorensen2023].
+ - **Coalescens**: $(i, j, k) \to (i-1, j, k)$ med rate $\binom{i}{2}$
+ - **Rekombination**: $(i, j, k) \to (i-1, j+1, k+1)$ med rate $i\rho$
 
-I en sådan model kan en rekombinationsbegivenhed splitte en ancestral lineage i to separate lineager, der hver især kan coalescere med andre lineager længere tilbage i tiden [@hobolth2019].
- 
-Hvis der er $i$ lineager, kan to typer begivenheder ske.
+Den totale rate for næste begivenhed er $\lambda_i + i\rho$, og sandsynligheden for, at det er en coalescenshændelse, er $\lambda_i / (\lambda_i + i\rho)$. Absorptionstiden kan ligeledes beskrives som en phase-type fordeling:
+$$
+\tau \sim \mathrm{PH}(\alpha, \mathbf{S}),
+$$
+men nu over et udvidet staterum. Under *Sequential Markov Coalescent* (SMC)-approksimationen kan genealogien langs genomet modelleres som en Markovproces, hvilket muliggør anvendelse af skjulte Markov-modeller til inferens af populationshistorie [@spence2018; @kelleher2019].
 
-Coalescens:
-$$
-\lambda_i = \binom{i}{2}
-$$
 
-Rekombination:
-$$
-\rho_i = i\rho
-$$
+## Populationsstruktur: two-island modellen og Isolation with migration (IM)-modellen
 
-hvor $\rho$ er rekombinationsraten per lineage.  Den totale rate for næste begivenhed bliver derfor
-$$
-\lambda_i + i\rho.
-$$
+Kingmans standard-coalescent antager en homogen population. For bavianer, der lever i geografisk adskilte grupper med begrænset men tilstedeværende migration, er denne antagelse ikke tilstrækkelig. To modeller for populationsstruktur benyttes i dette speciale.
 
-Ventetiden til næste begivenhed bliver:
-$$
-T \sim \text{Exp}(\lambda_i + i\rho).
-$$
+**To-island modellen** tilføjer to populationer og symmetrisk migration med rate $m$ per lineage per tidsenhed. Coalescering er udelukkende tilladt inden for samme population. Modellen har tre parametre: coalescence-raterne $\frac{1}{N_1}$ og $\frac{1}{N_2}$ for de to populationer samt migrationraten $m$. Statevektoren udvides med en population-label $\mathtt{in\_pop} \in \{1, 2\}$ for at spore, hvilken population den enkelte lineage befinder sig i. Modellen er tidshomogen migrationen er konstant bagud i tid og udgør den simpleste mulige model for populationsstruktur. Den anvendes i notebook 04 til at estimere migration mellem eastern yellow og Kinda-bavianer.
 
-og følger en eksponentialfordeling. Sandsynligheden for at begivenheden er en coalescenes er 
+**Isolation with Migration (IM)-modellen** [@wakeley2009coalescent] tilføjer et split-tidspunkt $t_s$​ og opdeler historien i to epoker:
+
+ * Epoke $0$ ($0 \to t_s$): To adskilte populationer med størrelser $N_1$ og $N_2$ og migration med rate $m$
+ * Epoke $1$ ($t_s \to \infty$): En fælles ancestral population med størrelse $N_a$ og ingen migration
+
+IM-modellen er en *tidsindhomogen* model, da raterne ændres diskontinuert ved $t_s$​. Modellen er motiveret af Sørensen et al. (2023)'s fund om dokumenteret løbende admixture mellem olive og yellow i Tanzania og anvendes i notebook 05 på southern olive-data. Split-tid konverteres til absolutte enheder via:
 $$
-\frac{\lambda_i}{\lambda_i + i\rho}
+t_{\text{år}} = t_s \cdot 2N_{\text{ref}} \cdot g
 $$
 
-og sandsynligheden for rekombination er
-$$
-\frac{i\rho}{\lambda_i + i\rho}
-$$
+hvor $N_\text{ref}$ estimeres fra den observerede nukleotiddiversitet: $\hat{\pi} \approx 4 N_\text{ref} \mu$.
 
-Denne proces genererer en graf-struktur i stedet for et enkelt træ, da rekombination skaber flere ancestrale linjer for forskellige loci.
 
-### Phase-type af ARG
-Ligesom i coalescent teori kan ARG-processen beskrives som en kontinuert tids Markovproces. Forskellen er, at state-space nu skal indeholde information om flere typer lineager. I den simpleste to-locus model beskrives state ved antallet af lineager der er ancestrale til:
- * begge loci
- * kun locus 1
- * kun locus 2
-[@wakeley2009coalescent]. En state kan derfor skrives som
-$$
-(i, j, k)
-$$
+## Tidsindhomogenitet og validering mod Pool & Nielsen
 
-Hvor 
- * $i$ = lineager ancestrale til begge loci 
- * $j$ = lineager ancestrale kun til locus 1
- * $k$ = lineager ancestrale kun til locus 2
-Den totale rate for begivenheder afhænger af kombinationer af disse lineager. Mulige begivenheder inkluderer
-Coalescens mellem lineager:
-$$
-(i,j,k) \to (i-1,j,k)
-$$
+Standard phase-type fordelinger er tidshomogene. I praksis varierer den demografiske historie over tid, populationer vokser, falder, gennemgår flaskehalse og splitter. Notebook 06 undersøger to tilgange til tidsindhomogenitet i phasic:
 
-med rate
-$$
-\binom{i}{2}
-$$
+**Step-wise konstruktion** opdaterer raterne diskontinuert inden for et numerisk integrationsskema (distribution_context). Dette benyttes til modellering af for eksempel en populations-bottleneck, hvor $N_e$​ falder til $N_\text{bottle}$ i et defineret tidsinterval.
 
-Coalescens mellem lineager i enkelt-locus: 
-$$
-(j,k) \to (j-1,k)
-$$
+**Epoch-wise konstruktion** bygger grafen epoke for epoke og muliggør eksakt momentberegning. Metoden beregner sandsynligheds- og opholdstidsfordelingen ved epokegrænsen og anvender disse til at konstruere overgange til den næste epoke med ændrede rater. Det er denne metode, der bruges i IM-modellen.
 
-eller
-$$
-(j,k) \to (j,k-1)
-$$
-
-Rekombination: En lineage der er ancestral til begge loci kan splitte
-$$
-(i,j,k) \to (i-1, j+1, k+1)
-$$
-
-med rate
-$$
-i\rho
-$$
-
-Kan repræsenteres som en generator matrix
-$$
-\Lambda =
-\begin{pmatrix}
-S & s \\
-0 & 0
-\end{pmatrix}.
-$$
-
-hvor $S$ beskriver overgange mellem transiente genealogiske state og  $s$ beskriver overgangen til den absorberende state hvor alle lineager er coalesceret. Absorption sker når begge loci har fundet deres fælles forfader. Hvis den initiale tilstand er
-$$
-\alpha =(1,0, \dots, 0)
-$$
-
-er tiden til absorption 
-$$
-\tau \sim PH(\alpha,S).
-$$
+Som analytisk referencepunkt benyttes Pool & Nielsen (2009), der udledte en lukket-formet rekursiv formel for den forventede pairwise coalesceringstid i en stykvist-konstant demografi. Sammenligningen i notebook 06 bekræfter, at phasics epoch-baserede beregninger er korrekte med en relativ fejl på under $0.01\%$ i forhold til Pool & Nielsen, og at de første fem momenter er i overensstemmelse med uafhængige beregninger med en relativ fejl på under $10^{-4}$.
 
 ## Bavianer som modelsystem 
 
@@ -941,7 +425,7 @@ Bavianer (slægten *Papio*) er en gruppe af nært beslægtede primater, der leve
  * Hamadryas baboon (*Papio hamadryas*)
  * Kinda baboon (*Papio kindae*). 
 
-Disse arter er morfologisk og adfærdsmæssigt distinkte og har i dag separate geografiske udbredelser, men deres områder grænser ofte op til hinanden og kan overlappe i visse regioner [@sorensen2023] @fig-Kort. 
+Arterne er morfologisk og adfærdsmæssigt distinkte, men deres udbredelsesområder grænser ofte op til hinanden og kan overlappe [@sorensen2023]. [@sorensen2023] @fig-Kort. 
 
 ::: {#fig-Kort }
 
@@ -950,42 +434,56 @@ Disse arter er morfologisk og adfærdsmæssigt distinkte og har i dag separate g
 *Papio* baboon arter. Nuværende udbredelse af hver bavianart samt placeringen af ​​tre veldokumenterede aktive hybridzoner er også vist. x1: hybridzone mellem P. hamadryas og P. anubis, x2: hybridzone mellem P. cynocephalus og P. anubis, x3: hybridzone mellem P. kindae og P. ursinus. Billede fra Rogers et al., 2019. 
 :::
 
-På trods af tydelige forskelle i morfologi, kropsstørrelse og sociale systemer kan flere af arterne krydse sig med hinanden i naturen og producere fertile hybrider [@sorensen2023; @jordan2018papio]. Dette betyder, at der i flere områder findes hybridzoner, hvor individer med genetisk oprindelse fra forskellige arter lever sammen og kan få afkom. Studier af naturlige hybridzoner har vist, at genetisk ancestry kan påvirke både sociale relationer og adfærd mellem individer, hvilket kan have konsekvenser for gene flow og populationsstruktur [@fogel2021]. Derudover har morfologiske studier vist, at hybridisering ikke kun påvirker genetiske mønstre, men også giver ophav til karakteristiske fænotypiske træk. Disse træk kan inkludere variation i kraniets struktur og tandmorfologi og kan i nogle tilfælde persistere gennem flere generationer efter den oprindelige hybridisering, hvilket indikerer en genetisk basis for disse variationer [@Ackermann2014].
+På trods af tydelige morfologiske og sociale forskelle kan flere af arterne krydse sig i naturen og producere fertile hybrider [@sorensen2023; @jordan2018papio]. I adskillige kontaktzoner er der veldokumenterede hybridzoner med løbende gene flow. Genetisk ancestry påvirker sociale relationer og adfærd mellem individer, hvilket kan have konsekvenser for populationsstruktur [@fogel2021]. Morfologiske studier viser desuden, at hybridisering giver karakteristiske fænotypiske træk herunder variation i kraniets struktur og tandmorfologi der kan persistere i flere generationer [@Ackermann2014].
 
-Yderligere analyser af hele genomer har vist, at bavianers evolutionære historie er mere kompleks end man tidligere har antaget, hvor hele-genom analyser har afsløret omfattende gene flow og forgrenet evolutionære mønstre mellem arter [@sorensen2023; @rogers2019]. Dette understøttes også af fylogenetiske analyser baseret på Alu insertion polymorfier, som viser, at relationerne mellem arterne er komplekse og påvirket af både hybridisering og retikulation [@jordan2018papio]. 
+Helgenomsanalyser har afsløret, at bavianernes evolutionære historie er langt mere kompleks end tidligere antaget. Sørensen et al. (2023) sekventerede 225 vilde bavianer fra 19 lokaliteter og dokumenterede admixture mellem *P. anubis* og *P. cynocephalus* i det sydlige Tanzania, en tæt genealogisk forbindelse mellem Kinda-bavianer og western yellow-populationerne, og tre-vejs admixture i western yellow-populationerne ved Mahale og Katavi, et mønster som ikke tidligere er observeret i denne slægt. Studier af hybridzonerne har derudover vist, at selektion mod introgresserede genetiske varianter kan være markant, særligt på X-kromosomet, hvor der er observeret op til syv gange stærkere selektion mod minor parent ancestry sammenlignet med autosomerne [@sorensen2023_selection].
+Bavianernes evolutionære historie startede for omtrent to millioner år siden i Afrika, parallelt med menneskeslægtens evolution [@rogers2019]. I modsætning til mennesker, hvor kun en art eksisterer i dag, har bavianer bevaret flere linjer, hvilket giver mulighed for at observere både divergens og hybridisering mellem nulevende arter i naturlige systemer.
+Sørensen et al. (2023) estimerer en populationsmutationsrate på $\mu = 0.9 \times 10^{-8}$ per site per generation og en generationstid på $g = 11$ år, som anvendes i dette speciale som biologiske konstanter til at omsætte modelparametre til absolutte demografiske størrelser.
 
-Normalt blev artsdannelse ofte beskrevet som en proces, hvor populationer divergerer gradvist og til sidst bliver isolerede. Hos bavianer viser data, at divergens mellem arter kan foregå samtidig med fortsat genetisk udveksling [@rogers2019]. Studier har dokumenteret flere episoder af admixture og introgression mellem forskellige arter gennem deres evolutionære historie, og vist at enkelte populationer kan indeholde genetiske bidrag fra flere distinkte lineager samtidigt [@sorensen2023].
+Bavianerne fungerer her som et konkret modelsystem, der motiverer og underbygger de matematiske modeller. Fokus er primært på den matematiske at opbygge, forstå og implementere de relevante modeller i Python via biblioteket phasic, og derefter anvende dem på genomdata.
 
-Bavianernes evolutionære historie startede omkring to millioner år siden i Afrika, omtrent samtidig med den evolutionære historie inden for menneskeslægten *Homo* [@rogers2019]. I modsætning til mennesker, hvor kun en art eksisterer i dag, har bavianer bevaret flere linjer. Dette gør dem til et interessant system, da man kan observere både divergens og hybridisering mellem nulevende arter.
+## Problemformulering
+Formålet med dette speciale er at undersøge, hvordan Markov-modeller og coalescent-teori kan anvendes til rekonstruktion af genetisk populationshistorie, med bavianer som konkret eksempel. Det overordnede mål er at opnå en forståelse af den matematiske struktur bag metoderne og at implementere og afprøve dem i Python via biblioteket phasic. Følgende spørgsmål undersøges:
 
-Hybridisering ved bavianer spiller en vigtigt rolle. Når genetisk materiale fra en art introgresses i en anden, kan selektion virke mod bestemte genetiske varianter. Studier af Olive og Yellow baboons i Afrika har vist, at genetisk oprindelse fra en art ofte reduceres over tid i populationer længere væk fra hybridzoner, hvilket tyder på negativ selektion mod visse introgressede genetiske varianter, særligt i funktionelle genomiske regioner [@vilgalys2022; @sorensen2023]. Denne proces kan være forårsaget af genetiske inkompatibiliteter mellem gener fra forskellige arter eller af tilpasning til forskellige miljøer. Nyere genomiske analyser har desuden vist, at denne selektion kan være udbredt på tværs af genomet og vedvare langt fra hybridzoner, samt at selektion mod admixture kan være markant stærkere på X-kromosomet end på autosomerne. I nogle populationer er der observeret op til syv gange stærkere selektion mod minor parent ancestry på X-kromosomet [@sorensen2023_selection].
-
-Studiet Sørensen et al. (2023), som sekventerede $225$ vilde bavianer fra $19$ lokaliter, viser dokumentation omkring admixture mellem *P. anubis* og *P. cynocephalus* i det sydlige Tanzania. Yderligere finder de tæt genealogisk forbindelse mellem Kinda baivanerne og western yellow populationerne.De finder også at Western yellow populationer ved Mahale og Katavi har tre-vejs admixture hvilket er nåede man ikke tidligere har observeret. Der estimeres en popluation mutationsrate på $\mu = 0.9 \times 10^{-8}$ per site per generation og en generationstid på $g=11$ år, dette anvendes i dette speciale som de biologiske konstanter. 
-
-Bavianerne fungerer her som et konkret modelsystem, der motiverer og underbygger de matematiske modeller. Fokus i specialet er primært på det matematiske at opbygge, forstå og implementere de relevante modeller i Python, og dernæst anvende dem på genomdata for at se, hvad de kan fortælle om bavianernes evolutionære historie.
-
-Dermed er formålet med dette speciale at undersøge, hvordan Markov-modeller og coalescent-teori kan anvendes til rekonstruktion af genetisk populationshistorie, med bavianer som konkret eksempel. Det overordnede mål er at opnå en forståelse af den matematiske struktur bag metoderne og at implementere og afprøve dem i Python via biblioteket phasic. Følgende spørgsmål undersøges:
-
-1. Hvordan kan coalescensprocessen beskrives som en phase-type fordeling, og hvad er de matematiske egenskaber herunder fordelinger, momenter og Site Frequency Spectrum?
+1. Hvordan kan coalescensprocessen beskrives som en phase-type fordeling, og hvad er de matematiske egenskaber — herunder fordelinger, momenter og Site Frequency Spectrum?
 2. Hvordan udvides modellen til at inkludere populationsstruktur og migration, og hvilke demografiske parametre kan estimeres fra genomdata?
 3. Kan spor af historiske populationssplits og admixture identificeres i baviangenomerne ved hjælp af en Isolation with Migration-model?
 4. Hvad sker der, når demografien varierer over tid, og i hvilken grad stemmer phasics beregninger overens med analytiske referencer?
 
+## Populationer i dette speciale
+
+Analyserne fokuserer på fem bavianpopulationer fra Sørensen et al. (2023), defineret via sample-ID'er fra artiklens Tabel S2 og baseret på data fra kromosom 20:
+
+::: {#tbl-populations .striped}
+
+| Population                  | Art               | Lokalitet | Individer | Rolle                   |
+|:----------------------------|:------------------|:----------|----------:|:------------------------|
+| Eastern yellow (Mikumi)     | *P. cynocephalus* | Tanzania  |        35 | Referencepopulation     |
+| Kinda (Chunga/Dendro)       | *P. kindae*       | Zambia    |        29 | Two-island model (NB 04)|
+| Southern olive (Tarangire)  | *P. anubis*       | Tanzania  |        46 | IM-model (NB 05)        |
+| Western yellow (Mahale)     | *P. cynocephalus* | Tanzania  |         9 | Tre-vejs admixture      |
+| Olive gog                   | *P. anubis*       | Etiopien  |        26 | Referenceanalyse        |
+
+Populationer, arter, lokalitet, antal individer og deres rolle i analysen.
+:::
+
 
 ## Projektstruktur
+
 Projektets mappestruktur er designet med henblik på reproducerbarhed. 
 
 ### Jupyter Notebooks
+
 Til analyse og visualisering anvendes Jupyter Notebook. Disse er organiseret i en *notebooks/* mappe og navngivet kronologisk, så de afspejler analyseforløbet.
 Notebooks arbejder direkte på data genereret i steps og kan selv indgå som en del af workflowet. Dermed kan figurer, tabeller og statistiske analyser, eksempelvis relateret til SFS eller coalescent-baserede størrelser reproduceres automatisk.
 
 ### Dokumentation med Quarto
-Til samling af tekst, figurer og resultater anvendes Quarto, som muliggør integration af kode, tekst og output i et samlet dokument.
-Projektet er struktureret som et Quarto-projekt, hvor specialet genereres fra Markdown- og notebook-filer. Dette gør det muligt at: indsætte resultater direkte fra analyser, sikre konsistens mellem tekst og beregninger, samt generere output i flere formater (fx PDF og HTML).
-Denne tilgang understøtter direkte koblingen mellem teori (fx Markovprocesser og coalescent modeller) og empiriske resultater, da beregninger og tekst er tæt integreret.
+
+Til samling af tekst, figurer og resultater anvendes Quarto, som muliggør integration af kode, tekst og output i et samlet dokument. Specialet genereres fra Markdown- og notebook-filer, og resultater kan indsættes direkte fra analyserne, hvilket sikrer konsistens mellem tekst og beregninger samt muliggør output i flere formater (PDF og HTML).
 
 ### Git and GitHub
-Projektet er versionsstyret med git og hostet på GitHub. Dette muliggør: sporing af ændringer i kode og analyser, samarbejde og dokumentation, samt automatisk generering af projektets hjemmeside via GitHub Actions. Ved hver opdatering af projektet kan hele analysen reproduceres og dokumentationen opdateres automatisk, hvilket er centralt i et speciale, hvor komplekse statistiske modeller og simulationer indgår.
+
+Projektet er versionsstyret med git og hostet på GitHub. Dette muliggør sporing af ændringer i kode og analyser, samarbejde og dokumentation samt automatisk generering af projektets hjemmeside via GitHub Actions. Ved hver opdatering kan hele analysen reproduceres og dokumentationen opdateres automatisk.
 
 
 
