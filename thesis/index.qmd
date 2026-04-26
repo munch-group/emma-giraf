@@ -182,7 +182,7 @@ $$
 
 hvor $\delta_{ij}$ er Kronecker-delta, der korrigerer for selvcoalescering.
 
-::: {#fig-coalescent_plot }
+::: {#fig-coalescent_plot }{width="50%"}
 
 ![](illustrations/coalescent_plot.png)
 
@@ -532,6 +532,7 @@ Det centrale beregningsredskab er phasic [@munchphasic], et Python-bibliotek der
 Kernen i phasic er *Graph*-klassen. En Markov-model defineres ved en *callback-funktion*, der for en given statevektor returnerer alle mulige states og tilhørende overgangskoder. Phasic konstruerer automatisk det komplette staterum ved rekursivt at kalde funktionen fra startstate. For coalescensmodellen med $n=4$ er implementeringen:
 
 :::: {.columns}
+
 from phasic import Graph, with_ipv
 
 with_ipv([nr_samples] + [0] * (nr_samples - 1))
@@ -549,17 +550,20 @@ def coalescent_model(state):
     return transitions
 
 graph = Graph(coalescent_model)
+
 ::: {.column width="50%"}
 
 *with_ipv* angiver startvektoren (initial population vector). Fordelinger og momenter beregnes herefter direkte på grafen:
 
 :::: {.columns}
+
 graph.expectation()     # E[T_MRCA]
 graph.variance()        # Var[T_MRCA]
 graph.pdf(t_values)     # tæthedsfunktion
 graph.cdf(t_values)     # kumulativ fordelingsfunktion
 graph.moments(4)        # første fire momenter
 graph.sample(10000)     # simulerede samples til validering
+
 ::: {.column width="50%"}
 
 En væsentlig egenskab ved grafrepræsentationen er, at den undgår at gemme hele $p \times p$ intensitetsmatricen. For sparsomme grafer reduceres hukommelseskompleksiteten fra $O(p^2)$ til $O(p + e)$, hvor $e$ er antallet af kanter (Røikjer et al. 2022). Det er særlig relevant for modeller med populationsstruktur og epoch-information, hvor staterummet vokser markant.
@@ -577,16 +581,20 @@ En væsentlig egenskab ved grafrepræsentationen er, at den undgår at gemme hel
 Reward-transformationer beregnes via *graph.reward_transform(reward_vector)*, der returnerer en ny graf, som udelukkende akkumulerer vægtet tid. Reward-matricen for SFS-beregning er state-matricen transponeret, så søjle $k$ tæller antallet af $k$-tons lineages i hver state:
 
 :::: {.columns}
+
 reward_matrix = graph.states().T
 sfs = [graph.expectation(r) for r in reward_matrix]
+
 ::: {.column width="50%"}
 
 Hele det forventede SFS beregnes analytisk i wt udtryk. Reward-transformerede fordelinger altså den fulde sandsynlighedsfordeling for tid brugt i en bestemt type lineage beregnes tilsvarende:
 
 :::: {.columns}
+
 for i, rewards in enumerate(reward_matrix):
     rt_graph = graph.reward_transform(rewards)
     ax.plot(times, rt_graph.pdf(times), label=labels[i])
+
 ::: {.column width="50%"}
 
 
@@ -595,11 +603,13 @@ for i, rewards in enumerate(reward_matrix):
 For modeller med flere populationer udtrykkes overgangskoderne som koefficient-vektorer, der angiver, hvilke parametre der bidrager til den pågældende overgang. For two-island modellen ser det ud som:
 
 :::: {.columns}
+
 Coalescence i population 1
 coeff = [rate, 0, 0]   # [1/N1, 1/N2, m]
 
 Migration fra population 1 til population 2
 transitions.append([new, [0, 0, state[i]]])
+
 ::: {.column width="50%"}
 
 
@@ -607,12 +617,14 @@ Denne struktur gør det muligt for phasic at beregne gradienter af likelihoodfun
 For IM-modellen og andre tidsindhomogene modeller bruges en epoch-baseret konstruktion. Hvert state-vector tildeles en ekstra epoch-slot. Overgangen mellem epoker beregnes via:
 
 :::: {.columns}
+
 def add_epoch(graph, callback, epochs, epoch_idx, indexer):
     stop_probs = np.array(graph.stop_probability(epoch))
     accum_v_time = np.array(graph.accumulated_occupancy(epoch))
     epoch_trans_rates = stop_probs / accum_v_time
     # Tilføj søsterstate og byg grafen videre i ny epoke
     graph.extend(callback, epochs=epochs, epoch_idx=epoch_idx, indexer=indexer)
+
 ::: {.column width="50%"}
 
 
@@ -623,10 +635,12 @@ To komplementære inferensmetoder benyttes i projektet:
 Method of Moments (MoM) er en klassisk og beregningsmæssigt effektiv tilgang: de empiriske momenter (middelværdi, varians osv.) fra data matches med de tilsvarende teoretiske momenter fra modellen. Phasic løser matchingproblemet numerisk og returnerer et punktestimat med tilhørende standardfejl:
 
 :::: {.columns}
+
 mom = graph.method_of_moments(observed_data)
 mom.theta:          estimerede parametre
 mom.sample_moments: empiriske momenter
 mom.model_moments:  tilsvarende modelbaserede momenter
+
 ::: {.column width="50%"}
 
 MoM bruges primært som et hurtigt startestimat og til at generere informative priors til SVGD.
@@ -640,6 +654,7 @@ $$
 hvor $\hat{\phi}^*$ er den empiriske kerneliserede Stein-operator, der maksimerer nedstigningsretningen i KL-divergens mod posterior. SVGD kombinerer skalerbarhed fra variationel inferens med styrken fra partikelbaserede metoder, og er særlig velegnet til differentiable modeller som dem, phasic genererer. Læringsraten aftager eksponentielt over iterationer:
 
 :::: {.columns}
+
 svgd = graph.svgd(
     observed_data,
     prior=GaussPrior(ci=[2, 5]),
@@ -651,6 +666,7 @@ svgd.summary()           # posterior-statistikker
 svgd.plot_ci()           # konfidensinterval
 svgd.plot_convergence()  # konvergensdiagnostik
 svgd.plot_pairwise()     # korrelationsstruktur mellem parametre
+
 ::: {.column width="50%"}
 
 
@@ -669,11 +685,11 @@ svgd.plot_pairwise()     # korrelationsstruktur mellem parametre
 **Posterior predictive check**: Modellens tilpassede PDF og CDF sammenholdt med data, evalueret ved posterior-gennemsnittet. Det tætte match residual under $0.005$ over hele støtten, bekræfter god modelfit.
 :::
 
-
 ## Joint probability-inferens på SNP-data
 For inferens på diskrete SNP-observationer benyttes phasics *joint probability-graf*, der kobler coalescent-modellen til en Poisson-mutationsmodel:
 
 :::: {.columns}
+
 joint_graph = graph.joint_prob_graph(
     indexer,
     reward_only=["descendants"],
@@ -681,13 +697,16 @@ joint_graph = graph.joint_prob_graph(
     tot_reward_limit=2,
     mutation_rate=mutation_rate,
 )
+
 ::: {.column width="50%"}
 
 
 Grafen beregner sandsynligheden $P(\mathbf{k})$ for at observere et mønster $\mathbf{k}$ af singleton-, doubleton- osv.-mutationsantal. Som startestimat anvendes probability matching:
 
 :::: {.columns}
+
 pm = joint_graph.probability_matching(observations, fixed=[(1, mutation_rate)])
+
 ::: {.column width="50%"}
 
 Herefter køres SVGD over de frie parametre, mens mutationsraten fastholdes.
@@ -696,17 +715,21 @@ Herefter køres SVGD over de frie parametre, mens mutationsraten fastholdes.
 Genomdata fra Sørensen et al. (2023) — kromosom 20 i phased Zarr-format — indlæses via sgkit:
 
 :::: {.columns}
+
 ds = sg.load_dataset(DATA_DIR / "chr20.phased.rehead.vcz")
+
 ::: {.column width="50%"}
 
 For hver population beregnes derived allele counts og filtreres til segregerende SNPs (derived count $> 0$ og $< n$). Da populationerne har forskellig samplingdybde, subsamples der til $n = 4$ haplotyper via hypergeometrisk sampling, som er den korrekte fremgangsmåde for at undgå bias:
 
 :::: {.columns}
+
 k = rng.hypergeometric(
     ngood=df["derived_count"].values,
     nbad=(df["nr_samples"] - df["derived_count"]).values,
     nsample=n_samples_use,
 )
+
 ::: {.column width="50%"}
 
 Nukleotiddiversiteten $\hat{\pi}$ estimeres som:
@@ -726,16 +749,21 @@ $$
 Inden modellerne anvendes på empiriske data valideres de på datasæt simuleret med kendte parametre via msprime (Kelleher et al. 2016). For two-island modellen og IM-modellen specificeres demografien henholdsvis med og uden et split-tidspunkt:
 
 :::: {.columns}
+
 demography = msprime.Demography()
 demography.add_population(name="pop1", initial_size=pop1_size)
 demography.add_population(name="pop2", initial_size=pop2_size)
 demography.set_migration_rate(source="pop1", dest="pop2", rate=migr_pop1_to_pop2)
+
 ::: {.column width="50%"}
 
 Kun for IM-modellen:
+
 :::: {.columns}
+
 demography.add_population_split(time=t_split,
     derived=["pop1", "pop2"], ancestral="ancestral")
+
 ::: {.column width="50%"}
 
 To-locus observationer dannes ved at identificere SNP-par med defineret fysisk afstand ($5$ kb $±$ $500$ bp) og filtrere så hvert SNP indgår i højst et par. Posterior-medianerne fra SVGD-inferens sammenlignes med de sande simuleringsparametre som kontrol på inferensprocedurens troværdighed.
