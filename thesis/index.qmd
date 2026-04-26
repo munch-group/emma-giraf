@@ -175,7 +175,7 @@ $$
 For $n=4$ giver dette $\mathbb{E}[T_{\mathrm{MRCA}}] = \frac{3}{2}=1.5$ coalescent-enheder. Den effektive populationsstørrelse $N_e$ skalerer den absolutte tid lineært, hvilket gør det muligt at estimere historiske populationsstørrelser ud fra genetiske data. En vigtig pointe ved coalescent-teorien er, at den genealogiske proces kan analyseres uafhængigt af mutationsprocessen under antagelse af neutral evolution [@wakeley2009coalescent], hvilket gør det muligt først at modellere slægtskabsstrukturen og derefter inkludere mutationer.
 
 **Staterepræsentation**: En state repræsenteres som en vektor $s = (s_1, s_2, \ldots, s_n)$, hvor $s_i$
-angiver antallet af lineages med netop $i$ efterkommere. Startstaten er $(n, 0, \ldots, 0)$ og den absorberende state er $(0, \ldots, 0, 1)$ svarende til MRCA. En transition sker, når to lineages med henholdsvis $i$ og $j$ efterkommere coalescerer til en med $i+j$ efterkommere, med rate:
+angiver antallet af lineages med netop $i$ efterkommere. Startstaten er $(n, 0, \ldots, 0)$ og den absorberende state er $(0, \ldots, 0, 1)$ svarende til MRCA @fgi-coalescent_plot. En transition sker, når to lineages med henholdsvis $i$ og $j$ efterkommere coalescerer til en med $i+j$ efterkommere, med rate:
 $$
 q_{ij}(s) = \frac{s_i(s_j-\delta_{ij})}{1+\delta_{ij}} * \frac{1}{N_e}
 $$
@@ -332,12 +332,6 @@ $$
 
 svarende til en generaliseret Erlang-fordeling som sum af eksponentielt fordelte ventetider med forskellige rater [@Hobolth2018].
 
-::: {#fig-coalescent_pdf_cdf }
-
-![](illustrations/coalescent_pdf_cdf.png){width="50%"}
-
-Analytisk tæthedsfunktion og kumulativ fordelingsfunktion for $T_\text{MRCA}$​ med $n=4$. PDF'ens afspejler en reel sandsynlighed for meget sen coalescering. CDF-kurven illustrerer, at ca. $90 \%$ af sandsynlighedsmassen er akkumuleret inden $t \approx 2.5$ coalescent-enheder. 
-:::
 
 ## Reward-transformationer og Site Frequency Spectrum (SFS)
 
@@ -378,20 +372,6 @@ $$
 $$
 
 Denne formel muliggør præcis beregning af kovariansstrukturen i SFS.
-
-::: {#fig-sfs_plot }
-
-![](illustrations/sfs_plot.png){width="50%"}
-
-Forventet SFS for $n=4$ under standard-coalescent. Den aftagende form singletons dominerer over doubletons og tripletons, er karakteristisk for en konstant population. Formen ændrer sig markant under for eksempel populationsvækst eller populationsstruktur. 
-:::
-
-::: {#fig-reward_plot }
-
-![](illustrations/reward_plot.png){width="50%"}
-
-Fordelinger af tid brugt i hhv. singleton-, doubleton- og tripleton-lineages. Singletons dominerer, da processen tilbringer størstedelen af sin tid med mange uafhængige linjer tidligt i processen. Quadrupletonkomponenten er nul, da den absorberende state ikke bidrager til grenlængde. 
-:::
 
 
 ## Diskrete observationer og mutationsmodellen
@@ -544,214 +524,145 @@ Projektet er versionsstyret med git og hostet på GitHub. Dette muliggør sporin
 
 # Metode
 
-## Overblik over analysen 
+## Opbygning og rækkefølge
 
-Arbejdet er struktureret i seks Juptyer-notebooks i Python, som bygger sekventielt på hinanden:
-
- 1. **NB 01: Markov-modeller og coalescent-teori**: grafkonstruktion, PDF/CDF, momenter, SFS, rewards, diskrete fordelinger  
- 2. **NB 02: Inferensmetoder (på simulerede data)**: Method of Moments, SVGD, posterior predictive checks, joint probability. 
- 3. **NB 03: Baviandata (chr20)**: indlæsning af data, allele counts, foldet SFS, heterozygositet per population. 
- 4. **NB 04: Two-island modellen på baviandata**: joint probability-graf, SVGD-inferens på eastern yellow.
- 5. **NB 05: IM-modellen på baviandata**: to-epoke model, SVGD-inferens på southern olive.
- 6. **NB 06: Tidsinhomogenitet**: bottleneck, epoch-wise momenter, validering mod Pool & Nielsen  
+Arbejdet er organiseret i seks notebooks, der følger en fast progression fra matematisk grundlag til empirisk analyse. De første to notebooks handler udelukkende om at forstå og afprøve modellerne på simulerede data. Notebook 03 forbereder bavian-datasættet. Notebook 04 og 05 er de egentlige analyser på empiriske data med henholdsvis two-island modellen og IM-modellen, og notebook 06 undersøger tidsindhomogenitet og validerer implementationen. Resultater gemmes undervejs som CSV-filer, så de efterfølgende notebooks kan indlæse dem direkte.
 
 
-## Grafkonstruktion i phasic
-Det centrale beregningsredskab er phasic [@munchphasic], et Python-bibliotek der implementerer grafbaserede algoritmer til phase-type fordelinger. Biblioteket er dokumenteret og tilgængeligt på munch-group.org/phasic.
+## Konstruktion af coalescensgrafen
 
-Kernen i phasic er *Graph*-klassen. En Markov-model defineres ved en *callback-funktion*, der for en given statevektor returnerer alle mulige states og tilhørende overgangskoder. Phasic konstruerer automatisk det komplette staterum ved rekursivt at kalde funktionen fra startstate. For coalescensmodellen med $n=4$ er implementeringen:
+Det første trin er at bygge en coalescensmodel i phasic ved at definere staterummet og overgangene. State repræsenteres som en vektor, hvor indgang $i$ angiver antallet af lineages med $i$ efterkommere i prøven. En transition sker, når to lineages fusionerer, og raten for denne transition er proportional med antallet af mulige par.
+Modellen bygges på to måder som et tjek: først manuelt ved at tilføje overgange en for en, dernæst via en callback-funktion, der automatisk opbygger det komplette staterum rekursivt fra startstate. Begge fremgangsmåder giver samme resultat seks state for $n=4$ prøver og sammenligningen bekræfter at konstruktionen er korrekt @fig-coalescent-graph.
 
+::: {#fig-coalescent-graph}
+![](illustrations/coalescent_plot.png){width=70%}
 
-*from phasic import Graph, with_ipv*
-
-*with_ipv([nr_samples] + [0] * (nr_samples - 1))*
-*def coalescent_model(state):*
-    *transitions = []*
-    *for i in range(state.size):*
-        *for j in range(i, state.size):*
-            *same = int(i == j)*
-            *if same and state[i] < 2: continue*
-            *if not same and (state[i] < 1 or state[j] < 1): continue*
-            *new = state.copy()*
-            *new[i] -= 1; new[j] -= 1; new[i + j + 1] += 1*
-            *rate = state[i] * (state[j] - same) / (1 + same)*
-            *transitions.append([new, [rate]])*
-    *return transitions*
-
-*graph = Graph(coalescent_model)*
-*with_ipv* angiver startvektoren (initial population vector). Fordelinger og momenter beregnes herefter direkte på grafen:
-
-*graph.expectation()     # E[T_MRCA]*
-*graph.variance()        # Var[T_MRCA]*
-*graph.pdf(t_values)     # tæthedsfunktion*
-*graph.cdf(t_values)     # kumulativ fordelingsfunktion*
-*graph.moments(4)        # første fire momenter*
-*graph.sample(10000)     # simulerede samples til validering*
-
-En væsentlig egenskab ved grafrepræsentationen er, at den undgår at gemme hele $p \times p$ intensitetsmatricen. For sparsomme grafer reduceres hukommelseskompleksiteten fra $O(p^2)$ til $O(p + e)$, hvor $e$ er antallet af kanter (Røikjer et al. 2022). Det er særlig relevant for modeller med populationsstruktur og epoch-information, hvor staterummet vokser markant.
-
-
-::: {#fig-simulering_plot }
-
-![](illustrations/simluering_plot.png){width="50%"}
-
-**simulering vs. analytisk PDF**: 10.000 simulerede coalesceringstider sammenholdt med den analytisk beregnede PDF. Den tætte overensstemmelse simuleret middelværdi inden for $10^{-3}$ af *graph.expectation()* tjener som validering af korrekt modelimplementering.
+Coalescensgrafen for $n=4$ prøver. Noder er state, pile er mulige coalescenstransitioner med tilhørende rater. Startstate $(4,0,0,0)$ øverst til venstre repræsenterer fire uafhængige singletons; den absorberende state $(0,0,0,1)$ til højre svarer til MRCA.
 :::
 
-## Rewards og SFS i praksis
+Når grafen er bygget beregnes statistiske egenskaber analytisk direkte: forventning, varians, tæthedsfunktion, kumulativ fordelingsfunktion og den forventede opholdstid i hver state. Resultaterne valideres numerisk ved at simulere $10.000$ samples og sammenligne det simulerede gennemsnit med den analytiske forventning. Afvigelsen er konsistent under $10^{-3}$ coalescent-enheder @fig-pdf-cdf.
 
-Reward-transformationer beregnes via *graph.reward_transform(reward_vector)*, der returnerer en ny graf, som udelukkende akkumulerer vægtet tid. Reward-matricen for SFS-beregning er state-matricen transponeret, så søjle $k$ tæller antallet af $k$-tons lineages i hver state:
+::: {#fig-pdf-cdf layout-ncol=2}
+![PDF og CDF](illustrations/coalescent_pdf_cdf.png)
 
-*reward_matrix = graph.states().T*
-*sfs = [graph.expectation(r) for r in reward_matrix]*
+![Simulering vs. analytisk](illustrations/simluering_plot.png)
 
-Hele det forventede SFS beregnes analytisk i wt udtryk. Reward-transformerede fordelinger altså den fulde sandsynlighedsfordeling for tid brugt i en bestemt type lineage beregnes tilsvarende:
-
-*for i, rewards in enumerate(reward_matrix):*
-    *rt_graph = graph.reward_transform(rewards)*
-    *ax.plot(times, rt_graph.pdf(times), label=labels[i])*
-
-## Parameteriserede modeller og epoch-konstruktion
-
-For modeller med flere populationer udtrykkes overgangskoderne som koefficient-vektorer, der angiver, hvilke parametre der bidrager til den pågældende overgang. For two-island modellen ser det ud som:
-
-Coalescence i population 1
-*coeff = [rate, 0, 0]   # [1/N1, 1/N2, m]*
-
-Migration fra population 1 til population 2
-*transitions.append([new, [0, 0, state[i]]])*
-
-Denne struktur gør det muligt for phasic at beregne gradienter af likelihoodfunktionen med hensyn til parametrene, hvilket er forudsætningen for SVGD-inferens.
-For IM-modellen og andre tidsindhomogene modeller bruges en epoch-baseret konstruktion. Hvert state-vector tildeles en ekstra epoch-slot. Overgangen mellem epoker beregnes via:
-
-*def add_epoch(graph, callback, epochs, epoch_idx, indexer):*
-    *stop_probs = np.array(graph.stop_probability(epoch))*
-    *accum_v_time = np.array(graph.accumulated_occupancy(epoch))*
-    *epoch_trans_rates = stop_probs / accum_v_time*
-    *# Tilføj søsterstate og byg grafen videre i ny epoke*
-    *graph.extend(callback, epochs=epochs, epoch_idx=epoch_idx, indexer=indexer)*
-
-*stop_probability(t)* returnerer sandsynligheden for at befinde sig i hver state ved tid $t$; *accumulated_occupancy(t)* returnerer forventet opholdstid op til $t$. Forholdet giver de effektive overgangsrater til den nye epoke, og grafen bygges videre derfra med de ændrede parametre.
-
-## Inferens: Method of Moments og SVGD
-To komplementære inferensmetoder benyttes i projektet:
-Method of Moments (MoM) er en klassisk og beregningsmæssigt effektiv tilgang: de empiriske momenter (middelværdi, varians osv.) fra data matches med de tilsvarende teoretiske momenter fra modellen. Phasic løser matchingproblemet numerisk og returnerer et punktestimat med tilhørende standardfejl:
-
-*mom = graph.method_of_moments(observed_data)*
-*mom.theta:          estimerede parametre*
-*mom.sample_moments: empiriske momenter*
-*mom.model_moments:  tilsvarende modelbaserede momenter*
-
-MoM bruges primært som et hurtigt startestimat og til at generere informative priors til SVGD.
-
-**Bayesiansk inferens med SVGD** (*Stein Variational Gradient Descent*, Liu & Wang 2016) giver den fulde posterior-fordeling over parametre. En samling af $M$ partikler $\{\theta^{(m)}\}_{m=1}^M$ opdateres iterativt ved:
-
-$$
-\theta^{(m)} \leftarrow \theta^{(m)} + \epsilon\, \hat{\phi}^*(\theta^{(m)})
-$$
-
-hvor $\hat{\phi}^*$ er den empiriske kerneliserede Stein-operator, der maksimerer nedstigningsretningen i KL-divergens mod posterior. SVGD kombinerer skalerbarhed fra variationel inferens med styrken fra partikelbaserede metoder, og er særlig velegnet til differentiable modeller som dem, phasic genererer. Læringsraten aftager eksponentielt over iterationer:
-
-*svgd = graph.svgd(*
-    *observed_data,*
-    *prior=GaussPrior(ci=[2, 5]),*
-    *learning_rate=ExpStepSize(first_step=0.05, last_step=0.01, tau=30.0),*
-    *n_particles=80,*
-    *n_iterations=150,*
-*)*
-*svgd.summary()           # posterior-statistikker*
-*svgd.plot_ci()           # konfidensinterval*
-*svgd.plot_convergence()  # konvergensdiagnostik*
-*svgd.plot_pairwise()     # korrelationsstruktur mellem parametre*
-
-::: {#fig-posterior_CI }
-
-![](illustrations/posterior_CI.png){width="50%"}
-
-**Posterior CI**: Posterior-fordeling (95% HPD) for coalescensparameter $\theta$ estimeret med SVGD på 10.000 simulerede observationer. Den sande parameter er markeret, og posterior-medianen er i god overensstemmelse med denne..
+*Venstre:* Analytisk PDF og CDF for $T_\text{MRCA}$ med $n=4$. *Højre:* Histogram af $10.000$ simulerede coalesceringstider sammenholdt med den analytiske PDF.
 :::
 
-::: {#fig-posterior_predictive_check }
+## Rewards og Site Frequency Spectrum
 
-![](illustrations/posterior_predictive_check.png){width="50%"}
+Site Frequency Spectrum beregnes ved hjælp af reward-transformationer. Ideen er at tildele en reward til hver state, der tæller antallet af lineages af en bestemt type: singletons, doubletons og tripletons og derefter beregne den forventede akkumulerede reward frem til absorption. Det giver direkte det forventede antal varianter i hvert SFS-bin analytisk, uden simulering.
+4-ton-komponenten er nul, fordi den absorberende state ikke bidrager til grenlængde processen tilbringer ingen tid der. Udover selve forventningen beregnes den fulde sandsynlighedsfordeling af tid brugt i hvert lineage-type via reward-transformation, hvilket giver mulighed for at kvantificere usikkerheden på hver komponent @fig-sfs.
 
-**Posterior predictive check**: Modellens tilpassede PDF og CDF sammenholdt med data, evalueret ved posterior-gennemsnittet. Det tætte match residual under $0.005$ over hele støtten, bekræfter god modelfit.
+::: {#fig-sfs layout-ncol=2}
+![Forventet SFS](illustrations/sfs_plot.png)
+
+![Reward-fordelinger](illustrations/reward_plot.png)
+
+*Venstre:* Forventet SFS for $n=4$. Singletons dominerer; quadrupleton er nul da den absorberende state ikke bidrager til grenlængde. *Højre:* Sandsynlighedsfordelingen for tid brugt i hhv. singleton-, doubleton-, tripleton- og quadrupleton-lineages.
 :::
 
-## Joint probability-inferens på SNP-data
-For inferens på diskrete SNP-observationer benyttes phasics *joint probability-graf*, der kobler coalescent-modellen til en Poisson-mutationsmodel:
+## Fra coalesceringstider til antal mutationer
 
-*joint_graph = graph.joint_prob_graph(*
-    *indexer,*
-    *reward_only=["descendants"],*
-    *reward_limit=1,*
-    *tot_reward_limit=2,*
-    *mutation_rate=mutation_rate,*
-*)*
+I genomdata observerer man ikke coalesceringstider, men diskrete tælledata i form af SNPs. Koblingen fra det kontinuerte coalescent til diskrete mutationstælledata håndteres ved at diskretisere modellen: en hjælpestate akkumulerer mutationer, som de opstår langs grenene under en Poisson-mutationsmodel. Den forventede antal mutationer beregnes analytisk og verificeres mod en alternativ beregning via den forventede totale grenlængde ganget med mutationsraten de to tal stemmer overens.
 
-Grafen beregner sandsynligheden $P(\mathbf{k})$ for at observere et mønster $\mathbf{k}$ af singleton-, doubleton- osv.-mutationsantal. Som startestimat anvendes probability matching:
+## Parameteriserede modeller
 
-*pm = joint_graph.probability_matching(observations, fixed=[(1, mutation_rate)])*
+For at kunne estimere parametre fra data skal modelraterne udtrykkes som funktioner af parametre frem for faste tal. I phasic gøres dette ved at angive koefficienter per kant, der beskriver med hvilken vægt hvert parameter bidrager til den pågældende overgangsrate. Hele grafen opdateres da i et kald, når parameterværdierne ændres.
+Som konkret eksempel bygges en to-locus ARG-model med coalescence-rate $1/N$ og rekombinationsrate $R$ som frie parametre. Det illustrerer, at større $N$ giver længere forventet tid til MRCA, mens højere $R$ bryder lineages op i separate historier og giver kortere tider. Denne parameteriserede struktur er det tekniske grundlag for inferens i de efterfølgende notebooks.
 
-Herefter køres SVGD over de frie parametre, mens mutationsraten fastholdes.
+
+## Inferensmetoder
+
+Notebook 02 afprøver tre inferensmetoder på simulerede data med sand parameter $\theta = 7$, inden de bruges på baviandata.
+
+**Method of Moments** matcher de empiriske momenter fra data med de teoretiske momenter fra modellen numerisk. Det er hurtigt og giver et punktestimat med standardfejl, men ingen usikkerhed om parameterestimatet. Metoden bruges primært som et hurtigt udgangspunkt og til at generere informative startpunkter for den Bayesianske inferens.
+
+**SVGD** (*Stein Variational Gradient Descent*) giver den fulde posterior-fordeling over parametre. En samling af 80 partikler opdateres iterativt mod posterior via gradient-information. Læringsraten aftager eksponentielt over 150 iterationer fra 0.05 til 0.01. Konvergens vurderes ved at inspicere den gennemsnitlige partikelflytning per iteration: en fladende kurve indikerer at partiklerne er stabiliseret. Posterior-fordelingen præsenteres som 95% HPD-intervaller og pairwise-plots der viser korrelationsstrukturen mellem parametre @fig-svgd.
+
+Priors er Gaussiske med bredde tilpasset biologisk plausible værdier. I enkle modeller bruges en bred prior direkte; i mere komplekse modeller initialiseres priors fra MoM-estimaterne.
+Modellens tilpasning til data vurderes via en **posterior predictive check**: modellen opdateres til posterior-gennemsnittet, og den resulterende PDF og CDF sammenlignes med de empiriske data. En tæt overensstemmelse bekræfter at modellen fanger strukturen i data @fig-posterior_predictive_check.
+
+
+::: {#fig-svgd layout-ncol=2}
+![Posterior CI](illustrations/posterior_CI.png)
+
+![Konvergens](illustrations/svgd_convergence.png)
+
+*Venstre:* 95% HPD-interval fra SVGD på $10.000$ observationer med sand $\theta=7$ markeret. *Højre:* Konvergensplot den fladende kurve indikerer at partiklerne er stabiliseret.
+:::
+
+::: {#fig-posterior_predictive_check}
+
+![Konvergens](illustrations/posterior_predictive_check.png)
+
+Posterior predictive check: Modellens tilpassede PDF og CDF sammenholdt med data, evalueret ved posterior-gennemsnittet. Det tætte match residual under $0.005$ over hele støtten, bekræfter god modelfit.
+:::
+
+**Joint probability inferens** benyttes, når observationerne er diskrete mutationsmønstre frem for coalesceringstider. En joint probability-graf kobler coalescent-modellen til mutationsmodellen og giver sandsynligheder for hvert muligt observationsmønster $(k_1, k_2)$ antallet af singletons og doubletons i et SNP-par. Probability matching bruges som initialestimering inden SVGD, og mutationsraten fastholdes som fikseret parameter. Defekten andelen af sandsynlighed afskåret af model-afskæringen kontrolleres og holdes under $0.05$ i alle analyser.
 
 ## Databehandling af baviangenomet
-Genomdata fra Sørensen et al. (2023) — kromosom 20 i phased Zarr-format — indlæses via sgkit:
 
-*ds = sg.load_dataset(DATA_DIR / "chr20.phased.rehead.vcz")*
-
-For hver population beregnes derived allele counts og filtreres til segregerende SNPs (derived count $> 0$ og $< n$). Da populationerne har forskellig samplingdybde, subsamples der til $n = 4$ haplotyper via hypergeometrisk sampling, som er den korrekte fremgangsmåde for at undgå bias:
-
-*k = rng.hypergeometric(*
-    *ngood=df["derived_count"].values,*
-    *nbad=(df["nr_samples"] - df["derived_count"]).values,*
-    *nsample=n_samples_use,*
-*)*
-
-Nukleotiddiversiteten $\hat{\pi}$ estimeres som:
-
+Genomdata fra Sørensen et al. (2023): 225 vilde bavianer fra 19 lokaliteter, kromosom 20. Indlæses i phased Zarr-format. For hver population identificeres de relevante individer ud fra sample-ID'er i artiklens Tabel S2, og derived allele counts beregnes per SNP-site.
+Da populationerne har forskellig samplingdybde, subsamples til $n=4$ haplotyper per locus via hypergeometrisk sampling. Hypergeometrisk sampling er valgt frem for simpel tilfældig sampling fordi det bevarer allelfrekvenserne korrekt ved udtræk uden tilbagelægning, og dermed undgår det at introducere systematisk bias i SFS.
+Den foldede SFS beregnes for at undgå polariseringsfejl: man behøver ikke antage at det ancestrale allel er kendt, og $\text{SFS}_k$ og $\text{SFS}_{n-k}$ lægges simpelthen sammen. Nukleotiddiversiteten $\hat{\pi}$ estimeres per population og bruges til at kalibrere en referencepopulationsstørrelse:
 $$
-\hat{\pi} = \frac{1}{L} \sum_{\ell} 2\, \frac{k_\ell}{n} \cdot \frac{n - k_\ell}{n}
+N_\text{ref} = \frac{\hat{\pi}}{4\mu}
 $$
 
-og bruges til kalibrering af den absolutte referencepopulationsstørrelse: $N_\text{ref} \approx \hat{\pi} / (4\mu)$.
-Den *foldede* SFS beregnes for at undgå polariseringsfejl, idet kendskab til ancestral allel ikke forudsættes:
+med $\mu = 0.9 \times 10^{-8}$ per site per generation og generationstid $g = 11$ år fra Sørensen et al. (2023). Denne $N_\text{ref}$ bruges i alle efterfølgende notebooks til at konvertere coalescent-enheder til absolutte demografiske størrelser.
 
-$$
-\text{SFS}^\text{foldet}_k = \text{SFS}_k + \text{SFS}_{n-k}, \quad k = 1, \ldots, \lfloor n/2 \rfloor
-$$
+::: {#tbl-populations .striped}
 
-## Simuleringsvalidering med msprime
-Inden modellerne anvendes på empiriske data valideres de på datasæt simuleret med kendte parametre via msprime (Kelleher et al. 2016). For two-island modellen og IM-modellen specificeres demografien henholdsvis med og uden et split-tidspunkt:
+| Population | Art | Lokalitet | Individer | Rolle |
+|:---|:---|:---|---:|:---|
+| Eastern yellow (Mikumi) | *P. cynocephalus* | Tanzania | 35 | Referencepopulation, two-island |
+| Kinda (Chunga/Dendro) | *P. kindae* | Zambia | 29 | Two-island model |
+| Southern olive (Tarangire) | *P. anubis* | Tanzania | 46 | IM-model |
+| Western yellow (Mahale) | *P. cynocephalus* | Tanzania | 9 | Tre-vejs admixture |
+| Olive gog | *P. anubis* | Etiopien | 26 | Referenceanalyse |
 
-*demography = msprime.Demography()*
-*demography.add_population(name="pop1", initial_size=pop1_size)*
-*demography.add_population(name="pop2", initial_size=pop2_size)*
-*demography.set_migration_rate(source="pop1", dest="pop2", rate=migr_pop1_to_pop2)*
-
-Kun for IM-modellen:
-*demography.add_population_split(time=t_split,*
-    *derived=["pop1", "pop2"], ancestral="ancestral")*
-
-To-locus observationer dannes ved at identificere SNP-par med defineret fysisk afstand ($5$ kb $±$ $500$ bp) og filtrere så hvert SNP indgår i højst et par. Posterior-medianerne fra SVGD-inferens sammenlignes med de sande simuleringsparametre som kontrol på inferensprocedurens troværdighed.
-
-
-## Software og biblioteker
-
-::: {#tbl-bibliotek .striped}
-
-| Bibliotek            | Reference                                      | Anvendelse                                      |
-|:---------------------|:-----------------------------------------------|:------------------------------------------------|
-| `phasic`             | Røikjer et al. (2022);<br>Hobolth et al. (2024) | Phase-type modeller, grafkonstruktion, inferens |
-| `msprime`            | Kelleher et al. (2016)                         | Koalescent-simulering                           |
-| `sgkit`              | —                                              | Genomdata (VCF/Zarr-format)                     |
-| `JAX`                | Bradbury et al. (2018)                         | Differentiabel programmering og GPU-understøttelse |
-| `numpy`, `pandas`    | —                                              | Numerisk databehandling                         |
-| `matplotlib`, `seaborn` | —                                           | Visualisering                                   |
-
-Oversigt over anvendte biblioteker, referencer og deres rolle i projektet.
+Populationer analyseret i dette speciale med art, lokalitet, antal individer og analytisk rolle.
 :::
 
+## Two-island modellen
+
+Two-island modellen er den simpleste model for løbende gene flow og bruges som udgangspunkt inden IM-modellen introduceres. Staterummet udvides med en population-label per lineage, der angiver hvilken af de to populationer lineagen aktuelt befinder sig i. Coalescering er kun mulig inden for samme population, og migration sker med en konstant rate i begge retninger. Modellen har tre frie parametre: effektiv populationsstørrelse for hver population og migrationsraten.
+Inden modellen anvendes på baviandata valideres den på simulerede data fra msprime med kendte parametre. To-locus observationer dannes ved at identificere SNP-par med en fysisk afstand på $5$ kb $\pm$ $500$ bp, filtreret så hvert SNP indgår i højst et par. Disse parrede observationer bruges som input til joint probability-inferensen.
+På baviandata fittes modellen på Eastern yellow (Mikumi) som referencepopulation. Probability matching giver et startestimat, og SVGD køres med Gaussiske priors og mutationsraten fastholdt. De estimerede parametre konverteres til biologiske enheder:
+$$N_i = \frac{N_\text{ref}}{\hat{\theta}_i}, \qquad m_\text{gen} = \frac{\hat{\theta}_m}{2N_\text{ref}}$$
+
+## IM-modellen
+
+IM-modellen udvider two-island modellen ved at tilføje et split-tidspunkt $t_s$, der adskiller to perioder: en med to populationer og migration, og en med en fælles ancestral population uden migration. Det gør modellen tidsindhomogen altså raterne ændres diskontinuert ved $t_s$.
+Den tekniske håndtering af epokeskiftet sker i tre trin. Phasic beregner sandsynligheden for at befinde sig i hver state ved tid $t_s$, og den akkumulerede opholdstid op til det tidspunkt. Forholdet mellem disse to størrelser definerer overgangsraten til de tilsvarende søsterstate i den nye epoke, og grafen udvides derefter med epoch-1-state under de ændrede rater, nu med en samlet population og ingen migration.
+
+Modellen har fem parametre: populationsstørrelserne $N_1$, $N_2$ og $N_a$, migrationsraten $m$, og epoch-switch-koefficienten der sættes automatisk og fastholdes under inferens.
+Valideringen sker på msprime-simulerede data med et split ved $1.000$ generationer og kendte populationsstørrelser. SVGD-posterior-medianerne sammenlignes med de sande parametre for at bekræfte at inferensen er troværdig, inden modellen anvendes på empiriske baviandata.
+
+På baviandata fittes IM-modellen på Southern olive (Tarangire), valgt fordi Sørensen et al. (2023) dokumenterer løbende admixture mellem *P. anubis* og *P. cynocephalus* i det sydlige Tanzania. Split-tid konverteres til år via:
+$$
+t_\text{år} = t_s \cdot 2N_\text{ref} \cdot g
+$$
+
+## Tidsindhomogenitet og validering
+
+Notebook 06 undersøger tidsindhomogenitet ad to veje og validerer begge mod analytiske referencer.
+
+**Step-wise konstruktion** bruger numerisk integration, hvor raterne opdateres ved definerede tidspunkter. Det illustreres konkret med en populations-bottleneck, hvor $N_e$ falder markant i et defineret tidsinterval og derefter returnerer til normalen. CDF'en stiger tydeligt hurtigere under bottlenecken som følge af den øgede coalescensrate @fig-bottleneck.
+
+::: {#fig-bottleneck}
+![](illustrations/bottleneck_cdf.png){width=65%}
+
+CDF for $T_\text{MRCA}$ under en populations-bottleneck (orange markering). CDF'en stiger hurtigere i bottleneck-perioden som følge af den øgede coalescensrate.
+:::
+
+**Epoch-wise konstruktion** bygger en tre-epoke model for $n=10$ prøver og beregner de første fem momenter eksakt via den samme epoch-mekanisme som i IM-modellen. Resultaterne sammenlignes med uafhængige beregninger fra vejleder; den relative fejl er under $10^{-4}$ for alle fem momenter.
+
+Som yderligere validering implementeres Pool & Nielsen (2009)'s lukkede rekursive formel for forventet pairwise coalesceringstid i en stykvist-konstant demografi. Sammenligningen på en ti-epoke demografi med tilfældige populationsstørrelser viser en relativ fejl på under $0.01\%$ mellem phasic og Pool & Nielsen-formlen.
+
+Endelig konstrueres en simplificeret tre-epoke bavian-demografi baseret på størrelsesordenen fra Sørensen et al. (2023)'s PSMC-profiler, og Pool & Nielsen samt phasic sammenlignes konkret. De to metoder stemmer overens til under $0.01\%$, hvilket giver tillid til at epoch-konstruktionen er korrekt.
 
 
 # Resultater
