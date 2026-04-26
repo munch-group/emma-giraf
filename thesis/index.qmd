@@ -302,6 +302,16 @@ $$
 Indgangen $U_{ij}$ fortolkes som den forventede totale tid, processen tilbringer i state $j$ givet start i state $i$. Det er netop denne størrelse, der bruges til at beregne SFS-komponenter (se næste afsnit). Den forventede absorptionstid er $\mathbb{E}[\tau] = \alpha \mathbf{U}\mathbf{e}$.
 En central motivation for at bruge phase-type rammen er, at komplekse coalescent-formler reduceres til matrixoperationer [@Hobolth2018; @Hobolth2024]. Hobolth et al. (2024) viser, at klassen af modeller, der tillader en detaljeret matematisk behandling, er større end man måske ville forvente og phase-type teorien udvider denne klasse betragtelig. Det er netop det, der gør det muligt at arbejde med two-island modellen, IM-modellen og tidsindhomogene modeller inden for den samme ramme.
 
+### Green-matricen og sojourn-tider
+
+En central størrelse i phase-type teorien er *Green-matricen* $\mathbf{U} = (-\mathbf{S})^{-1}$, hvis $(i,j)$-indgang $U_{ij}$ angiver den forventede totale tid, processen tilbringer i state $j$ givet start i state $i$. Dette er mere end en abstrakt matrixstørrelse: Green-matricen er direkte observerbar via *graph.expected_sojourn_time()* i phasic, der returnerer $\alpha \mathbf{U}$ forventningsvektoren over alle transiente state. Summen er $\mathbb{E}[\tau] = \alpha \mathbf{U}\mathbf{e}$.
+Statesprobabiliteten $\mathbf{p}(t) = \alphae^{\mathbf{S}t}$ giver sandsynligheder for at befinde sig i hver state på tidspunkt $t$. Dette giver mulighed for at beregne det forventede antal aktive lineages som funktion af tid:
+$$
+\mathbb{E}[\text{lineages}(t)] = \sum_i p_i(t) \cdot n_i
+$$
+
+hvor $n_i$ er antallet af lineages i state $i$.
+
 ### Phase-type repræsentation af coalescenten
 
 Coalescent-processen kan formuleres som en absorberende Markovproces, hvor state svarer til antallet af lineages [@Hobolth2024]. For et sample af størrelse $n$ er staterummet $\{n, n-1, \dots, 2, 1\}$, og coalescensraten i state $i$ er $\lambda_i = \binom{i}{2}$. Generatormatricen har formen:
@@ -394,6 +404,16 @@ $$
 
 hvor $\mathbf{T}$ er sub-transitionsmatricen og $\mathbf{t} = \mathbf{e} - \mathbf{T}\mathbf{e}$ er exitvektoren [@BladtNielsen2017]. Det kan vises, at den totale grenlængde $S_{\text{total}}$ er diskret phase-type fordelt [@Hobolth2024]. Phasic kobler den kontinuerte coalescent til mutationsmodellen via en *joint probability-graf*, der beregner sandsynligheden for et givet observationsmønster af singleton-, doubleton- osv.-mutationer. Det er denne konstruktion, der muliggør inferens direkte på SNP-data.
 
+### Defekten og model-afskæring
+
+Når phasic bygger en joint probability-graf med *tot_reward_limit*, afskæres observationsmønstre med mange mutationer for at holde staterummet overkommeligt. Andelen af sandsynlighed der afskæres kaldes *defekten*:
+$$
+\delta = 1 - \sum_{\mathbf{k} \in \mathcal{K}} P(\mathbf{k})
+$$
+
+En lav defekt ($\delta < 0.05$) er nødvendig for at inferensen er troværdig. I dette speciale kontrolleres defekten eksplicit for alle joint probability-grafer.
+
+
 ## Ancestral Recombination Graph (ARG)
 
 Den klassiske coalescent antager, at hele genomet deler samme genealogiske træ. I virkeligheden medfører rekombination, at forskellige dele af genomet kan have forskellige genealogier. Den fulde ancestrale struktur beskrives da ved *Ancestral Recombination Graph* (ARG), som repræsenterer både coalescens- og rekombinationsbegivenheder i en samlet struktur [@kelleher2019].
@@ -466,6 +486,16 @@ Bavianernes evolutionære historie startede for omtrent to millioner år siden i
 Sørensen et al. (2023) estimerer en populationsmutationsrate på $\mu = 0.9 \times 10^{-8}$ per site per generation og en generationstid på $g = 11$ år, som anvendes i dette speciale som biologiske konstanter til at omsætte modelparametre til absolutte demografiske størrelser.
 
 Bavianerne fungerer her som et konkret modelsystem, der motiverer og underbygger de matematiske modeller. Fokus er primært på den matematiske at opbygge, forstå og implementere de relevante modeller i Python via biblioteket phasic, og derefter anvende dem på genomdata.
+
+### Tajima's D — test for neutral evolution
+
+Et vigtigt statistisk mål til at undersøge om data er konsistent med neutral evolution er Tajima's $D$ (Tajima 1989). $D$ sammenligner to estimatorer for mutationsraten:
+$$
+D = \frac{\hat{\pi} - \hat{\theta}_W}{\sqrt{\hat{V}(\hat{\pi} - \hat{\theta}_W)}}
+$$
+
+hvor $\hat{\pi}$ er nukleotiddiversiteten (pairwise differences) og $\hat{\theta}_W = S/a_1$ er Wattersons estimator baseret på antallet af segregerende sites $S$ og $a_1 = \sum_{i=1}^{n-1} 1/i$. Under neutral evolution med konstant populationsstørrelse forventes $D \approx 0$. Negative værdier indikerer overskud af singletons (nylig ekspansion, purifying selektion), mens positive værdier indikerer overskud af common variants (admixture, balancerende selektion, bottleneck).
+
 
 ## Problemformulering
 Formålet med dette speciale er at undersøge, hvordan Markov-modeller og coalescent-teori kan anvendes til rekonstruktion af genetisk populationshistorie, med bavianer som konkret eksempel. Det overordnede mål er at opnå en forståelse af den matematiske struktur bag metoderne og at implementere og afprøve dem i Python via biblioteket phasic. Følgende spørgsmål undersøges:
