@@ -310,6 +310,7 @@ window.Quarto = {
   <li><a href="#sammenligning-med-pool-nielsen" id="toc-sammenligning-med-pool-nielsen" class="nav-link" data-scroll-target="#sammenligning-med-pool-nielsen">8. Sammenligning med Pool &amp; Nielsen</a></li>
   <li><a href="#anvendelse-på-bavian-data" id="toc-anvendelse-på-bavian-data" class="nav-link" data-scroll-target="#anvendelse-på-bavian-data">9. Anvendelse på bavian-data</a></li>
   <li><a href="#inferens-på-bavian-data-time-inhomogen-model" id="toc-inferens-på-bavian-data-time-inhomogen-model" class="nav-link" data-scroll-target="#inferens-på-bavian-data-time-inhomogen-model">10. Inferens på bavian-data — time-inhomogen model</a></li>
+  <li><a href="#ghost-populationer" id="toc-ghost-populationer" class="nav-link" data-scroll-target="#ghost-populationer">10. Ghost populationer</a></li>
   </ul>
 <div class="toc-actions"><ul class="collapse"><li><a href="https://github.dev/munch-group/emma-giraf/blob/main/notebooks/06_time_inhomogeneous_models.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/emma-giraf/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/emma-giraf/blob/main/notebooks/06_time_inhomogeneous_models.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
     </div>
@@ -1005,148 +1006,181 @@ Forventet pairwise T (år):           21,453</code></pre>
 Relativ forskel mod Pool-Nielsen: +175.14%</code></pre>
 </div>
 </div>
+<section id="hvad-forklarer-diskrepansen" class="level3">
+<h3 class="anchored" data-anchor-id="hvad-forklarer-diskrepansen">Hvad forklarer diskrepansen?</h3>
+<p>Phasic giver ~175% højere forventet TMRCA end Pool &amp; Nielsen. Årsagen er en <strong>haploid/diploid konvention</strong>:</p>
+<ul>
+<li><strong>Pool &amp; Nielsen</strong> bruger <span class="math inline">\(N\)</span> som <em>haploid</em> effektiv populationsstørrelse: coalescence-rate = <span class="math inline">\(\frac{1}{N}\)</span> per generation.</li>
+<li><strong>Phasic</strong> (og standard coalescent-teori) bruger <em>diploid</em> konvention: coalescence-rate = <span class="math inline">\(\frac{1}{2N}\)</span> per generation, dvs. 1 coalescent-enhed = <span class="math inline">\(2N\)</span> generationer.</li>
+</ul>
+<p>Når <code>baboon_Ne = [30_000, 10_000, 70_000]</code> er <em>diploide</em> størrelser, skal Pool-Nielsen have <span class="math inline">\(2 \times N_e\)</span> som input for at bruge haploid-formlen korrekt. Ellers underestimerer Pool-Nielsen TMRCA med en faktor ~2.</p>
+<div id="ef0ca5c3" class="cell" data-execution_count="15">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fix: Pool-Nielsen forventer haploid Ne — send 2*Ne for diploid input</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>T_pairwise_fixed <span class="op">=</span> pool_nielsen(</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    gens<span class="op">=</span>gens,</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    Ne<span class="op">=</span>[<span class="dv">2</span> <span class="op">*</span> Ne <span class="cf">for</span> Ne <span class="kw">in</span> baboon_Ne],   <span class="co"># diploid → haploid korrektion</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>    h<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Sammenligning efter korrektion:"</span>)</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  Pool-Nielsen (original, haploid-fejl): </span><span class="sc">{</span>T_pairwise <span class="op">*</span> GEN_TIME<span class="sc">:,.0f}</span><span class="ss"> år"</span>)</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  Pool-Nielsen (korrigeret, 2×Ne):       </span><span class="sc">{</span>T_pairwise_fixed <span class="op">*</span> GEN_TIME<span class="sc">:,.0f}</span><span class="ss"> år"</span>)</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  Phasic:                                </span><span class="sc">{</span>T_phasic_gen <span class="op">*</span> GEN_TIME<span class="sc">:,.0f}</span><span class="ss"> år"</span>)</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>rel_err_fixed <span class="op">=</span> (T_phasic_gen <span class="op">-</span> T_pairwise_fixed) <span class="op">/</span> T_pairwise_fixed</span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Relativ forskel efter korrektion: </span><span class="sc">{</span>rel_err_fixed<span class="sc">:+.2%}</span><span class="ss">  (&lt; 2% = acceptabelt)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Sammenligning efter korrektion:
+  Pool-Nielsen (original, haploid-fejl): 150,417 år
+  Pool-Nielsen (korrigeret, 2×Ne):       410,352 år
+  Phasic:                                413,859 år
+
+Relativ forskel efter korrektion: +0.85%  (&lt; 2% = acceptabelt)</code></pre>
+</div>
+</div>
+</section>
 </section>
 <section id="inferens-på-bavian-data-time-inhomogen-model" class="level2">
 <h2 class="anchored" data-anchor-id="inferens-på-bavian-data-time-inhomogen-model">10. Inferens på bavian-data — time-inhomogen model</h2>
 <p>Nu fitter jeg en 3-epoke model direkte til bavian-SFS-data fra NB03. Fremgangsmåden: - <strong>Faste epoch-tider</strong>: valgt ud fra Sørensen et al.&nbsp;(2023): 0, 50.000 år, 500.000 år - <strong>Fri parametre</strong>: <span class="math inline">\(N_e\)</span> i hver af de 3 epoker estimeres via SVGD - <strong>Data</strong>: derived counts fra Eastern yellow (Mikumi)</p>
 <p>Dette er en én-populations time-inhomogen model — vi modellerer <em>ikke</em> migration eller split, men kun historiske ændringer i <span class="math inline">\(N_e\)</span> over tid for én population.</p>
-<div id="18b14b48" class="cell" data-execution_count="2">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Tre epoker: nutid → 50 ka → 500 ka → fortid</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>baboon_years  <span class="op">=</span> [<span class="dv">0</span>, <span class="dv">50_000</span>, <span class="dv">500_000</span>]</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Reference-Ne bruges kun til at skalere til coalescent-enheder</span></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Vi bruger pi fra NB03 til at få N_ref</span></span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>pi_df <span class="op">=</span> pd.read_csv(OUT_DIR <span class="op">/</span> <span class="st">"pi_per_population.csv"</span>, index_col<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>pi_east <span class="op">=</span> pi_df.loc[<span class="st">"Eastern yellow (Mikumi)"</span>, <span class="st">"pi"</span>]</span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>N_REF   <span class="op">=</span> pi_east <span class="op">/</span> (<span class="dv">4</span> <span class="op">*</span> MUT_RATE)</span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"N_ref (Eastern yellow, fra π):  </span><span class="sc">{</span>N_REF<span class="sc">:,.0f}</span><span class="ss"> individer"</span>)</span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Konverter år → coalescent-enheder (t_coal = t_gen / (2*N_ref))</span></span>
-<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>epoch_coal <span class="op">=</span> [yr <span class="op">/</span> (GEN_TIME <span class="op">*</span> <span class="dv">2</span> <span class="op">*</span> N_REF) <span class="cf">for</span> yr <span class="kw">in</span> baboon_years]</span>
-<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Epoch-tider (år):              </span><span class="sc">{</span>baboon_years<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Epoch-tider (coalescent-enh.): </span><span class="sc">{</span>[<span class="ss">f'</span><span class="sc">{</span>t<span class="sc">:.4f}</span><span class="ss">'</span> <span class="cf">for</span> t <span class="kw">in</span> epoch_coal]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="18b14b48" class="cell" data-execution_count="16">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Tre epoker: nutid → 50 ka → 500 ka → fortid</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>baboon_years  <span class="op">=</span> [<span class="dv">0</span>, <span class="dv">50_000</span>, <span class="dv">500_000</span>]</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Reference-Ne bruges kun til at skalere til coalescent-enheder</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Vi bruger pi fra NB03 til at få N_ref</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>pi_df <span class="op">=</span> pd.read_csv(OUT_DIR <span class="op">/</span> <span class="st">"pi_per_population.csv"</span>, index_col<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>pi_east <span class="op">=</span> pi_df.loc[<span class="st">"Eastern yellow (Mikumi)"</span>, <span class="st">"pi"</span>]</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>N_REF   <span class="op">=</span> pi_east <span class="op">/</span> (<span class="dv">4</span> <span class="op">*</span> MUT_RATE)</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"N_ref (Eastern yellow, fra π):  </span><span class="sc">{</span>N_REF<span class="sc">:,.0f}</span><span class="ss"> individer"</span>)</span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Konverter år → coalescent-enheder (t_coal = t_gen / (2*N_ref))</span></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>epoch_coal <span class="op">=</span> [yr <span class="op">/</span> (GEN_TIME <span class="op">*</span> <span class="dv">2</span> <span class="op">*</span> N_REF) <span class="cf">for</span> yr <span class="kw">in</span> baboon_years]</span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Epoch-tider (år):              </span><span class="sc">{</span>baboon_years<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Epoch-tider (coalescent-enh.): </span><span class="sc">{</span>[<span class="ss">f'</span><span class="sc">{</span>t<span class="sc">:.4f}</span><span class="ss">'</span> <span class="cf">for</span> t <span class="kw">in</span> epoch_coal]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>N_ref (Eastern yellow, fra π):  71,789 individer
 Epoch-tider (år):              [0, 50000, 500000]
 Epoch-tider (coalescent-enh.): ['0.0000', '0.0317', '0.3166']</code></pre>
 </div>
 </div>
-<div id="6dc0ef78" class="cell" data-execution_count="3">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Byg epoch-coalescent</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>nr_samples_ti <span class="op">=</span> <span class="dv">4</span></span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>n_epochs <span class="op">=</span> <span class="bu">len</span>(epoch_coal)</span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>indexer_ti <span class="op">=</span> StateIndexer(</span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    lineages<span class="op">=</span>[Property(<span class="st">"ton"</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span>nr_samples_ti)],</span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    slots<span class="op">=</span>[<span class="st">"epoch"</span>],</span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>ipv_ti <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer_ti.state_length</span>
-<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>ipv_ti[indexer_ti.props_to_index(ton<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> nr_samples_ti</span>
-<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_epoch_cb_ti(state, epochs<span class="op">=</span><span class="va">None</span>, epoch_idx<span class="op">=</span><span class="va">None</span>, indexer<span class="op">=</span><span class="va">None</span>):</span>
-<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>    epoch_idx <span class="op">=</span> <span class="bu">int</span>(epoch_idx)</span>
-<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state[indexer.epoch] <span class="op">!=</span> epoch_idx:</span>
-<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
-<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>    lineage_sum <span class="op">=</span> <span class="bu">sum</span>(state[k] <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(indexer.state_length) <span class="cf">if</span> k <span class="op">!=</span> indexer.epoch)</span>
-<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> lineage_sum <span class="op">&lt;=</span> <span class="dv">1</span>:</span>
-<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
-<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, j <span class="kw">in</span> all_pairs(indexer.lineages):</span>
-<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a>        pi <span class="op">=</span> indexer.lineages.index_to_props(i)</span>
-<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a>        pj <span class="op">=</span> indexer.lineages.index_to_props(j)</span>
-<span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a>        same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb25-25"><a href="#cb25-25" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
-<span id="cb25-26"><a href="#cb25-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
-<span id="cb25-27"><a href="#cb25-27" aria-hidden="true" tabindex="-1"></a>        new <span class="op">=</span> state.copy()</span>
-<span id="cb25-28"><a href="#cb25-28" aria-hidden="true" tabindex="-1"></a>        new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb25-29"><a href="#cb25-29" aria-hidden="true" tabindex="-1"></a>        new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb25-30"><a href="#cb25-30" aria-hidden="true" tabindex="-1"></a>        k <span class="op">=</span> indexer_ti.props_to_index(ton<span class="op">=</span>pi.ton <span class="op">+</span> pj.ton)</span>
-<span id="cb25-31"><a href="#cb25-31" aria-hidden="true" tabindex="-1"></a>        new[k] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb25-32"><a href="#cb25-32" aria-hidden="true" tabindex="-1"></a>        coeff <span class="op">=</span> np.zeros(n_epochs <span class="op">+</span> <span class="dv">1</span>)   <span class="co"># n_epochs Ne-parametre + epoch-switch slot</span></span>
-<span id="cb25-33"><a href="#cb25-33" aria-hidden="true" tabindex="-1"></a>        coeff[epoch_idx] <span class="op">=</span> state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same)</span>
-<span id="cb25-34"><a href="#cb25-34" aria-hidden="true" tabindex="-1"></a>        transitions.append([new, coeff])</span>
-<span id="cb25-35"><a href="#cb25-35" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb25-36"><a href="#cb25-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-37"><a href="#cb25-37" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_epoch_ti(graph, callback, epochs, epoch_idx, indexer):</span>
-<span id="cb25-38"><a href="#cb25-38" aria-hidden="true" tabindex="-1"></a>    epoch <span class="op">=</span> epochs[epoch_idx]</span>
-<span id="cb25-39"><a href="#cb25-39" aria-hidden="true" tabindex="-1"></a>    stop_probs   <span class="op">=</span> np.array(graph.stop_probability(epoch))</span>
-<span id="cb25-40"><a href="#cb25-40" aria-hidden="true" tabindex="-1"></a>    accum_v_time <span class="op">=</span> np.array(graph.accumulated_occupancy(epoch))</span>
-<span id="cb25-41"><a href="#cb25-41" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> np.errstate(invalid<span class="op">=</span><span class="st">"ignore"</span>):</span>
-<span id="cb25-42"><a href="#cb25-42" aria-hidden="true" tabindex="-1"></a>        epoch_trans_rates <span class="op">=</span> stop_probs <span class="op">/</span> accum_v_time</span>
-<span id="cb25-43"><a href="#cb25-43" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, graph.vertices_length() <span class="op">-</span> <span class="dv">1</span>):</span>
-<span id="cb25-44"><a href="#cb25-44" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> np.isnan(epoch_trans_rates[i]): <span class="cf">continue</span></span>
-<span id="cb25-45"><a href="#cb25-45" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> graph.vertex_at(i).edges_length() <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
-<span id="cb25-46"><a href="#cb25-46" aria-hidden="true" tabindex="-1"></a>        vertex <span class="op">=</span> graph.vertex_at(i)</span>
-<span id="cb25-47"><a href="#cb25-47" aria-hidden="true" tabindex="-1"></a>        state  <span class="op">=</span> vertex.state()</span>
-<span id="cb25-48"><a href="#cb25-48" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[indexer.epoch] <span class="op">!=</span> epoch_idx <span class="op">-</span> <span class="dv">1</span>: <span class="cf">continue</span></span>
-<span id="cb25-49"><a href="#cb25-49" aria-hidden="true" tabindex="-1"></a>        sister_state <span class="op">=</span> state.copy()</span>
-<span id="cb25-50"><a href="#cb25-50" aria-hidden="true" tabindex="-1"></a>        sister_state[indexer.epoch] <span class="op">=</span> epoch_idx</span>
-<span id="cb25-51"><a href="#cb25-51" aria-hidden="true" tabindex="-1"></a>        child <span class="op">=</span> graph.find_or_create_vertex(sister_state)</span>
-<span id="cb25-52"><a href="#cb25-52" aria-hidden="true" tabindex="-1"></a>        coeff <span class="op">=</span> np.zeros(n_epochs <span class="op">+</span> <span class="dv">1</span>)</span>
-<span id="cb25-53"><a href="#cb25-53" aria-hidden="true" tabindex="-1"></a>        coeff[<span class="op">-</span><span class="dv">1</span>] <span class="op">=</span> epoch_trans_rates[i]</span>
-<span id="cb25-54"><a href="#cb25-54" aria-hidden="true" tabindex="-1"></a>        vertex.add_edge(child, coeff)</span>
-<span id="cb25-55"><a href="#cb25-55" aria-hidden="true" tabindex="-1"></a>    graph.extend(callback, epochs<span class="op">=</span>epochs, epoch_idx<span class="op">=</span>epoch_idx, indexer<span class="op">=</span>indexer)</span>
-<span id="cb25-56"><a href="#cb25-56" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-57"><a href="#cb25-57" aria-hidden="true" tabindex="-1"></a><span class="co"># Start-vægte: alle Ne = N_REF (dvs. koefficient 1/N_REF per epoke)</span></span>
-<span id="cb25-58"><a href="#cb25-58" aria-hidden="true" tabindex="-1"></a>init_weights <span class="op">=</span> [<span class="fl">1.0</span>] <span class="op">*</span> n_epochs <span class="op">+</span> [<span class="fl">1.0</span>]   <span class="co"># [1/N1, 1/N2, 1/N3, epoch-switch]</span></span>
-<span id="cb25-59"><a href="#cb25-59" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-60"><a href="#cb25-60" aria-hidden="true" tabindex="-1"></a>graph_ti <span class="op">=</span> Graph(</span>
-<span id="cb25-61"><a href="#cb25-61" aria-hidden="true" tabindex="-1"></a>    coalescent_epoch_cb_ti,</span>
-<span id="cb25-62"><a href="#cb25-62" aria-hidden="true" tabindex="-1"></a>    ipv<span class="op">=</span>ipv_ti,</span>
-<span id="cb25-63"><a href="#cb25-63" aria-hidden="true" tabindex="-1"></a>    epochs<span class="op">=</span>epoch_coal,</span>
-<span id="cb25-64"><a href="#cb25-64" aria-hidden="true" tabindex="-1"></a>    epoch_idx<span class="op">=</span><span class="dv">0</span>,</span>
-<span id="cb25-65"><a href="#cb25-65" aria-hidden="true" tabindex="-1"></a>    indexer<span class="op">=</span>indexer_ti,</span>
-<span id="cb25-66"><a href="#cb25-66" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb25-67"><a href="#cb25-67" aria-hidden="true" tabindex="-1"></a>graph_ti.update_weights(init_weights)</span>
-<span id="cb25-68"><a href="#cb25-68" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-69"><a href="#cb25-69" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ep <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, n_epochs):</span>
-<span id="cb25-70"><a href="#cb25-70" aria-hidden="true" tabindex="-1"></a>    graph_ti.update_weights(init_weights)</span>
-<span id="cb25-71"><a href="#cb25-71" aria-hidden="true" tabindex="-1"></a>    add_epoch_ti(graph_ti, coalescent_epoch_cb_ti, epoch_coal, ep, indexer_ti)</span>
-<span id="cb25-72"><a href="#cb25-72" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-73"><a href="#cb25-73" aria-hidden="true" tabindex="-1"></a>graph_ti.update_weights(init_weights)</span>
-<span id="cb25-74"><a href="#cb25-74" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-75"><a href="#cb25-75" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Graf bygget: </span><span class="sc">{</span>graph_ti<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss"> vertices, </span><span class="sc">{</span>graph_ti<span class="sc">.</span>param_length()<span class="sc">}</span><span class="ss"> parametre"</span>)</span>
-<span id="cb25-76"><a href="#cb25-76" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  Parametre: [1/N_epoch0, 1/N_epoch1, 1/N_epoch2, epoch-switch]"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="6dc0ef78" class="cell" data-execution_count="17">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Byg epoch-coalescent</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>nr_samples_ti <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>n_epochs <span class="op">=</span> <span class="bu">len</span>(epoch_coal)</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>indexer_ti <span class="op">=</span> StateIndexer(</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>    lineages<span class="op">=</span>[Property(<span class="st">"ton"</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span>nr_samples_ti)],</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>    slots<span class="op">=</span>[<span class="st">"epoch"</span>],</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>ipv_ti <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer_ti.state_length</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>ipv_ti[indexer_ti.props_to_index(ton<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> nr_samples_ti</span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_epoch_cb_ti(state, epochs<span class="op">=</span><span class="va">None</span>, epoch_idx<span class="op">=</span><span class="va">None</span>, indexer<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>    epoch_idx <span class="op">=</span> <span class="bu">int</span>(epoch_idx)</span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state[indexer.epoch] <span class="op">!=</span> epoch_idx:</span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a>    lineage_sum <span class="op">=</span> <span class="bu">sum</span>(state[k] <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(indexer.state_length) <span class="cf">if</span> k <span class="op">!=</span> indexer.epoch)</span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> lineage_sum <span class="op">&lt;=</span> <span class="dv">1</span>:</span>
+<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
+<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, j <span class="kw">in</span> all_pairs(indexer.lineages):</span>
+<span id="cb27-22"><a href="#cb27-22" aria-hidden="true" tabindex="-1"></a>        pi <span class="op">=</span> indexer.lineages.index_to_props(i)</span>
+<span id="cb27-23"><a href="#cb27-23" aria-hidden="true" tabindex="-1"></a>        pj <span class="op">=</span> indexer.lineages.index_to_props(j)</span>
+<span id="cb27-24"><a href="#cb27-24" aria-hidden="true" tabindex="-1"></a>        same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb27-25"><a href="#cb27-25" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb27-26"><a href="#cb27-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb27-27"><a href="#cb27-27" aria-hidden="true" tabindex="-1"></a>        new <span class="op">=</span> state.copy()</span>
+<span id="cb27-28"><a href="#cb27-28" aria-hidden="true" tabindex="-1"></a>        new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb27-29"><a href="#cb27-29" aria-hidden="true" tabindex="-1"></a>        new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb27-30"><a href="#cb27-30" aria-hidden="true" tabindex="-1"></a>        k <span class="op">=</span> indexer_ti.props_to_index(ton<span class="op">=</span>pi.ton <span class="op">+</span> pj.ton)</span>
+<span id="cb27-31"><a href="#cb27-31" aria-hidden="true" tabindex="-1"></a>        new[k] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb27-32"><a href="#cb27-32" aria-hidden="true" tabindex="-1"></a>        coeff <span class="op">=</span> np.zeros(n_epochs <span class="op">+</span> <span class="dv">1</span>)   <span class="co"># n_epochs Ne-parametre + epoch-switch slot</span></span>
+<span id="cb27-33"><a href="#cb27-33" aria-hidden="true" tabindex="-1"></a>        coeff[epoch_idx] <span class="op">=</span> state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same)</span>
+<span id="cb27-34"><a href="#cb27-34" aria-hidden="true" tabindex="-1"></a>        transitions.append([new, coeff])</span>
+<span id="cb27-35"><a href="#cb27-35" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb27-36"><a href="#cb27-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-37"><a href="#cb27-37" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_epoch_ti(graph, callback, epochs, epoch_idx, indexer):</span>
+<span id="cb27-38"><a href="#cb27-38" aria-hidden="true" tabindex="-1"></a>    epoch <span class="op">=</span> epochs[epoch_idx]</span>
+<span id="cb27-39"><a href="#cb27-39" aria-hidden="true" tabindex="-1"></a>    stop_probs   <span class="op">=</span> np.array(graph.stop_probability(epoch))</span>
+<span id="cb27-40"><a href="#cb27-40" aria-hidden="true" tabindex="-1"></a>    accum_v_time <span class="op">=</span> np.array(graph.accumulated_occupancy(epoch))</span>
+<span id="cb27-41"><a href="#cb27-41" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> np.errstate(invalid<span class="op">=</span><span class="st">"ignore"</span>):</span>
+<span id="cb27-42"><a href="#cb27-42" aria-hidden="true" tabindex="-1"></a>        epoch_trans_rates <span class="op">=</span> stop_probs <span class="op">/</span> accum_v_time</span>
+<span id="cb27-43"><a href="#cb27-43" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, graph.vertices_length() <span class="op">-</span> <span class="dv">1</span>):</span>
+<span id="cb27-44"><a href="#cb27-44" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> np.isnan(epoch_trans_rates[i]): <span class="cf">continue</span></span>
+<span id="cb27-45"><a href="#cb27-45" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> graph.vertex_at(i).edges_length() <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
+<span id="cb27-46"><a href="#cb27-46" aria-hidden="true" tabindex="-1"></a>        vertex <span class="op">=</span> graph.vertex_at(i)</span>
+<span id="cb27-47"><a href="#cb27-47" aria-hidden="true" tabindex="-1"></a>        state  <span class="op">=</span> vertex.state()</span>
+<span id="cb27-48"><a href="#cb27-48" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[indexer.epoch] <span class="op">!=</span> epoch_idx <span class="op">-</span> <span class="dv">1</span>: <span class="cf">continue</span></span>
+<span id="cb27-49"><a href="#cb27-49" aria-hidden="true" tabindex="-1"></a>        sister_state <span class="op">=</span> state.copy()</span>
+<span id="cb27-50"><a href="#cb27-50" aria-hidden="true" tabindex="-1"></a>        sister_state[indexer.epoch] <span class="op">=</span> epoch_idx</span>
+<span id="cb27-51"><a href="#cb27-51" aria-hidden="true" tabindex="-1"></a>        child <span class="op">=</span> graph.find_or_create_vertex(sister_state)</span>
+<span id="cb27-52"><a href="#cb27-52" aria-hidden="true" tabindex="-1"></a>        coeff <span class="op">=</span> np.zeros(n_epochs <span class="op">+</span> <span class="dv">1</span>)</span>
+<span id="cb27-53"><a href="#cb27-53" aria-hidden="true" tabindex="-1"></a>        coeff[<span class="op">-</span><span class="dv">1</span>] <span class="op">=</span> epoch_trans_rates[i]</span>
+<span id="cb27-54"><a href="#cb27-54" aria-hidden="true" tabindex="-1"></a>        vertex.add_edge(child, coeff)</span>
+<span id="cb27-55"><a href="#cb27-55" aria-hidden="true" tabindex="-1"></a>    graph.extend(callback, epochs<span class="op">=</span>epochs, epoch_idx<span class="op">=</span>epoch_idx, indexer<span class="op">=</span>indexer)</span>
+<span id="cb27-56"><a href="#cb27-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-57"><a href="#cb27-57" aria-hidden="true" tabindex="-1"></a><span class="co"># Start-vægte: alle Ne = N_REF (dvs. koefficient 1/N_REF per epoke)</span></span>
+<span id="cb27-58"><a href="#cb27-58" aria-hidden="true" tabindex="-1"></a>init_weights <span class="op">=</span> [<span class="fl">1.0</span>] <span class="op">*</span> n_epochs <span class="op">+</span> [<span class="fl">1.0</span>]   <span class="co"># [1/N1, 1/N2, 1/N3, epoch-switch]</span></span>
+<span id="cb27-59"><a href="#cb27-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-60"><a href="#cb27-60" aria-hidden="true" tabindex="-1"></a>graph_ti <span class="op">=</span> Graph(</span>
+<span id="cb27-61"><a href="#cb27-61" aria-hidden="true" tabindex="-1"></a>    coalescent_epoch_cb_ti,</span>
+<span id="cb27-62"><a href="#cb27-62" aria-hidden="true" tabindex="-1"></a>    ipv<span class="op">=</span>ipv_ti,</span>
+<span id="cb27-63"><a href="#cb27-63" aria-hidden="true" tabindex="-1"></a>    epochs<span class="op">=</span>epoch_coal,</span>
+<span id="cb27-64"><a href="#cb27-64" aria-hidden="true" tabindex="-1"></a>    epoch_idx<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb27-65"><a href="#cb27-65" aria-hidden="true" tabindex="-1"></a>    indexer<span class="op">=</span>indexer_ti,</span>
+<span id="cb27-66"><a href="#cb27-66" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb27-67"><a href="#cb27-67" aria-hidden="true" tabindex="-1"></a>graph_ti.update_weights(init_weights)</span>
+<span id="cb27-68"><a href="#cb27-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-69"><a href="#cb27-69" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ep <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, n_epochs):</span>
+<span id="cb27-70"><a href="#cb27-70" aria-hidden="true" tabindex="-1"></a>    graph_ti.update_weights(init_weights)</span>
+<span id="cb27-71"><a href="#cb27-71" aria-hidden="true" tabindex="-1"></a>    add_epoch_ti(graph_ti, coalescent_epoch_cb_ti, epoch_coal, ep, indexer_ti)</span>
+<span id="cb27-72"><a href="#cb27-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-73"><a href="#cb27-73" aria-hidden="true" tabindex="-1"></a>graph_ti.update_weights(init_weights)</span>
+<span id="cb27-74"><a href="#cb27-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-75"><a href="#cb27-75" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Graf bygget: </span><span class="sc">{</span>graph_ti<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss"> vertices, </span><span class="sc">{</span>graph_ti<span class="sc">.</span>param_length()<span class="sc">}</span><span class="ss"> parametre"</span>)</span>
+<span id="cb27-76"><a href="#cb27-76" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  Parametre: [1/N_epoch0, 1/N_epoch1, 1/N_epoch2, epoch-switch]"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Graf bygget: 16 vertices, 4 parametre
   Parametre: [1/N_epoch0, 1/N_epoch1, 1/N_epoch2, epoch-switch]</code></pre>
 </div>
 </div>
-<div id="544e20cd" class="cell" data-execution_count="4">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Joint probability graf</span></span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>mutation_rate <span class="op">=</span> <span class="fl">1.0</span></span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>joint_ti <span class="op">=</span> graph_ti.joint_prob_graph(</span>
-<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    indexer_ti,</span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>    reward_only<span class="op">=</span>[<span class="st">"ton"</span>],</span>
-<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>    reward_limit<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>    tot_reward_limit<span class="op">=</span><span class="dv">2</span>,</span>
-<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>    mutation_rate<span class="op">=</span>mutation_rate,</span>
-<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Parameterindeks i joint_ti:</span></span>
-<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a><span class="co">#   0: 1/N_epoch0  (nutid → 50 ka)</span></span>
-<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a><span class="co">#   1: 1/N_epoch1  (50 ka → 500 ka)</span></span>
-<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a><span class="co">#   2: 1/N_epoch2  (500 ka → fortid)</span></span>
-<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a><span class="co">#   3: epoch-switch  ← fikseres</span></span>
-<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a><span class="co">#   4: mutation_rate ← fikseres</span></span>
-<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a>EPOCH_SWITCH_IDX <span class="op">=</span> joint_ti.param_length() <span class="op">-</span> <span class="dv">2</span></span>
-<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a>MUT_IDX          <span class="op">=</span> joint_ti.param_length() <span class="op">-</span> <span class="dv">1</span></span>
-<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a>theta_init <span class="op">=</span> init_weights <span class="op">+</span> [mutation_rate]</span>
-<span id="cb27-22"><a href="#cb27-22" aria-hidden="true" tabindex="-1"></a>joint_ti.update_weights(theta_init)</span>
-<span id="cb27-23"><a href="#cb27-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-24"><a href="#cb27-24" aria-hidden="true" tabindex="-1"></a>tbl_ti <span class="op">=</span> joint_ti.joint_prob_table()</span>
-<span id="cb27-25"><a href="#cb27-25" aria-hidden="true" tabindex="-1"></a>defect  <span class="op">=</span> <span class="dv">1</span> <span class="op">-</span> tbl_ti[<span class="st">"prob"</span>].<span class="bu">sum</span>()</span>
-<span id="cb27-26"><a href="#cb27-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Joint prob-tabel: </span><span class="sc">{</span><span class="bu">len</span>(tbl_ti)<span class="sc">}</span><span class="ss"> mønstre"</span>)</span>
-<span id="cb27-27"><a href="#cb27-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Defekt: </span><span class="sc">{</span>defect<span class="sc">.</span>item()<span class="sc">:.4f}</span><span class="ss">  </span><span class="sc">{</span><span class="st">'✓'</span> <span class="cf">if</span> defect <span class="op">&lt;</span> <span class="fl">0.05</span> <span class="cf">else</span> <span class="st">'⚠ høj — øg tot_reward_limit'</span><span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb27-28"><a href="#cb27-28" aria-hidden="true" tabindex="-1"></a>tbl_ti.head(<span class="dv">8</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="544e20cd" class="cell" data-execution_count="18">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Joint probability graf</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>mutation_rate <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>joint_ti <span class="op">=</span> graph_ti.joint_prob_graph(</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    indexer_ti,</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>    reward_only<span class="op">=</span>[<span class="st">"ton"</span>],</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>    reward_limit<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>    tot_reward_limit<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>    mutation_rate<span class="op">=</span>mutation_rate,</span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Parameterindeks i joint_ti:</span></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a><span class="co">#   0: 1/N_epoch0  (nutid → 50 ka)</span></span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a><span class="co">#   1: 1/N_epoch1  (50 ka → 500 ka)</span></span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a><span class="co">#   2: 1/N_epoch2  (500 ka → fortid)</span></span>
+<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a><span class="co">#   3: epoch-switch  ← fikseres</span></span>
+<span id="cb29-17"><a href="#cb29-17" aria-hidden="true" tabindex="-1"></a><span class="co">#   4: mutation_rate ← fikseres</span></span>
+<span id="cb29-18"><a href="#cb29-18" aria-hidden="true" tabindex="-1"></a>EPOCH_SWITCH_IDX <span class="op">=</span> joint_ti.param_length() <span class="op">-</span> <span class="dv">2</span></span>
+<span id="cb29-19"><a href="#cb29-19" aria-hidden="true" tabindex="-1"></a>MUT_IDX          <span class="op">=</span> joint_ti.param_length() <span class="op">-</span> <span class="dv">1</span></span>
+<span id="cb29-20"><a href="#cb29-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-21"><a href="#cb29-21" aria-hidden="true" tabindex="-1"></a>theta_init <span class="op">=</span> init_weights <span class="op">+</span> [mutation_rate]</span>
+<span id="cb29-22"><a href="#cb29-22" aria-hidden="true" tabindex="-1"></a>joint_ti.update_weights(theta_init)</span>
+<span id="cb29-23"><a href="#cb29-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-24"><a href="#cb29-24" aria-hidden="true" tabindex="-1"></a>tbl_ti <span class="op">=</span> joint_ti.joint_prob_table()</span>
+<span id="cb29-25"><a href="#cb29-25" aria-hidden="true" tabindex="-1"></a>defect  <span class="op">=</span> <span class="dv">1</span> <span class="op">-</span> tbl_ti[<span class="st">"prob"</span>].<span class="bu">sum</span>()</span>
+<span id="cb29-26"><a href="#cb29-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Joint prob-tabel: </span><span class="sc">{</span><span class="bu">len</span>(tbl_ti)<span class="sc">}</span><span class="ss"> mønstre"</span>)</span>
+<span id="cb29-27"><a href="#cb29-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Defekt: </span><span class="sc">{</span>defect<span class="sc">.</span>item()<span class="sc">:.4f}</span><span class="ss">  </span><span class="sc">{</span><span class="st">'✓'</span> <span class="cf">if</span> defect <span class="op">&lt;</span> <span class="fl">0.05</span> <span class="cf">else</span> <span class="st">'⚠ høj — øg tot_reward_limit'</span><span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb29-28"><a href="#cb29-28" aria-hidden="true" tabindex="-1"></a>tbl_ti.head(<span class="dv">8</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Joint prob-tabel: 21 mønstre
 Defekt: 0.6707  ⚠ høj — øg tot_reward_limit</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="4">
+<div class="cell-output cell-output-display" data-execution_count="18">
 <div>
 
 
@@ -1240,169 +1274,169 @@ Defekt: 0.6707  ⚠ høj — øg tot_reward_limit</code></pre>
 </div>
 </div>
 </div>
-<div id="16037791" class="cell" data-execution_count="5">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Indlæs bavian-data og konverter til observationer </span></span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> load_and_convert(csv_path, nr_samples_use, table, seed<span class="op">=</span><span class="dv">0</span>):</span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> pd.read_csv(csv_path)</span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> df[df[<span class="st">"nr_samples"</span>] <span class="op">&gt;=</span> nr_samples_use].copy()</span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(seed)</span>
-<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>    k <span class="op">=</span> rng.hypergeometric(</span>
-<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>        ngood<span class="op">=</span>df[<span class="st">"derived_count"</span>].values,</span>
-<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>        nbad<span class="op">=</span>(df[<span class="st">"nr_samples"</span>] <span class="op">-</span> df[<span class="st">"derived_count"</span>]).values,</span>
-<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>        nsample<span class="op">=</span>nr_samples_use,</span>
-<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>    k <span class="op">=</span> k[(k <span class="op">&gt;</span> <span class="dv">0</span>) <span class="op">&amp;</span> (k <span class="op">&lt;</span> nr_samples_use)]</span>
-<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a>    feature_cols <span class="op">=</span> [c <span class="cf">for</span> c <span class="kw">in</span> table.columns <span class="cf">if</span> c.startswith(<span class="st">"ton"</span>)]</span>
-<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a>    allowed <span class="op">=</span> <span class="bu">set</span>(<span class="bu">tuple</span>(<span class="bu">int</span>(x) <span class="cf">for</span> x <span class="kw">in</span> r) <span class="cf">for</span> r <span class="kw">in</span> table[feature_cols].values)</span>
-<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a>    obs <span class="op">=</span> []</span>
-<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ki <span class="kw">in</span> k:</span>
-<span id="cb29-17"><a href="#cb29-17" aria-hidden="true" tabindex="-1"></a>        o <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> <span class="bu">len</span>(feature_cols)</span>
-<span id="cb29-18"><a href="#cb29-18" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="dv">0</span> <span class="op">&lt;</span> ki <span class="op">-</span> <span class="dv">1</span> <span class="op">&lt;</span> <span class="bu">len</span>(o):</span>
-<span id="cb29-19"><a href="#cb29-19" aria-hidden="true" tabindex="-1"></a>            o[ki <span class="op">-</span> <span class="dv">1</span>] <span class="op">=</span> <span class="dv">1</span></span>
-<span id="cb29-20"><a href="#cb29-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">tuple</span>(o) <span class="kw">in</span> allowed:</span>
-<span id="cb29-21"><a href="#cb29-21" aria-hidden="true" tabindex="-1"></a>            obs.append(o)</span>
-<span id="cb29-22"><a href="#cb29-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>csv_path<span class="sc">.</span>name<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span><span class="bu">len</span>(obs)<span class="sc">:,}</span><span class="ss"> brugbare observationer"</span>)</span>
-<span id="cb29-23"><a href="#cb29-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> obs</span>
-<span id="cb29-24"><a href="#cb29-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb29-25"><a href="#cb29-25" aria-hidden="true" tabindex="-1"></a>obs_ye <span class="op">=</span> load_and_convert(</span>
-<span id="cb29-26"><a href="#cb29-26" aria-hidden="true" tabindex="-1"></a>    OUT_DIR <span class="op">/</span> <span class="st">"derived_counts_yellow_east.csv"</span>, nr_samples_ti, tbl_ti</span>
-<span id="cb29-27"><a href="#cb29-27" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb29-28"><a href="#cb29-28" aria-hidden="true" tabindex="-1"></a>obs_ki <span class="op">=</span> load_and_convert(</span>
-<span id="cb29-29"><a href="#cb29-29" aria-hidden="true" tabindex="-1"></a>    OUT_DIR <span class="op">/</span> <span class="st">"derived_counts_kinda.csv"</span>, nr_samples_ti, tbl_ti</span>
-<span id="cb29-30"><a href="#cb29-30" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb29-31"><a href="#cb29-31" aria-hidden="true" tabindex="-1"></a>obs_os <span class="op">=</span> load_and_convert(</span>
-<span id="cb29-32"><a href="#cb29-32" aria-hidden="true" tabindex="-1"></a>    OUT_DIR <span class="op">/</span> <span class="st">"derived_counts_olive_south.csv"</span>, nr_samples_ti, tbl_ti</span>
-<span id="cb29-33"><a href="#cb29-33" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="16037791" class="cell" data-execution_count="19">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Indlæs bavian-data og konverter til observationer </span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> load_and_convert(csv_path, nr_samples_use, table, seed<span class="op">=</span><span class="dv">0</span>):</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> pd.read_csv(csv_path)</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> df[df[<span class="st">"nr_samples"</span>] <span class="op">&gt;=</span> nr_samples_use].copy()</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(seed)</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>    k <span class="op">=</span> rng.hypergeometric(</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>        ngood<span class="op">=</span>df[<span class="st">"derived_count"</span>].values,</span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>        nbad<span class="op">=</span>(df[<span class="st">"nr_samples"</span>] <span class="op">-</span> df[<span class="st">"derived_count"</span>]).values,</span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>        nsample<span class="op">=</span>nr_samples_use,</span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>    k <span class="op">=</span> k[(k <span class="op">&gt;</span> <span class="dv">0</span>) <span class="op">&amp;</span> (k <span class="op">&lt;</span> nr_samples_use)]</span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>    feature_cols <span class="op">=</span> [c <span class="cf">for</span> c <span class="kw">in</span> table.columns <span class="cf">if</span> c.startswith(<span class="st">"ton"</span>)]</span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a>    allowed <span class="op">=</span> <span class="bu">set</span>(<span class="bu">tuple</span>(<span class="bu">int</span>(x) <span class="cf">for</span> x <span class="kw">in</span> r) <span class="cf">for</span> r <span class="kw">in</span> table[feature_cols].values)</span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a>    obs <span class="op">=</span> []</span>
+<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ki <span class="kw">in</span> k:</span>
+<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a>        o <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> <span class="bu">len</span>(feature_cols)</span>
+<span id="cb31-18"><a href="#cb31-18" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="dv">0</span> <span class="op">&lt;</span> ki <span class="op">-</span> <span class="dv">1</span> <span class="op">&lt;</span> <span class="bu">len</span>(o):</span>
+<span id="cb31-19"><a href="#cb31-19" aria-hidden="true" tabindex="-1"></a>            o[ki <span class="op">-</span> <span class="dv">1</span>] <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb31-20"><a href="#cb31-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">tuple</span>(o) <span class="kw">in</span> allowed:</span>
+<span id="cb31-21"><a href="#cb31-21" aria-hidden="true" tabindex="-1"></a>            obs.append(o)</span>
+<span id="cb31-22"><a href="#cb31-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>csv_path<span class="sc">.</span>name<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span><span class="bu">len</span>(obs)<span class="sc">:,}</span><span class="ss"> brugbare observationer"</span>)</span>
+<span id="cb31-23"><a href="#cb31-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> obs</span>
+<span id="cb31-24"><a href="#cb31-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-25"><a href="#cb31-25" aria-hidden="true" tabindex="-1"></a>obs_ye <span class="op">=</span> load_and_convert(</span>
+<span id="cb31-26"><a href="#cb31-26" aria-hidden="true" tabindex="-1"></a>    OUT_DIR <span class="op">/</span> <span class="st">"derived_counts_yellow_east.csv"</span>, nr_samples_ti, tbl_ti</span>
+<span id="cb31-27"><a href="#cb31-27" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb31-28"><a href="#cb31-28" aria-hidden="true" tabindex="-1"></a>obs_ki <span class="op">=</span> load_and_convert(</span>
+<span id="cb31-29"><a href="#cb31-29" aria-hidden="true" tabindex="-1"></a>    OUT_DIR <span class="op">/</span> <span class="st">"derived_counts_kinda.csv"</span>, nr_samples_ti, tbl_ti</span>
+<span id="cb31-30"><a href="#cb31-30" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb31-31"><a href="#cb31-31" aria-hidden="true" tabindex="-1"></a>obs_os <span class="op">=</span> load_and_convert(</span>
+<span id="cb31-32"><a href="#cb31-32" aria-hidden="true" tabindex="-1"></a>    OUT_DIR <span class="op">/</span> <span class="st">"derived_counts_olive_south.csv"</span>, nr_samples_ti, tbl_ti</span>
+<span id="cb31-33"><a href="#cb31-33" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>  derived_counts_yellow_east.csv: 346,922 brugbare observationer
   derived_counts_kinda.csv: 385,469 brugbare observationer
   derived_counts_olive_south.csv: 264,217 brugbare observationer</code></pre>
 </div>
 </div>
-<div id="aab0306b" class="cell" data-execution_count="6">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># SVGD-inferens per population</span></span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>fixed_ti <span class="op">=</span> [</span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    (EPOCH_SWITCH_IDX, <span class="fl">1.0</span>),</span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    (MUT_IDX, mutation_rate),</span>
-<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>prior_ti <span class="op">=</span> [</span>
-<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>    GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="fl">5.0</span>]),   <span class="co"># 1/N_epoch0</span></span>
-<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>    GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="fl">5.0</span>]),   <span class="co"># 1/N_epoch1</span></span>
-<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>    GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="fl">5.0</span>]),   <span class="co"># 1/N_epoch2</span></span>
-<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>    <span class="va">None</span>,                         <span class="co"># epoch-switch (fikseret)</span></span>
-<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>    <span class="va">None</span>,                         <span class="co"># mutation (fikseret)</span></span>
-<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> run_svgd_ti(obs, pop_name, max_obs<span class="op">=</span><span class="dv">5000</span>, seed<span class="op">=</span><span class="dv">1</span>):</span>
-<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(seed)</span>
-<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(obs) <span class="op">&gt;</span> max_obs:</span>
-<span id="cb31-18"><a href="#cb31-18" aria-hidden="true" tabindex="-1"></a>        idx <span class="op">=</span> rng.choice(<span class="bu">len</span>(obs), max_obs, replace<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb31-19"><a href="#cb31-19" aria-hidden="true" tabindex="-1"></a>        obs_use <span class="op">=</span> [obs[i] <span class="cf">for</span> i <span class="kw">in</span> idx]</span>
-<span id="cb31-20"><a href="#cb31-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
-<span id="cb31-21"><a href="#cb31-21" aria-hidden="true" tabindex="-1"></a>        obs_use <span class="op">=</span> obs</span>
-<span id="cb31-22"><a href="#cb31-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">── SVGD: </span><span class="sc">{</span>pop_name<span class="sc">}</span><span class="ss"> (</span><span class="sc">{</span><span class="bu">len</span>(obs_use)<span class="sc">:,}</span><span class="ss"> obs) ──"</span>)</span>
-<span id="cb31-23"><a href="#cb31-23" aria-hidden="true" tabindex="-1"></a>    svgd <span class="op">=</span> joint_ti.svgd(</span>
-<span id="cb31-24"><a href="#cb31-24" aria-hidden="true" tabindex="-1"></a>        observed_data<span class="op">=</span>obs_use,</span>
-<span id="cb31-25"><a href="#cb31-25" aria-hidden="true" tabindex="-1"></a>        fixed<span class="op">=</span>fixed_ti,</span>
-<span id="cb31-26"><a href="#cb31-26" aria-hidden="true" tabindex="-1"></a>        prior<span class="op">=</span>prior_ti,</span>
-<span id="cb31-27"><a href="#cb31-27" aria-hidden="true" tabindex="-1"></a>        n_iterations<span class="op">=</span><span class="dv">150</span>,</span>
-<span id="cb31-28"><a href="#cb31-28" aria-hidden="true" tabindex="-1"></a>        n_particles<span class="op">=</span><span class="dv">80</span>,</span>
-<span id="cb31-29"><a href="#cb31-29" aria-hidden="true" tabindex="-1"></a>        learning_rate<span class="op">=</span>ExpStepSize(first_step<span class="op">=</span><span class="fl">0.08</span>, last_step<span class="op">=</span><span class="fl">0.01</span>, tau<span class="op">=</span><span class="fl">40.0</span>),</span>
-<span id="cb31-30"><a href="#cb31-30" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb31-31"><a href="#cb31-31" aria-hidden="true" tabindex="-1"></a>    svgd.summary(ci_method<span class="op">=</span><span class="st">"hpd"</span>, ci_level<span class="op">=</span><span class="fl">0.95</span>)</span>
-<span id="cb31-32"><a href="#cb31-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> svgd</span>
-<span id="cb31-33"><a href="#cb31-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-34"><a href="#cb31-34" aria-hidden="true" tabindex="-1"></a>svgd_ye <span class="op">=</span> run_svgd_ti(obs_ye, <span class="st">"Eastern yellow (Mikumi)"</span>)</span>
-<span id="cb31-35"><a href="#cb31-35" aria-hidden="true" tabindex="-1"></a>svgd_ki <span class="op">=</span> run_svgd_ti(obs_ki, <span class="st">"Kinda"</span>)</span>
-<span id="cb31-36"><a href="#cb31-36" aria-hidden="true" tabindex="-1"></a>svgd_os <span class="op">=</span> run_svgd_ti(obs_os, <span class="st">"Southern olive"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="aab0306b" class="cell" data-execution_count="20">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># SVGD-inferens per population</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>fixed_ti <span class="op">=</span> [</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    (EPOCH_SWITCH_IDX, <span class="fl">1.0</span>),</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    (MUT_IDX, mutation_rate),</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>prior_ti <span class="op">=</span> [</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>    GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="fl">5.0</span>]),   <span class="co"># 1/N_epoch0</span></span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>    GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="fl">5.0</span>]),   <span class="co"># 1/N_epoch1</span></span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>    GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="fl">5.0</span>]),   <span class="co"># 1/N_epoch2</span></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>    <span class="va">None</span>,                         <span class="co"># epoch-switch (fikseret)</span></span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>    <span class="va">None</span>,                         <span class="co"># mutation (fikseret)</span></span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> run_svgd_ti(obs, pop_name, max_obs<span class="op">=</span><span class="dv">5000</span>, seed<span class="op">=</span><span class="dv">1</span>):</span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(seed)</span>
+<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(obs) <span class="op">&gt;</span> max_obs:</span>
+<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>        idx <span class="op">=</span> rng.choice(<span class="bu">len</span>(obs), max_obs, replace<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>        obs_use <span class="op">=</span> [obs[i] <span class="cf">for</span> i <span class="kw">in</span> idx]</span>
+<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>        obs_use <span class="op">=</span> obs</span>
+<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">── SVGD: </span><span class="sc">{</span>pop_name<span class="sc">}</span><span class="ss"> (</span><span class="sc">{</span><span class="bu">len</span>(obs_use)<span class="sc">:,}</span><span class="ss"> obs) ──"</span>)</span>
+<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>    svgd <span class="op">=</span> joint_ti.svgd(</span>
+<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a>        observed_data<span class="op">=</span>obs_use,</span>
+<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a>        fixed<span class="op">=</span>fixed_ti,</span>
+<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a>        prior<span class="op">=</span>prior_ti,</span>
+<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a>        n_iterations<span class="op">=</span><span class="dv">150</span>,</span>
+<span id="cb33-28"><a href="#cb33-28" aria-hidden="true" tabindex="-1"></a>        n_particles<span class="op">=</span><span class="dv">80</span>,</span>
+<span id="cb33-29"><a href="#cb33-29" aria-hidden="true" tabindex="-1"></a>        learning_rate<span class="op">=</span>ExpStepSize(first_step<span class="op">=</span><span class="fl">0.08</span>, last_step<span class="op">=</span><span class="fl">0.01</span>, tau<span class="op">=</span><span class="fl">40.0</span>),</span>
+<span id="cb33-30"><a href="#cb33-30" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb33-31"><a href="#cb33-31" aria-hidden="true" tabindex="-1"></a>    svgd.summary(ci_method<span class="op">=</span><span class="st">"hpd"</span>, ci_level<span class="op">=</span><span class="fl">0.95</span>)</span>
+<span id="cb33-32"><a href="#cb33-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> svgd</span>
+<span id="cb33-33"><a href="#cb33-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-34"><a href="#cb33-34" aria-hidden="true" tabindex="-1"></a>svgd_ye <span class="op">=</span> run_svgd_ti(obs_ye, <span class="st">"Eastern yellow (Mikumi)"</span>)</span>
+<span id="cb33-35"><a href="#cb33-35" aria-hidden="true" tabindex="-1"></a>svgd_ki <span class="op">=</span> run_svgd_ti(obs_ki, <span class="st">"Kinda"</span>)</span>
+<span id="cb33-36"><a href="#cb33-36" aria-hidden="true" tabindex="-1"></a>svgd_os <span class="op">=</span> run_svgd_ti(obs_os, <span class="st">"Southern olive"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Parameter  Fixed      MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
-0          No         9.0079     5.7235     2.4206     1.3802       9.0079      
-1          No         2.0882     2.1735     0.6167     0.0006       2.7922      
-2          No         4.8497     4.2316     0.9392     2.5302       5.7942      
+0          No         8.5781     5.7530     1.9876     2.7190       8.5781      
+1          No         2.1227     2.2834     0.4869     1.8829       3.0242      
+2          No         4.8875     4.2394     0.6903     3.2318       4.9866      
 3          Yes        1.0000     NA         NA         NA           NA          
 4          Yes        1.0000     NA         NA         NA           NA          
 
 Particles: 80, Iterations: 150</code></pre>
 </div>
 </div>
-<div id="e59f6bc5" class="cell" data-execution_count="7">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Konverter til biologiske enheder og sammenlign </span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>populations <span class="op">=</span> {</span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Eastern yellow"</span>: (svgd_ye, pi_df.loc[<span class="st">"Eastern yellow (Mikumi)"</span>, <span class="st">"pi"</span>]),</span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Kinda"</span>:          (svgd_ki, pi_df.loc[<span class="st">"Kinda"</span>, <span class="st">"pi"</span>]),</span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Southern olive"</span>: (svgd_os, pi_df.loc[<span class="st">"Southern olive"</span>, <span class="st">"pi"</span>]),</span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>epoch_labels <span class="op">=</span> [</span>
-<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f"Nutid→</span><span class="sc">{</span>baboon_years[<span class="dv">1</span>]<span class="op">//</span><span class="dv">1000</span><span class="sc">}</span><span class="ss">ka"</span>,</span>
-<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f"</span><span class="sc">{</span>baboon_years[<span class="dv">1</span>]<span class="op">//</span><span class="dv">1000</span><span class="sc">}</span><span class="ss">ka→</span><span class="sc">{</span>baboon_years[<span class="dv">2</span>]<span class="op">//</span><span class="dv">1000</span><span class="sc">}</span><span class="ss">ka"</span>,</span>
-<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f"</span><span class="sc">{</span>baboon_years[<span class="dv">2</span>]<span class="op">//</span><span class="dv">1000</span><span class="sc">}</span><span class="ss">ka→fortid"</span>,</span>
-<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>rows <span class="op">=</span> []</span>
-<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> pop_name, (svgd, pi_val) <span class="kw">in</span> populations.items():</span>
-<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>    N_ref_pop <span class="op">=</span> pi_val <span class="op">/</span> (<span class="dv">4</span> <span class="op">*</span> MUT_RATE)</span>
-<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>    theta <span class="op">=</span> svgd.get_results()[<span class="st">"theta_mean"</span>]</span>
-<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ep_i, label <span class="kw">in</span> <span class="bu">enumerate</span>(epoch_labels):</span>
-<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>        Ne_est <span class="op">=</span> (<span class="dv">1</span> <span class="op">/</span> theta[ep_i]) <span class="op">*</span> N_ref_pop</span>
-<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>        rows.append({</span>
-<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>            <span class="st">"Population"</span>: pop_name,</span>
-<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>            <span class="st">"Epoke"</span>: label,</span>
-<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>            <span class="st">"1/N (coal.)"</span>: <span class="ss">f"</span><span class="sc">{</span>theta[ep_i]<span class="sc">:.4f}</span><span class="ss">"</span>,</span>
-<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a>            <span class="st">"N_e (individer)"</span>: <span class="ss">f"</span><span class="sc">{</span>Ne_est<span class="sc">:,.0f}</span><span class="ss">"</span>,</span>
-<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a>        })</span>
-<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a>result_df <span class="op">=</span> pd.DataFrame(rows)</span>
-<span id="cb33-28"><a href="#cb33-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(result_df.to_string(index<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="e59f6bc5" class="cell" data-execution_count="21">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Konverter til biologiske enheder og sammenlign </span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>populations <span class="op">=</span> {</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Eastern yellow"</span>: (svgd_ye, pi_df.loc[<span class="st">"Eastern yellow (Mikumi)"</span>, <span class="st">"pi"</span>]),</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Kinda"</span>:          (svgd_ki, pi_df.loc[<span class="st">"Kinda"</span>, <span class="st">"pi"</span>]),</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Southern olive"</span>: (svgd_os, pi_df.loc[<span class="st">"Southern olive"</span>, <span class="st">"pi"</span>]),</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>epoch_labels <span class="op">=</span> [</span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f"Nutid→</span><span class="sc">{</span>baboon_years[<span class="dv">1</span>]<span class="op">//</span><span class="dv">1000</span><span class="sc">}</span><span class="ss">ka"</span>,</span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f"</span><span class="sc">{</span>baboon_years[<span class="dv">1</span>]<span class="op">//</span><span class="dv">1000</span><span class="sc">}</span><span class="ss">ka→</span><span class="sc">{</span>baboon_years[<span class="dv">2</span>]<span class="op">//</span><span class="dv">1000</span><span class="sc">}</span><span class="ss">ka"</span>,</span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f"</span><span class="sc">{</span>baboon_years[<span class="dv">2</span>]<span class="op">//</span><span class="dv">1000</span><span class="sc">}</span><span class="ss">ka→fortid"</span>,</span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>rows <span class="op">=</span> []</span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> pop_name, (svgd, pi_val) <span class="kw">in</span> populations.items():</span>
+<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a>    N_ref_pop <span class="op">=</span> pi_val <span class="op">/</span> (<span class="dv">4</span> <span class="op">*</span> MUT_RATE)</span>
+<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>    theta <span class="op">=</span> svgd.get_results()[<span class="st">"theta_mean"</span>]</span>
+<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ep_i, label <span class="kw">in</span> <span class="bu">enumerate</span>(epoch_labels):</span>
+<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a>        Ne_est <span class="op">=</span> (<span class="dv">1</span> <span class="op">/</span> theta[ep_i]) <span class="op">*</span> N_ref_pop</span>
+<span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a>        rows.append({</span>
+<span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a>            <span class="st">"Population"</span>: pop_name,</span>
+<span id="cb35-22"><a href="#cb35-22" aria-hidden="true" tabindex="-1"></a>            <span class="st">"Epoke"</span>: label,</span>
+<span id="cb35-23"><a href="#cb35-23" aria-hidden="true" tabindex="-1"></a>            <span class="st">"1/N (coal.)"</span>: <span class="ss">f"</span><span class="sc">{</span>theta[ep_i]<span class="sc">:.4f}</span><span class="ss">"</span>,</span>
+<span id="cb35-24"><a href="#cb35-24" aria-hidden="true" tabindex="-1"></a>            <span class="st">"N_e (individer)"</span>: <span class="ss">f"</span><span class="sc">{</span>Ne_est<span class="sc">:,.0f}</span><span class="ss">"</span>,</span>
+<span id="cb35-25"><a href="#cb35-25" aria-hidden="true" tabindex="-1"></a>        })</span>
+<span id="cb35-26"><a href="#cb35-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-27"><a href="#cb35-27" aria-hidden="true" tabindex="-1"></a>result_df <span class="op">=</span> pd.DataFrame(rows)</span>
+<span id="cb35-28"><a href="#cb35-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(result_df.to_string(index<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>    Population        Epoke 1/N (coal.) N_e (individer)
-Eastern yellow   Nutid→50ka      5.7392          12,508
-Eastern yellow   50ka→500ka      2.3182          30,968
-Eastern yellow 500ka→fortid      3.6793          19,512
-         Kinda   Nutid→50ka      5.5809          14,238
-         Kinda   50ka→500ka      2.2782          34,878
-         Kinda 500ka→fortid      4.1232          19,271
-Southern olive   Nutid→50ka      5.7235           9,558
-Southern olive   50ka→500ka      2.1735          25,169
-Southern olive 500ka→fortid      4.2316          12,927</code></pre>
+Eastern yellow   Nutid→50ka      5.5520          12,930
+Eastern yellow   50ka→500ka      2.1334          33,650
+Eastern yellow 500ka→fortid      3.6942          19,433
+         Kinda   Nutid→50ka      5.7278          13,872
+         Kinda   50ka→500ka      2.3404          33,952
+         Kinda 500ka→fortid      4.2207          18,826
+Southern olive   Nutid→50ka      5.7530           9,509
+Southern olive   50ka→500ka      2.2834          23,958
+Southern olive 500ka→fortid      4.2394          12,904</code></pre>
 </div>
 </div>
-<div id="a14f465e" class="cell" data-execution_count="8">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualisering: N_e over tid per population </span></span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">4</span>))</span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>colors_pop <span class="op">=</span> {<span class="st">"Eastern yellow"</span>: <span class="st">"C1"</span>, <span class="st">"Kinda"</span>: <span class="st">"C3"</span>, <span class="st">"Southern olive"</span>: <span class="st">"C4"</span>}</span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> pop_name, (svgd, pi_val) <span class="kw">in</span> populations.items():</span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>    N_ref_pop <span class="op">=</span> pi_val <span class="op">/</span> (<span class="dv">4</span> <span class="op">*</span> MUT_RATE)</span>
-<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>    theta     <span class="op">=</span> svgd.get_results()[<span class="st">"theta_mean"</span>]</span>
-<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>    Ne_vals   <span class="op">=</span> [(<span class="dv">1</span> <span class="op">/</span> theta[i]) <span class="op">*</span> N_ref_pop <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n_epochs)]</span>
-<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Step-plot: N_e over tid</span></span>
-<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>    x_yrs <span class="op">=</span> baboon_years <span class="op">+</span> [baboon_years[<span class="op">-</span><span class="dv">1</span>] <span class="op">*</span> <span class="dv">3</span>]   <span class="co"># forlæng sidste epoke</span></span>
-<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>    y_Ne  <span class="op">=</span> Ne_vals <span class="op">+</span> [Ne_vals[<span class="op">-</span><span class="dv">1</span>]]</span>
-<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>    ax.step(x_yrs, y_Ne, where<span class="op">=</span><span class="st">"post"</span>,</span>
-<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>            label<span class="op">=</span>pop_name, color<span class="op">=</span>colors_pop[pop_name], lw<span class="op">=</span><span class="dv">2</span>)</span>
-<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a>ax.set_xscale(<span class="st">"log"</span>)</span>
-<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>ax.set_yscale(<span class="st">"log"</span>)</span>
-<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">"År tilbage i tid"</span>)</span>
-<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">"Effektiv populationsstørrelse $N_e$"</span>)</span>
-<span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">"Time-inhomogen $N_e$-estimat per population</span><span class="ch">\n</span><span class="st">(3-epoke model, SVGD)"</span>)</span>
-<span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
-<span id="cb35-22"><a href="#cb35-22" aria-hidden="true" tabindex="-1"></a>ax.grid(alpha<span class="op">=</span><span class="fl">0.3</span>, which<span class="op">=</span><span class="st">"both"</span>, ls<span class="op">=</span><span class="st">"--"</span>)</span>
-<span id="cb35-23"><a href="#cb35-23" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb35-24"><a href="#cb35-24" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
-<span id="cb35-25"><a href="#cb35-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-26"><a href="#cb35-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Sammenlign med Sørensen et al. (2023) Fig. 3 (PSMC-profiler):"</span>)</span>
-<span id="cb35-27"><a href="#cb35-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  Yellow baboon nutid: ~30.000, ancestral: ~70.000"</span>)</span>
-<span id="cb35-28"><a href="#cb35-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  Kinda: generelt lavere Ne pga. demografisk bottleneck"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="a14f465e" class="cell" data-execution_count="22">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualisering: N_e over tid per population </span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">4</span>))</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>colors_pop <span class="op">=</span> {<span class="st">"Eastern yellow"</span>: <span class="st">"C1"</span>, <span class="st">"Kinda"</span>: <span class="st">"C3"</span>, <span class="st">"Southern olive"</span>: <span class="st">"C4"</span>}</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> pop_name, (svgd, pi_val) <span class="kw">in</span> populations.items():</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>    N_ref_pop <span class="op">=</span> pi_val <span class="op">/</span> (<span class="dv">4</span> <span class="op">*</span> MUT_RATE)</span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>    theta     <span class="op">=</span> svgd.get_results()[<span class="st">"theta_mean"</span>]</span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>    Ne_vals   <span class="op">=</span> [(<span class="dv">1</span> <span class="op">/</span> theta[i]) <span class="op">*</span> N_ref_pop <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n_epochs)]</span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Step-plot: N_e over tid</span></span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a>    x_yrs <span class="op">=</span> baboon_years <span class="op">+</span> [baboon_years[<span class="op">-</span><span class="dv">1</span>] <span class="op">*</span> <span class="dv">3</span>]   <span class="co"># forlæng sidste epoke</span></span>
+<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a>    y_Ne  <span class="op">=</span> Ne_vals <span class="op">+</span> [Ne_vals[<span class="op">-</span><span class="dv">1</span>]]</span>
+<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a>    ax.step(x_yrs, y_Ne, where<span class="op">=</span><span class="st">"post"</span>,</span>
+<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a>            label<span class="op">=</span>pop_name, color<span class="op">=</span>colors_pop[pop_name], lw<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-16"><a href="#cb37-16" aria-hidden="true" tabindex="-1"></a>ax.set_xscale(<span class="st">"log"</span>)</span>
+<span id="cb37-17"><a href="#cb37-17" aria-hidden="true" tabindex="-1"></a>ax.set_yscale(<span class="st">"log"</span>)</span>
+<span id="cb37-18"><a href="#cb37-18" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">"År tilbage i tid"</span>)</span>
+<span id="cb37-19"><a href="#cb37-19" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">"Effektiv populationsstørrelse $N_e$"</span>)</span>
+<span id="cb37-20"><a href="#cb37-20" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">"Time-inhomogen $N_e$-estimat per population</span><span class="ch">\n</span><span class="st">(3-epoke model, SVGD)"</span>)</span>
+<span id="cb37-21"><a href="#cb37-21" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
+<span id="cb37-22"><a href="#cb37-22" aria-hidden="true" tabindex="-1"></a>ax.grid(alpha<span class="op">=</span><span class="fl">0.3</span>, which<span class="op">=</span><span class="st">"both"</span>, ls<span class="op">=</span><span class="st">"--"</span>)</span>
+<span id="cb37-23"><a href="#cb37-23" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb37-24"><a href="#cb37-24" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb37-25"><a href="#cb37-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-26"><a href="#cb37-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Sammenlign med Sørensen et al. (2023) Fig. 3 (PSMC-profiler):"</span>)</span>
+<span id="cb37-27"><a href="#cb37-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  Yellow baboon nutid: ~30.000, ancestral: ~70.000"</span>)</span>
+<span id="cb37-28"><a href="#cb37-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  Kinda: generelt lavere Ne pga. demografisk bottleneck"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="06_time_inhomogeneous_models_files/figure-html/cell-22-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-8"><img src="06_time_inhomogeneous_models_files/figure-html/cell-22-output-1.png" width="787" height="384" class="figure-img"></a></p>
+<p><a href="06_time_inhomogeneous_models_files/figure-html/cell-23-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-8"><img src="06_time_inhomogeneous_models_files/figure-html/cell-23-output-1.png" width="787" height="384" class="figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -1412,33 +1446,33 @@ Southern olive 500ka→fortid      4.2316          12,927</code></pre>
   Kinda: generelt lavere Ne pga. demografisk bottleneck</code></pre>
 </div>
 </div>
-<div id="cecfae6b" class="cell" data-execution_count="12">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Konvergensplot og posterior CI for Eastern yellow </span></span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>svgd_ye.plot_convergence()</span>
-<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>svgd_ye.plot_ci(ci_method<span class="op">=</span><span class="st">"hpd"</span>)</span>
-<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>svgd_ye.plot_pairwise()</span>
-<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">"Posterior pairwise — Eastern yellow</span><span class="ch">\n</span><span class="st">(korrelation mellem Ne per epoke)"</span>)</span>
-<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="cecfae6b" class="cell" data-execution_count="23">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Konvergensplot og posterior CI for Eastern yellow </span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>svgd_ye.plot_convergence()</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>svgd_ye.plot_ci(ci_method<span class="op">=</span><span class="st">"hpd"</span>)</span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>svgd_ye.plot_pairwise()</span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">"Posterior pairwise — Eastern yellow</span><span class="ch">\n</span><span class="st">(korrelation mellem Ne per epoke)"</span>)</span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="06_time_inhomogeneous_models_files/figure-html/cell-23-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-9"><img src="06_time_inhomogeneous_models_files/figure-html/cell-23-output-1.png" width="687" height="290" class="figure-img"></a></p>
+<p><a href="06_time_inhomogeneous_models_files/figure-html/cell-24-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-9"><img src="06_time_inhomogeneous_models_files/figure-html/cell-24-output-1.png" width="687" height="290" class="figure-img"></a></p>
 </figure>
 </div>
 </div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="06_time_inhomogeneous_models_files/figure-html/cell-23-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-10"><img src="06_time_inhomogeneous_models_files/figure-html/cell-23-output-2.png" width="689" height="290" class="figure-img"></a></p>
+<p><a href="06_time_inhomogeneous_models_files/figure-html/cell-24-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-10"><img src="06_time_inhomogeneous_models_files/figure-html/cell-24-output-2.png" width="689" height="290" class="figure-img"></a></p>
 </figure>
 </div>
 </div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="06_time_inhomogeneous_models_files/figure-html/cell-23-output-3.png" class="lightbox" data-gallery="quarto-lightbox-gallery-11"><img src="06_time_inhomogeneous_models_files/figure-html/cell-23-output-3.png" width="786" height="690" class="figure-img"></a></p>
+<p><a href="06_time_inhomogeneous_models_files/figure-html/cell-24-output-3.png" class="lightbox" data-gallery="quarto-lightbox-gallery-11"><img src="06_time_inhomogeneous_models_files/figure-html/cell-24-output-3.png" width="786" height="690" class="figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -1446,8 +1480,212 @@ Southern olive 500ka→fortid      4.2316          12,927</code></pre>
 <pre><code>&lt;Figure size 500x370 with 0 Axes&gt;</code></pre>
 </div>
 </div>
+</section>
+<section id="ghost-populationer" class="level2">
+<h2 class="anchored" data-anchor-id="ghost-populationer">10. Ghost populationer</h2>
+<p>En <strong>ghost population</strong> er en uobserveret (enten uddød eller ikke-samplet) population, der historisk har bidraget med genetisk materiale til de observerede populationer via admixture eller migration.</p>
+<p>For bavianer er dette biologisk plausibelt: Sørensen et al.&nbsp;(2023) viser, at western yellow baboons (Mahale/Katavi) bærer genetiske spor af tre linjer — eastern yellow, olive og Kinda — heraf en der ikke er direkte observeret i nutiden.</p>
+<section id="modeldesign" class="level3">
+<h3 class="anchored" data-anchor-id="modeldesign">Modeldesign</h3>
+<p>Jeg udvider IM-modellen med en tredje population (ghost), der: 1. Eksisterede i en historisk periode (epoch 0 og 1) 2. Bidrog til population 1 via migration i epoch 0 3. Koalescer med de andre i den ancestrale population (epoch 2)</p>
+<p>State-design (epoch 0): - <code>in_pop = 1</code>: observeret population 1 - <code>in_pop = 2</code>: observeret population 2<br>
+- <code>in_pop = 3</code>: ghost population (ikke samplet)</p>
+<p>Startbetingelse: alle <span class="math inline">\(n\)</span> lineages er i population 1 (vi har kun samples fra pop 1). Ghost-populationen bidrager kun via <em>migration ind i</em> population 1 — dvs. som en historisk kilde.</p>
+<p>Parametre: | Index | Parameter | Beskrivelse | |—|—|—| | 0 | <span class="math inline">\(1/N_1\)</span> | Coalescence-rate i pop 1 | | 1 | <span class="math inline">\(1/N_2\)</span> | Coalescence-rate i pop 2 | | 2 | <span class="math inline">\(1/N_g\)</span> | Coalescence-rate i ghost pop | | 3 | <span class="math inline">\(m_{g→1}\)</span> | Migration ghost → pop 1 | | 4 | <span class="math inline">\(1/N_a\)</span> | Coalescence-rate i ancestral | | 5 | — | Epoch-switch slot |</p>
+<div id="62e59115" class="cell" data-execution_count="24">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itertools <span class="im">import</span> combinations_with_replacement</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> partial</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>all_pairs <span class="op">=</span> partial(combinations_with_replacement, r<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>nr_samples_ghost <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>N_PARAMS_GHOST <span class="op">=</span> <span class="dv">6</span>   <span class="co"># [1/N1, 1/N2, 1/Ng, m_g1, 1/Na, epoch-switch]</span></span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>indexer_ghost <span class="op">=</span> StateIndexer(</span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>    lineages<span class="op">=</span>[</span>
+<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">"descendants"</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span>nr_samples_ghost),</span>
+<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">"in_pop"</span>,      min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span><span class="dv">3</span>),   <span class="co"># 3 = ghost</span></span>
+<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a>    ],</span>
+<span id="cb41-14"><a href="#cb41-14" aria-hidden="true" tabindex="-1"></a>    slots<span class="op">=</span>[<span class="st">"epoch"</span>],</span>
+<span id="cb41-15"><a href="#cb41-15" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb41-16"><a href="#cb41-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-17"><a href="#cb41-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Start: alle n lineages i population 1, epoch 0</span></span>
+<span id="cb41-18"><a href="#cb41-18" aria-hidden="true" tabindex="-1"></a>ipv_ghost <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer_ghost.state_length</span>
+<span id="cb41-19"><a href="#cb41-19" aria-hidden="true" tabindex="-1"></a>ipv_ghost[indexer_ghost.props_to_index(descendants<span class="op">=</span><span class="dv">1</span>, in_pop<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> nr_samples_ghost</span>
+<span id="cb41-20"><a href="#cb41-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-21"><a href="#cb41-21" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ghost_callback(state, epochs<span class="op">=</span><span class="va">None</span>, epoch_idx<span class="op">=</span><span class="va">None</span>, indexer<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb41-22"><a href="#cb41-22" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb41-23"><a href="#cb41-23" aria-hidden="true" tabindex="-1"></a>    epoch_idx <span class="op">=</span> <span class="bu">int</span>(epoch_idx)</span>
+<span id="cb41-24"><a href="#cb41-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-25"><a href="#cb41-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state[indexer.epoch] <span class="op">!=</span> epoch_idx:</span>
+<span id="cb41-26"><a href="#cb41-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
+<span id="cb41-27"><a href="#cb41-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-28"><a href="#cb41-28" aria-hidden="true" tabindex="-1"></a>    lineage_sum <span class="op">=</span> <span class="bu">sum</span>(state[k] <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(indexer.state_length) <span class="cf">if</span> k <span class="op">!=</span> indexer.epoch)</span>
+<span id="cb41-29"><a href="#cb41-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> lineage_sum <span class="op">&lt;=</span> <span class="dv">1</span>:</span>
+<span id="cb41-30"><a href="#cb41-30" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
+<span id="cb41-31"><a href="#cb41-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-32"><a href="#cb41-32" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Coalescence (kun inden for samme population, eller alle i ancestral epoch)</span></span>
+<span id="cb41-33"><a href="#cb41-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, j <span class="kw">in</span> all_pairs(indexer.lineages):</span>
+<span id="cb41-34"><a href="#cb41-34" aria-hidden="true" tabindex="-1"></a>        pi <span class="op">=</span> indexer.lineages.index_to_props(i)</span>
+<span id="cb41-35"><a href="#cb41-35" aria-hidden="true" tabindex="-1"></a>        pj <span class="op">=</span> indexer.lineages.index_to_props(j)</span>
+<span id="cb41-36"><a href="#cb41-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-37"><a href="#cb41-37" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Epoch 0+1: coalescence kun inden for samme pop</span></span>
+<span id="cb41-38"><a href="#cb41-38" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> epoch_idx <span class="op">&lt;</span> <span class="dv">2</span> <span class="kw">and</span> pi.in_pop <span class="op">!=</span> pj.in_pop:</span>
+<span id="cb41-39"><a href="#cb41-39" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
+<span id="cb41-40"><a href="#cb41-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-41"><a href="#cb41-41" aria-hidden="true" tabindex="-1"></a>        same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb41-42"><a href="#cb41-42" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb41-43"><a href="#cb41-43" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb41-44"><a href="#cb41-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-45"><a href="#cb41-45" aria-hidden="true" tabindex="-1"></a>        new <span class="op">=</span> state.copy()</span>
+<span id="cb41-46"><a href="#cb41-46" aria-hidden="true" tabindex="-1"></a>        new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb41-47"><a href="#cb41-47" aria-hidden="true" tabindex="-1"></a>        new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb41-48"><a href="#cb41-48" aria-hidden="true" tabindex="-1"></a>        des <span class="op">=</span> pi.descendants <span class="op">+</span> pj.descendants</span>
+<span id="cb41-49"><a href="#cb41-49" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> des <span class="op">&gt;</span> nr_samples_ghost: <span class="cf">continue</span></span>
+<span id="cb41-50"><a href="#cb41-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-51"><a href="#cb41-51" aria-hidden="true" tabindex="-1"></a>        k <span class="op">=</span> indexer.props_to_index(descendants<span class="op">=</span>des, in_pop<span class="op">=</span>pi.in_pop)</span>
+<span id="cb41-52"><a href="#cb41-52" aria-hidden="true" tabindex="-1"></a>        new[k] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb41-53"><a href="#cb41-53" aria-hidden="true" tabindex="-1"></a>        rate <span class="op">=</span> state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same)</span>
+<span id="cb41-54"><a href="#cb41-54" aria-hidden="true" tabindex="-1"></a>        coeff <span class="op">=</span> np.zeros(N_PARAMS_GHOST)</span>
+<span id="cb41-55"><a href="#cb41-55" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> epoch_idx <span class="op">&lt;</span> <span class="dv">2</span>:</span>
+<span id="cb41-56"><a href="#cb41-56" aria-hidden="true" tabindex="-1"></a>            pop_idx <span class="op">=</span> pi.in_pop <span class="op">-</span> <span class="dv">1</span>   <span class="co"># pop1→0, pop2→1, ghost→2</span></span>
+<span id="cb41-57"><a href="#cb41-57" aria-hidden="true" tabindex="-1"></a>            coeff[pop_idx] <span class="op">=</span> rate</span>
+<span id="cb41-58"><a href="#cb41-58" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:  <span class="co"># ancestral</span></span>
+<span id="cb41-59"><a href="#cb41-59" aria-hidden="true" tabindex="-1"></a>            coeff[<span class="dv">4</span>] <span class="op">=</span> rate</span>
+<span id="cb41-60"><a href="#cb41-60" aria-hidden="true" tabindex="-1"></a>        transitions.append([new, coeff])</span>
+<span id="cb41-61"><a href="#cb41-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-62"><a href="#cb41-62" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Migration: ghost → pop 1 (kun epoch 0)</span></span>
+<span id="cb41-63"><a href="#cb41-63" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> epoch_idx <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb41-64"><a href="#cb41-64" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(indexer.state_length):</span>
+<span id="cb41-65"><a href="#cb41-65" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> i <span class="op">==</span> indexer.epoch: <span class="cf">continue</span></span>
+<span id="cb41-66"><a href="#cb41-66" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> state[i] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
+<span id="cb41-67"><a href="#cb41-67" aria-hidden="true" tabindex="-1"></a>            pi <span class="op">=</span> indexer.lineages.index_to_props(i)</span>
+<span id="cb41-68"><a href="#cb41-68" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> pi.in_pop <span class="op">!=</span> <span class="dv">3</span>: <span class="cf">continue</span>   <span class="co"># kun fra ghost</span></span>
+<span id="cb41-69"><a href="#cb41-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-70"><a href="#cb41-70" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
+<span id="cb41-71"><a href="#cb41-71" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb41-72"><a href="#cb41-72" aria-hidden="true" tabindex="-1"></a>            k <span class="op">=</span> indexer.props_to_index(descendants<span class="op">=</span>pi.descendants, in_pop<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb41-73"><a href="#cb41-73" aria-hidden="true" tabindex="-1"></a>            new[k] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb41-74"><a href="#cb41-74" aria-hidden="true" tabindex="-1"></a>            coeff <span class="op">=</span> np.zeros(N_PARAMS_GHOST)</span>
+<span id="cb41-75"><a href="#cb41-75" aria-hidden="true" tabindex="-1"></a>            coeff[<span class="dv">3</span>] <span class="op">=</span> state[i]  <span class="co"># m_g1</span></span>
+<span id="cb41-76"><a href="#cb41-76" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, coeff])</span>
+<span id="cb41-77"><a href="#cb41-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-78"><a href="#cb41-78" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb41-79"><a href="#cb41-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-80"><a href="#cb41-80" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-81"><a href="#cb41-81" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_epoch_ghost(graph, callback, epochs, epoch_idx, indexer, n_params):</span>
+<span id="cb41-82"><a href="#cb41-82" aria-hidden="true" tabindex="-1"></a>    epoch <span class="op">=</span> epochs[epoch_idx]</span>
+<span id="cb41-83"><a href="#cb41-83" aria-hidden="true" tabindex="-1"></a>    stop_probs    <span class="op">=</span> np.array(graph.stop_probability(epoch))</span>
+<span id="cb41-84"><a href="#cb41-84" aria-hidden="true" tabindex="-1"></a>    accum_v_time  <span class="op">=</span> np.array(graph.accumulated_occupancy(epoch))</span>
+<span id="cb41-85"><a href="#cb41-85" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-86"><a href="#cb41-86" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> np.errstate(invalid<span class="op">=</span><span class="st">"ignore"</span>):</span>
+<span id="cb41-87"><a href="#cb41-87" aria-hidden="true" tabindex="-1"></a>        epoch_trans_rates <span class="op">=</span> stop_probs <span class="op">/</span> accum_v_time</span>
+<span id="cb41-88"><a href="#cb41-88" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-89"><a href="#cb41-89" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, graph.vertices_length() <span class="op">-</span> <span class="dv">1</span>):</span>
+<span id="cb41-90"><a href="#cb41-90" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> epoch_trans_rates <span class="kw">is</span> <span class="va">None</span> <span class="kw">or</span> np.isnan(epoch_trans_rates[i]):</span>
+<span id="cb41-91"><a href="#cb41-91" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
+<span id="cb41-92"><a href="#cb41-92" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> graph.vertex_at(i).edges_length() <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb41-93"><a href="#cb41-93" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
+<span id="cb41-94"><a href="#cb41-94" aria-hidden="true" tabindex="-1"></a>        vertex <span class="op">=</span> graph.vertex_at(i)</span>
+<span id="cb41-95"><a href="#cb41-95" aria-hidden="true" tabindex="-1"></a>        state  <span class="op">=</span> vertex.state()</span>
+<span id="cb41-96"><a href="#cb41-96" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> state[indexer.epoch] <span class="op">==</span> epoch_idx <span class="op">-</span> <span class="dv">1</span>:</span>
+<span id="cb41-97"><a href="#cb41-97" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
+<span id="cb41-98"><a href="#cb41-98" aria-hidden="true" tabindex="-1"></a>        sister_state <span class="op">=</span> state.copy()</span>
+<span id="cb41-99"><a href="#cb41-99" aria-hidden="true" tabindex="-1"></a>        sister_state[indexer.epoch] <span class="op">=</span> epoch_idx</span>
+<span id="cb41-100"><a href="#cb41-100" aria-hidden="true" tabindex="-1"></a>        child <span class="op">=</span> graph.find_or_create_vertex(sister_state)</span>
+<span id="cb41-101"><a href="#cb41-101" aria-hidden="true" tabindex="-1"></a>        coeff <span class="op">=</span> np.zeros(n_params)</span>
+<span id="cb41-102"><a href="#cb41-102" aria-hidden="true" tabindex="-1"></a>        coeff[<span class="op">-</span><span class="dv">1</span>] <span class="op">=</span> epoch_trans_rates[i]</span>
+<span id="cb41-103"><a href="#cb41-103" aria-hidden="true" tabindex="-1"></a>        vertex.add_edge(child, coeff)</span>
+<span id="cb41-104"><a href="#cb41-104" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-105"><a href="#cb41-105" aria-hidden="true" tabindex="-1"></a>    graph.extend(callback, epochs<span class="op">=</span>epochs, epoch_idx<span class="op">=</span>epoch_idx, indexer<span class="op">=</span>indexer)</span>
+<span id="cb41-106"><a href="#cb41-106" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-107"><a href="#cb41-107" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-108"><a href="#cb41-108" aria-hidden="true" tabindex="-1"></a><span class="co"># Sande parametre til test</span></span>
+<span id="cb41-109"><a href="#cb41-109" aria-hidden="true" tabindex="-1"></a>t_split_ghost <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="cb41-110"><a href="#cb41-110" aria-hidden="true" tabindex="-1"></a>epochs_ghost  <span class="op">=</span> [<span class="fl">0.0</span>, t_split_ghost]</span>
+<span id="cb41-111"><a href="#cb41-111" aria-hidden="true" tabindex="-1"></a>theta_ghost   <span class="op">=</span> [<span class="fl">1.0</span>, <span class="fl">0.8</span>, <span class="fl">1.5</span>, <span class="fl">0.3</span>, <span class="fl">1.2</span>, <span class="fl">1.0</span>]   <span class="co"># [1/N1, 1/N2, 1/Ng, m_g1, 1/Na, switch]</span></span>
+<span id="cb41-112"><a href="#cb41-112" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-113"><a href="#cb41-113" aria-hidden="true" tabindex="-1"></a>graph_ghost <span class="op">=</span> Graph(</span>
+<span id="cb41-114"><a href="#cb41-114" aria-hidden="true" tabindex="-1"></a>    ghost_callback,</span>
+<span id="cb41-115"><a href="#cb41-115" aria-hidden="true" tabindex="-1"></a>    ipv<span class="op">=</span>ipv_ghost,</span>
+<span id="cb41-116"><a href="#cb41-116" aria-hidden="true" tabindex="-1"></a>    epochs<span class="op">=</span>epochs_ghost,</span>
+<span id="cb41-117"><a href="#cb41-117" aria-hidden="true" tabindex="-1"></a>    epoch_idx<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb41-118"><a href="#cb41-118" aria-hidden="true" tabindex="-1"></a>    indexer<span class="op">=</span>indexer_ghost,</span>
+<span id="cb41-119"><a href="#cb41-119" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb41-120"><a href="#cb41-120" aria-hidden="true" tabindex="-1"></a>graph_ghost.update_weights(theta_ghost)</span>
+<span id="cb41-121"><a href="#cb41-121" aria-hidden="true" tabindex="-1"></a>add_epoch_ghost(graph_ghost, ghost_callback, epochs_ghost, <span class="dv">1</span>, indexer_ghost, N_PARAMS_GHOST)</span>
+<span id="cb41-122"><a href="#cb41-122" aria-hidden="true" tabindex="-1"></a>graph_ghost.update_weights(theta_ghost)</span>
+<span id="cb41-123"><a href="#cb41-123" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-124"><a href="#cb41-124" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Ghost-populationsmodel: </span><span class="sc">{</span>graph_ghost<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss"> states, </span><span class="sc">{</span>graph_ghost<span class="sc">.</span>param_length()<span class="sc">}</span><span class="ss"> parametre"</span>)</span>
+<span id="cb41-125"><a href="#cb41-125" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb41-126"><a href="#cb41-126" aria-hidden="true" tabindex="-1"></a>moments_ghost <span class="op">=</span> graph_ghost.moments(<span class="dv">2</span>)</span>
+<span id="cb41-127"><a href="#cb41-127" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  Forventet TMRCA:  </span><span class="sc">{</span>moments_ghost[<span class="dv">0</span>]<span class="sc">:.4f}</span><span class="ss"> coal-enheder"</span>)</span>
+<span id="cb41-128"><a href="#cb41-128" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  Varians:          </span><span class="sc">{</span>moments_ghost[<span class="dv">1</span>] <span class="op">-</span> moments_ghost[<span class="dv">0</span>]<span class="op">**</span><span class="dv">2</span><span class="sc">:.4f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Ghost-populationsmodel: 11 states, 6 parametre
+
+  Forventet TMRCA:  1.5000 coal-enheder
+  Varians:          1.1389</code></pre>
+</div>
+</div>
+</section>
+<section id="effekt-af-ghost-migration-på-tmrca-og-sfs" class="level3">
+<h3 class="anchored" data-anchor-id="effekt-af-ghost-migration-på-tmrca-og-sfs">Effekt af ghost-migration på TMRCA og SFS</h3>
+<p>Migrationen fra ghost-populationen til pop 1 trækker linjer ud af pop 1 og ind i en lille, hurtig-koalescerende population. Det giver kortere TMRCA og <em>flader SFS’en ud</em> (færre singletons relativt til doubletons). Denne signatur kan skelnes fra en simpel populationsvækst ved at se på SFS-formen.</p>
+<div id="176d47f9" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Sammenlign SFS: standard coalescent vs. ghost-model ved samme N1</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>graph_base <span class="op">=</span> Graph(coalescent_epoch_cb,</span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>                   ipv<span class="op">=</span>ipv_pair, epochs<span class="op">=</span>[<span class="fl">0.0</span>], epoch_idx<span class="op">=</span><span class="dv">0</span>, indexer<span class="op">=</span>indexer_pair)</span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>graph_base.update_weights([<span class="fl">1.0</span>, <span class="fl">1.0</span>])   <span class="co"># N1=1, switch=1</span></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>state_mat_ghost <span class="op">=</span> graph_ghost.states()</span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_sfs_model(graph, indexer_g, nr_s):</span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Beregn forventet (ufoldet) SFS ved reward-transform."""</span></span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>    smat <span class="op">=</span> graph.states()</span>
+<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>    sfs <span class="op">=</span> []</span>
+<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> k_val <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, nr_s):</span>
+<span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a>        r <span class="op">=</span> np.zeros(smat.shape[<span class="dv">0</span>])</span>
+<span id="cb43-14"><a href="#cb43-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> row_idx <span class="kw">in</span> <span class="bu">range</span>(smat.shape[<span class="dv">0</span>]):</span>
+<span id="cb43-15"><a href="#cb43-15" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> col_idx <span class="kw">in</span> <span class="bu">range</span>(indexer_g.state_length):</span>
+<span id="cb43-16"><a href="#cb43-16" aria-hidden="true" tabindex="-1"></a>                props <span class="op">=</span> indexer_g.lineages.index_to_props(col_idx)</span>
+<span id="cb43-17"><a href="#cb43-17" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> props.descendants <span class="op">==</span> k_val:</span>
+<span id="cb43-18"><a href="#cb43-18" aria-hidden="true" tabindex="-1"></a>                    r[row_idx] <span class="op">+=</span> smat[row_idx, col_idx]</span>
+<span id="cb43-19"><a href="#cb43-19" aria-hidden="true" tabindex="-1"></a>        sfs.append(graph.expectation(rewards<span class="op">=</span>r))</span>
+<span id="cb43-20"><a href="#cb43-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.array(sfs)</span>
+<span id="cb43-21"><a href="#cb43-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-22"><a href="#cb43-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Standard coalescent (n=4, N=1)</span></span>
+<span id="cb43-23"><a href="#cb43-23" aria-hidden="true" tabindex="-1"></a>nr_s <span class="op">=</span> nr_samples_ghost</span>
+<span id="cb43-24"><a href="#cb43-24" aria-hidden="true" tabindex="-1"></a>graph_std <span class="op">=</span> Graph(coalescent_1param)</span>
+<span id="cb43-25"><a href="#cb43-25" aria-hidden="true" tabindex="-1"></a>graph_std.update_weights([<span class="fl">1.0</span>])</span>
+<span id="cb43-26"><a href="#cb43-26" aria-hidden="true" tabindex="-1"></a>state_std <span class="op">=</span> graph_std.states().T</span>
+<span id="cb43-27"><a href="#cb43-27" aria-hidden="true" tabindex="-1"></a>sfs_std <span class="op">=</span> np.array([graph_std.expectation(r) <span class="cf">for</span> r <span class="kw">in</span> state_std[:<span class="op">-</span><span class="dv">1</span>]])</span>
+<span id="cb43-28"><a href="#cb43-28" aria-hidden="true" tabindex="-1"></a>sfs_std <span class="op">/=</span> sfs_std.<span class="bu">sum</span>()</span>
+<span id="cb43-29"><a href="#cb43-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-30"><a href="#cb43-30" aria-hidden="true" tabindex="-1"></a><span class="co"># Ghost-model</span></span>
+<span id="cb43-31"><a href="#cb43-31" aria-hidden="true" tabindex="-1"></a>sfs_ghost_raw <span class="op">=</span> compute_sfs_model(graph_ghost, indexer_ghost, nr_s)</span>
+<span id="cb43-32"><a href="#cb43-32" aria-hidden="true" tabindex="-1"></a>sfs_ghost_norm <span class="op">=</span> sfs_ghost_raw <span class="op">/</span> sfs_ghost_raw.<span class="bu">sum</span>()</span>
+<span id="cb43-33"><a href="#cb43-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-34"><a href="#cb43-34" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.arange(<span class="dv">1</span>, nr_s)</span>
+<span id="cb43-35"><a href="#cb43-35" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">6</span>, <span class="fl">3.5</span>))</span>
+<span id="cb43-36"><a href="#cb43-36" aria-hidden="true" tabindex="-1"></a>ax.bar(x <span class="op">-</span> <span class="fl">0.2</span>, sfs_std[:nr_s<span class="op">-</span><span class="dv">1</span>],   width<span class="op">=</span><span class="fl">0.4</span>, label<span class="op">=</span><span class="st">"Standard coalescent"</span>, color<span class="op">=</span><span class="st">"C0"</span>, alpha<span class="op">=</span><span class="fl">0.8</span>)</span>
+<span id="cb43-37"><a href="#cb43-37" aria-hidden="true" tabindex="-1"></a>ax.bar(x <span class="op">+</span> <span class="fl">0.2</span>, sfs_ghost_norm, width<span class="op">=</span><span class="fl">0.4</span>, label<span class="op">=</span><span class="ss">f"Ghost-model (m_g1=</span><span class="sc">{</span>theta_ghost[<span class="dv">3</span>]<span class="sc">}</span><span class="ss">)"</span>, color<span class="op">=</span><span class="st">"C2"</span>, alpha<span class="op">=</span><span class="fl">0.8</span>)</span>
+<span id="cb43-38"><a href="#cb43-38" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">"k (antal efterkommere)"</span>)</span>
+<span id="cb43-39"><a href="#cb43-39" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">"Normaliseret SFS"</span>)</span>
+<span id="cb43-40"><a href="#cb43-40" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">"SFS: standard coalescent vs. ghost-populationsmodel"</span>)</span>
+<span id="cb43-41"><a href="#cb43-41" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
+<span id="cb43-42"><a href="#cb43-42" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb43-43"><a href="#cb43-43" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb43-44"><a href="#cb43-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-45"><a href="#cb43-45" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Fortolkning:"</span>)</span>
+<span id="cb43-46"><a href="#cb43-46" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  Ghost-migration øger den relative andel af doubletons og tripletons"</span>)</span>
+<span id="cb43-47"><a href="#cb43-47" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  (linjer koalescerer hurtigere i den lille ghost-population)."</span>)</span>
+<span id="cb43-48"><a href="#cb43-48" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  Singletons reduceres relativt — samme signatur som en bottleneck,"</span>)</span>
+<span id="cb43-49"><a href="#cb43-49" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  men med en anden mekanisme (ekstern kilde frem for intern reduktion)."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->
