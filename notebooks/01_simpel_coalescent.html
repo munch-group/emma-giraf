@@ -297,13 +297,14 @@ window.Quarto = {
   <ul class="collapse">
   <li><a href="#coalescentmodellen" id="toc-coalescentmodellen" class="nav-link active" data-scroll-target="#coalescentmodellen">Coalescentmodellen</a></li>
   <li><a href="#bygger-coalescent-grafen" id="toc-bygger-coalescent-grafen" class="nav-link" data-scroll-target="#bygger-coalescent-grafen">Bygger coalescent-grafen</a></li>
+  <li><a href="#matrixrepræsentation" id="toc-matrixrepræsentation" class="nav-link" data-scroll-target="#matrixrepræsentation">Matrixrepræsentation</a></li>
   <li><a href="#momenter-og-fordelinger" id="toc-momenter-og-fordelinger" class="nav-link" data-scroll-target="#momenter-og-fordelinger">Momenter og fordelinger</a></li>
   <li><a href="#state-probability-og-occupancy" id="toc-state-probability-og-occupancy" class="nav-link" data-scroll-target="#state-probability-og-occupancy">State probability og occupancy</a></li>
   <li><a href="#simulering-som-validering" id="toc-simulering-som-validering" class="nav-link" data-scroll-target="#simulering-som-validering">Simulering som validering</a></li>
   <li><a href="#rewards-og-site-frequency-spectrum-sfs" id="toc-rewards-og-site-frequency-spectrum-sfs" class="nav-link" data-scroll-target="#rewards-og-site-frequency-spectrum-sfs">Rewards og Site Frequency Spectrum (SFS)</a></li>
   <li><a href="#diskrete-fordelinger-og-mutationer" id="toc-diskrete-fordelinger-og-mutationer" class="nav-link" data-scroll-target="#diskrete-fordelinger-og-mutationer">Diskrete fordelinger og mutationer</a></li>
   <li><a href="#parametriserede-modeller" id="toc-parametriserede-modeller" class="nav-link" data-scroll-target="#parametriserede-modeller">Parametriserede modeller</a></li>
-  <li><a href="#discrete-phase-type-distributions" id="toc-discrete-phase-type-distributions" class="nav-link" data-scroll-target="#discrete-phase-type-distributions">Discrete phase-type distributions</a></li>
+  <li><a href="#diskrete-fordelinger-med-to-parametre" id="toc-diskrete-fordelinger-med-to-parametre" class="nav-link" data-scroll-target="#diskrete-fordelinger-med-to-parametre">Diskrete fordelinger med to parametre</a></li>
   </ul>
 <div class="toc-actions"><ul class="collapse"><li><a href="https://github.dev/munch-group/emma-giraf/blob/main/notebooks/01_simpel_coalescent.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/emma-giraf/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/emma-giraf/blob/main/notebooks/01_simpel_coalescent.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
     </div>
@@ -339,7 +340,7 @@ window.Quarto = {
 <li><strong>Parameteriserede modeller</strong> — modeller med forskellige parametre</li>
 </ol>
 <p>Bavianer (<em>Papio</em>-slægten) udviser mønstre af hybridisering og migration. Ved at modellere, hvornår genetiske linjer mødes bagud i tid, kan jeg vise spor af disse historiske begivenheder som fx gamle admixture events.</p>
-<div id="3b8ef3d3" class="cell" data-execution_count="19">
+<div id="3b8ef3d3" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Importer nødvendige pakker</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># phasic skal altid importeres først for at sætte JAX-backend korrekt</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
@@ -356,6 +357,44 @@ window.Quarto = {
 <span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
 <span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span>
 <span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>sns.set_palette(<span class="st">'tab10'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+
+<style>
+.widget-label,
+.widget-html,
+.widget-button,
+.widget-dropdown,
+.widget-text,
+.widget-textarea {
+    color: #CCCCCC !important;  /* Set to desired color */
+    font-size: 10px !important;      /* Font size */
+
+}
+div.widget-html-content > progress { /* Outer container */
+    height: 10px !important;
+
+}
+div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
+    height: 5px !important;
+}
+div.progress { /* Jupyter Notebook (classic) */
+    height: 5px !important;
+    min-height: 5px !important;
+    margin-top: 12px !important;    
+}
+div.progress-bar { /* Inner bar */
+    height: 5px !important;
+    min-height: 5px !important;
+    line-height: 5px !important;
+    color: 'white' !important;
+    padding-bottom: 0px !important;    
+}
+
+table {
+    font-variant-numeric: tabular-nums; 
+}
+</style>
+</div>
 <div class="cell-output cell-output-display">
 
         <style>
@@ -424,39 +463,31 @@ window.Quarto = {
 <h2 class="anchored" data-anchor-id="bygger-coalescent-grafen">Bygger coalescent-grafen</h2>
 <p>Jeg bruger <em>with_ipv</em> til at definere startbetingelsen (IPV = Initial Probability Vector). For <span class="math inline">\(n=4\)</span> starter jeg med 4 linjer, der hver har 1 efterkommer: <span class="math inline">\([4,0,0,0]\)</span>.</p>
 <p>Callback-funktionen beskriver hvilke overgange der er mulige fra en given state. Ved coalescence af linje <span class="math inline">\(i\)</span> og <span class="math inline">\(j\)</span> dannes en ny linje <span class="math inline">\(i+j\)</span> med <span class="math inline">\(i+j\)</span> efterkommere</p>
-<div id="470035b2" class="cell" data-execution_count="20">
+<div id="470035b2" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Bygger coalescent-modellen med 4 prøver via en callback funktion.</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> (nr_samples <span class="op">-</span> <span class="dv">1</span>))</span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_model(state):</span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>            </span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Behøver mindst 2 lineages af samme type (eller 1 af hver)</span></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>            </span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Ny state: to lineages med i+1 og j+1 efterkommere slår sig sammen til en med i+j+2 efterkommere</span></span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>            new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>            new[i <span class="op">+</span> j <span class="op">+</span> <span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>            </span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Coalescence rate = antal mulige par</span></span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>            rate <span class="op">=</span> state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same)</span>
-<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [rate]])</span>
-<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent_model)</span>
-<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="20">
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span> </span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>            new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>            new[i <span class="op">+</span> j <span class="op">+</span> <span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>            rate <span class="op">=</span> state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same)</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [rate]])</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent_model)</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="2">
 <div>
 <figure class="figure">
 <p><a href="01_simpel_coalescent_files/figure-html/cell-3-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="01_simpel_coalescent_files/figure-html/cell-3-output-1.svg" class="img-fluid figure-img"></a></p>
@@ -465,7 +496,18 @@ window.Quarto = {
 </div>
 </div>
 <p>Grafen viser alle mulige states, som processen kan komme igennem. Startpunktet øverst til venstre er <span class="math inline">\((4,0,0,0)\)</span> fire uafhængige singletons. Slutpunktet (<em>absorberende state</em>) nås, når den fjerde singleton er smeltet med de andre. Pilene repræsenterer mulige coalescence events, og raterne (tallene) bestemmer, hvor hurtigt man forventer at bevæge sig fra en state til den næste.</p>
-<div id="9c0b743b" class="cell" data-execution_count="21">
+</section>
+<section id="matrixrepræsentation" class="level2">
+<h2 class="anchored" data-anchor-id="matrixrepræsentation">Matrixrepræsentation</h2>
+<p>Phasic repræsenterer en phase-type fordeling ved hjælp af:</p>
+<ul>
+<li><strong>ipv</strong> (Initial Probability Vector): Sandsynlighedsfordelingen over startstates. Her <span class="math inline">\((4,0,0,0)\)</span>.</li>
+<li><strong>sim</strong> (Sub-Intensitetsmatrix <span class="math inline">\(\mathbf{S}\)</span>): Beskriver overgange mellem transiente states. Diagonal-elementerne er negative (raten ud af staten), off-diagonale er positive (rater ind i nabostater).</li>
+<li><strong>states</strong>: Statevektoren for hver transient state.</li>
+<li><strong>indices</strong>: Phasic’s interne indeksering.</li>
+</ul>
+<p>Disse matricer bruges til at beregne momenter, PDF og CDF.</p>
+<div id="9c0b743b" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>mats <span class="op">=</span> graph.as_matrices()</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Initial probability vector:"</span>)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(mats.ipv)</span>
@@ -492,10 +534,10 @@ Indicies:
 [2 3 4 5]</code></pre>
 </div>
 </div>
-<div id="05bd2140" class="cell" data-execution_count="22">
+<div id="05bd2140" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> [<span class="ss">f"</span><span class="sc">{</span>i<span class="op">+</span><span class="dv">1</span><span class="sc">}</span><span class="ss">'ton"</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(nr_samples)]</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>pd.DataFrame(graph1.states(), columns<span class="op">=</span>labels)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="22">
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>pd.DataFrame(graph.states(), columns<span class="op">=</span>labels)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="5">
 <div>
 
 
@@ -563,21 +605,22 @@ Indicies:
 <h2 class="anchored" data-anchor-id="momenter-og-fordelinger">Momenter og fordelinger</h2>
 <section id="forventet-coalesceringstid" class="level3">
 <h3 class="anchored" data-anchor-id="forventet-coalesceringstid">Forventet coalesceringstid</h3>
-<p>Når grafen er bygget, kan man beregne forventning og varians. Den forventede coalesceringstid svarer til den gennemsnitlige dybde af et træ. En stor forventning indikerer en stor effektiv populationsstørrelse (<span class="math inline">\(N_e\)</span>) og/eller lang tid siden eventuelle splits. Dette er den størrelse jeg vil estimere for bavianerne</p>
-<div id="243ca647" class="cell" data-execution_count="23">
+<p>Når grafen er bygget, kan man beregne forventning og varians. Den forventede coalesceringstid svarer til den gennemsnitlige dybde af et træ. En stor forventning indikerer en stor effektiv populationsstørrelse (<span class="math inline">\(N_e\)</span>) og/eller lang tid siden eventuelle splits.</p>
+<p><em>graph.expectation()</em> returnerer <span class="math inline">\(E[T_{MRCA}]\)</span> og <em>graph.variance()</em> returnerer <span class="math inline">\(\text{Var}[T_{MRCA}]\)</span>.</p>
+<div id="243ca647" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Beregn forventet tid til MRCA og varians</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Forventet tid til MRCA:  </span><span class="sc">{</span>graph<span class="sc">.</span>expectation()<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Varians: </span><span class="sc">{</span>graph<span class="sc">.</span>variance()<span class="sc">:.4f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Varians:                 </span><span class="sc">{</span>graph<span class="sc">.</span>variance()<span class="sc">:.4f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Forventet tid til MRCA:  1.5000
-Varians: 1.1389</code></pre>
+Varians:                 1.1389</code></pre>
 </div>
 </div>
 </section>
 <section id="expected-sojourn-time" class="level3">
 <h3 class="anchored" data-anchor-id="expected-sojourn-time">Expected sojourn time</h3>
 <p><em>expected_sojourn_time</em> giver for hver transient state den forventede tid processen opholder sig der. Summen er <span class="math inline">\(\mathbb{E}[T_{MRCA}]\)</span>.</p>
-<div id="49ddb588" class="cell" data-execution_count="24">
+<div id="49ddb588" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Sojourn-tid =</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Forventet sojourn-tid per state (fra expected_sojourn_time):"</span>)</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>sojourn <span class="op">=</span> graph.expected_sojourn_time()</span>
@@ -601,7 +644,13 @@ Sum (= E[T_MRCA]): 1.5000</code></pre>
 </section>
 <section id="state-probability-og-occupancy" class="level2">
 <h2 class="anchored" data-anchor-id="state-probability-og-occupancy">State probability og occupancy</h2>
-<div id="3376d5f5" class="cell" data-execution_count="25">
+<p><em>state_probability(t)</em> giver sandsynlighedsfordelingen over alle states til tid <span class="math inline">\(t\)</span>. Det fortæller mig, med hvilken sandsynlighed processen befinder sig i en given state til et bestemt tidspunkt.</p>
+<p>Dette er nyttigt for at forstå coalescent-processen:</p>
+<ul>
+<li>lille <span class="math inline">\(t\)</span>: Høj sandsynlighed for at være i startstaten med mange lineages</li>
+<li>stor <span class="math inline">\(t\)</span>: Sandsynligheden samler sig i den absorberende state (MRCA nået)</li>
+</ul>
+<div id="3376d5f5" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># State probability: sandsynlighed for at befinde sig i hver state til tid t</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Statsandsynligheder til t=0.2:"</span>)</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>probs <span class="op">=</span> graph.state_probability(<span class="fl">0.2</span>)</span>
@@ -624,7 +673,7 @@ Sum (= E[T_MRCA]): 1.5000</code></pre>
   State [0 0 0 1]: 0.0000</code></pre>
 </div>
 </div>
-<div id="abe0dfed" class="cell" data-execution_count="26">
+<div id="abe0dfed" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="fl">3.5</span>))</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].plot(times, expected_lineages, color<span class="op">=</span><span class="st">'C0'</span>, lw<span class="op">=</span><span class="dv">2</span>)</span>
@@ -658,17 +707,17 @@ Sum (= E[T_MRCA]): 1.5000</code></pre>
 <li><strong>PDF</strong> (<em>Probability Density Function</em>): Hvor sandsynligt er det, at MRCA nås præcis ved tid <span class="math inline">\(t\)</span></li>
 <li><strong>CDF</strong> (<em>Cumulative Distribution Function</em>): Hvad er sandsynligheden for, at MRCA er nået inden*tid <span class="math inline">\(t\)</span></li>
 </ul>
-<div id="830bd823" class="cell" data-execution_count="27">
+<div id="830bd823" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>vals <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">3</span>, <span class="dv">200</span>)</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="fl">3.5</span>))</span>
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].plot(vals, graph1.pdf(vals), color<span class="op">=</span><span class="st">'C0'</span>)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].plot(vals, graph.pdf(vals), color<span class="op">=</span><span class="st">'C0'</span>)</span>
 <span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">"PDF — Tæthedsfunktion for coalesceringstid"</span>)</span>
 <span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_xlabel(<span class="st">"Tid (i enheder af $2N_e$ generationer)"</span>)</span>
 <span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_ylabel(<span class="st">"Sandsynlighedstæthed"</span>)</span>
 <span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].plot(vals, graph1.cdf(vals), color<span class="op">=</span><span class="st">'C1'</span>)</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].plot(vals, graph.cdf(vals), color<span class="op">=</span><span class="st">'C1'</span>)</span>
 <span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">"CDF — Kumulativ sandsynlighed for MRCA"</span>)</span>
 <span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_xlabel(<span class="st">"Tid (i enheder af $2N_e$ generationer)"</span>)</span>
 <span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_ylabel(<span class="st">"P(MRCA inden tid t)"</span>)</span>
@@ -690,12 +739,12 @@ Sum (= E[T_MRCA]): 1.5000</code></pre>
 <section id="simulering-som-validering" class="level2">
 <h2 class="anchored" data-anchor-id="simulering-som-validering">Simulering som validering</h2>
 <p>Jeg kan simulere samples fra modellen og sammenligne med de analytiske resultater. Så kan jeg teste om det simuleret gennemsnit stemmer overens med <em>graph.expectation()</em> det bør det og det er en god måde at tjekke, at modellen er implementeret korrekt.</p>
-<div id="d651706f" class="cell" data-execution_count="28">
+<div id="d651706f" class="cell" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>samples <span class="op">=</span> graph.sample(<span class="dv">10000</span>)</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Simuleret gennemsnit:   </span><span class="sc">{</span>np<span class="sc">.</span>mean(samples)<span class="sc">.</span>item()<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Analytisk forventning:  </span><span class="sc">{</span>graph<span class="sc">.</span>expectation()<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Forskel:                </span><span class="sc">{</span><span class="bu">abs</span>(np.mean(samples).item() <span class="op">-</span> graph.expectation())<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Simuleret gennemsnit: </span><span class="sc">{</span>np<span class="sc">.</span>mean(samples)<span class="sc">.</span>item()<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Analytisk forventning: </span><span class="sc">{</span>graph<span class="sc">.</span>expectation()<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Forskel: </span><span class="sc">{</span><span class="bu">abs</span>(np.mean(samples).item() <span class="op">-</span> graph.expectation())<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
 <span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualiser simulerede samples mod den analytiske PDF</span></span>
 <span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">6</span>, <span class="fl">3.5</span>))</span>
@@ -708,14 +757,14 @@ Sum (= E[T_MRCA]): 1.5000</code></pre>
 <span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
 <span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Simuleret gennemsnit:   1.5104
-Analytisk forventning:  1.5000
-Forskel:                0.0104</code></pre>
+<pre><code>Simuleret gennemsnit: 1.4933
+Analytisk forventning: 1.5000
+Forskel: 0.0067</code></pre>
 </div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="01_simpel_coalescent_files/figure-html/cell-11-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="01_simpel_coalescent_files/figure-html/cell-11-output-2.png" width="588" height="340" class="figure-img"></a></p>
+<p><a href="01_simpel_coalescent_files/figure-html/cell-11-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="01_simpel_coalescent_files/figure-html/cell-11-output-2.png" width="587" height="340" class="figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -726,7 +775,7 @@ Forskel:                0.0104</code></pre>
 <p>Reward er en funktion, der er baseret på, hvor meget tid processen tilbringer i en state. Dette giver mig mulighed for at beregne forventede værdier af størrelser.</p>
 <p>En anvendelse er Site Frequency Spectrum (SFS): som er fordelingen af, hvor mange prøver der deler et mutationssted. En mutation, der opstår på en gren der fører til <span class="math inline">\(k\)</span> efterkommere, vil optræde i <span class="math inline">\(k\)</span> prøver og bidrage til SFS som en <span class="math inline">\(k\)</span>-ton.</p>
 <p>Ideen er, at den forventede mængde tid, modellen tilbringer i state med <span class="math inline">\(k\)</span>-ton lineages, er proportional med antallet af <span class="math inline">\(k\)</span>-ton varianter jeg forventer at observere.</p>
-<div id="faba1a8f" class="cell" data-execution_count="29">
+<div id="faba1a8f" class="cell" data-execution_count="16">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Genbyg grafen og beregn reward-matrixen</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Hver søjle i reward_matrix svarer til en state </span></span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Hver række svarer til en type lineage (singleton, doubleton, osv.)</span></span>
@@ -761,7 +810,7 @@ Reward-vektor for quadrupleton (4-tons):
 [0 0 0 0 0 1]</code></pre>
 </div>
 </div>
-<div id="d26c58aa" class="cell" data-execution_count="30">
+<div id="d26c58aa" class="cell" data-execution_count="17">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Beregn det forventede SFS </span></span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co"># graph.expectation(rewards) giver forventet tid vægtet med rewards</span></span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> [<span class="ss">f"</span><span class="sc">{</span>i<span class="op">+</span><span class="dv">1</span><span class="sc">}</span><span class="ss">'ton"</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(reward_matrix.shape[<span class="dv">0</span>])]</span>
@@ -796,7 +845,7 @@ Reward-vektor for quadrupleton (4-tons):
 <section id="reward-transformationer-og-fordelinger-per-type" class="level3">
 <h3 class="anchored" data-anchor-id="reward-transformationer-og-fordelinger-per-type">Reward-transformationer og fordelinger per type</h3>
 <p>Det er nu muligt, at beregne hele fordelingen af tid brugt på fx doubletons. Dette giver ikke bare forventningen, men hele sandsynlighedsfordelingen, hvilket er nyttigt for at kvantificere usikkerhed.</p>
-<div id="259956a5" class="cell" data-execution_count="31">
+<div id="259956a5" class="cell" data-execution_count="18">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Reward-transform: jeg laver en ny graf, der kun tæller tid brugt på lineages af en bestemt type</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>times <span class="op">=</span> np.arange(<span class="dv">0</span>, <span class="dv">5</span>, <span class="fl">0.05</span>)</span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -823,7 +872,7 @@ Reward-vektor for quadrupleton (4-tons):
 <section id="sfs-bidrag-over-tid-via-accumulated_occupancy" class="level3">
 <h3 class="anchored" data-anchor-id="sfs-bidrag-over-tid-via-accumulated_occupancy">SFS-bidrag over tid via accumulated_occupancy</h3>
 <p><em>accumulated_occupancy(t)</em> giver den forventede tid brugt i hver state op til tid . Ved at vægte med rewards kan jeg se, hvornår i processen de forskellige lineage-typerakkumulerer branch-længde. Dette er vigtigt for at forstå, hvilken del af populationshistorien der afspejles i SFS-binene.</p>
-<div id="ec15c6b8" class="cell" data-execution_count="32">
+<div id="ec15c6b8" class="cell" data-execution_count="19">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>graph_acc <span class="op">=</span> Graph(coalescent_model)</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>graph_acc.update_weights([<span class="fl">1.0</span>])</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>reward_matrix_acc <span class="op">=</span> graph_acc.states().T</span>
@@ -890,7 +939,7 @@ mens doubleton+ akkumuleres ved dybere tider i træet.</code></pre>
 <h2 class="anchored" data-anchor-id="diskrete-fordelinger-og-mutationer">Diskrete fordelinger og mutationer</h2>
 <p>Indtil nu har jeg arbejdet med kontinuert tid (coalesceringstid). Men i genetiske data observerer man diskrete antal mutationer, ikke kontinuerte tider.</p>
 <p>Forbindelsen er mutationsraten <span class="math inline">\(\mu\)</span>: Givet en gren af varighed <span class="math inline">\(t\)</span>, forventer man <span class="math inline">\(\mu \times t\)</span> mutationer. Phasic håndterer dette ved at diskretisere modellen: jeg tilføjer en hjælpe state, der samler mutationer, som de opstår langs grenene. Dette er vigtigt, fordi det er antal mutationer jeg faktisk kan tælle i bavian-genomet.</p>
-<div id="39b9bd75" class="cell" data-execution_count="33">
+<div id="39b9bd75" class="cell" data-execution_count="20">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> (nr_samples <span class="op">-</span> <span class="dv">1</span>))</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent(state):</span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Standard coalescent model til brug med diskretisering."""</span></span>
@@ -924,9 +973,9 @@ mens doubleton+ akkumuleres ved dybere tider i træet.</code></pre>
 <span id="cb23-31"><a href="#cb23-31" aria-hidden="true" tabindex="-1"></a>mutation_graph <span class="op">=</span> mutation_graph.discretize(mutation, mutation_rate<span class="op">=</span>mutation_rate)</span>
 <span id="cb23-32"><a href="#cb23-32" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> mutation_graph.rewards</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="1126fb6d" class="cell" data-execution_count="34">
+<div id="1126fb6d" class="cell" data-execution_count="21">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>mutation_graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="34">
+<div class="cell-output cell-output-display" data-execution_count="21">
 <div>
 <figure class="figure">
 <p><a href="01_simpel_coalescent_files/figure-html/cell-17-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-8"><img src="01_simpel_coalescent_files/figure-html/cell-17-output-1.svg" class="img-fluid figure-img"></a></p>
@@ -934,7 +983,7 @@ mens doubleton+ akkumuleres ved dybere tider i træet.</code></pre>
 </div>
 </div>
 </div>
-<div id="4da0e222" class="cell" data-execution_count="35">
+<div id="4da0e222" class="cell" data-execution_count="22">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fun(index):</span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> rewards[index]:</span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">"Auxiliary states</span><span class="ch">\n</span><span class="st">collecting a</span><span class="ch">\n</span><span class="st">reward (mutations)</span><span class="ch">\n</span><span class="st">each time visited"</span></span>
@@ -942,7 +991,7 @@ mens doubleton+ akkumuleres ved dybere tider i træet.</code></pre>
 <span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">"Standard states"</span></span>
 <span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>mutation_graph.plot(by_index<span class="op">=</span>fun)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="35">
+<div class="cell-output cell-output-display" data-execution_count="22">
 <div>
 <figure class="figure">
 <p><a href="01_simpel_coalescent_files/figure-html/cell-18-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-9"><img src="01_simpel_coalescent_files/figure-html/cell-18-output-1.svg" class="img-fluid figure-img"></a></p>
@@ -950,31 +999,31 @@ mens doubleton+ akkumuleres ved dybere tider i træet.</code></pre>
 </div>
 </div>
 </div>
-<div id="766d569a" class="cell" data-execution_count="36">
+<div id="766d569a" class="cell" data-execution_count="23">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>mutation_graph.expectation(rewards)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="36">
+<div class="cell-output cell-output-display" data-execution_count="23">
 <pre><code>0.3666666666666667</code></pre>
 </div>
 </div>
-<div id="281f5ea9" class="cell" data-execution_count="37">
+<div id="281f5ea9" class="cell" data-execution_count="24">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>tot_brlen <span class="op">=</span> graph.expectation(graph.states().T.<span class="bu">sum</span>(axis<span class="op">=</span><span class="dv">0</span>))</span>
 <span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>tot_brlen <span class="op">*</span> mutation_rate</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="37">
-<pre><code>0.36666666666666664</code></pre>
+<div class="cell-output cell-output-display" data-execution_count="24">
+<pre><code>0.3666666666666667</code></pre>
 </div>
 </div>
-<div id="0218b616" class="cell" data-execution_count="38">
+<div id="0218b616" class="cell" data-execution_count="25">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>samples <span class="op">=</span> mutation_graph.sample(<span class="dv">10000</span>, rewards<span class="op">=</span>rewards)</span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>samples.mean().item()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="38">
-<pre><code>0.3693</code></pre>
+<div class="cell-output cell-output-display" data-execution_count="25">
+<pre><code>0.3569</code></pre>
 </div>
 </div>
-<div id="b98047c7" class="cell" data-execution_count="39">
+<div id="b98047c7" class="cell" data-execution_count="26">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>rev_trans_mutation_graph  <span class="op">=</span> mutation_graph.reward_transform_discrete(rewards)</span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>rev_trans_mutation_graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="39">
+<div class="cell-output cell-output-display" data-execution_count="26">
 <div>
 <figure class="figure">
 <p><a href="01_simpel_coalescent_files/figure-html/cell-22-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-10"><img src="01_simpel_coalescent_files/figure-html/cell-22-output-1.svg" class="img-fluid figure-img"></a></p>
@@ -982,7 +1031,7 @@ mens doubleton+ akkumuleres ved dybere tider i træet.</code></pre>
 </div>
 </div>
 </div>
-<div id="55511c21" class="cell" data-execution_count="40">
+<div id="55511c21" class="cell" data-execution_count="27">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualiser fordelingen af antal mutationer (PMF og CDF)</span></span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>rt_mut_graph <span class="op">=</span> mutation_graph.reward_transform_discrete(rewards)</span>
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1016,9 +1065,15 @@ mens doubleton+ akkumuleres ved dybere tider i træet.</code></pre>
 </div>
 </div>
 </div>
-<section id="multivariate-phase-type-distributions" class="level3">
-<h3 class="anchored" data-anchor-id="multivariate-phase-type-distributions">Multivariate phase-type distributions</h3>
-<div id="c3f3bfdc" class="cell" data-execution_count="41">
+<section id="multivariate-phase-type-distributions-og-kovarians" class="level3">
+<h3 class="anchored" data-anchor-id="multivariate-phase-type-distributions-og-kovarians">Multivariate phase-type distributions og kovarians</h3>
+<p>Ud over den marginale forventning for en enkelt lineage-type, kan jeg beregne kovariansen mellem to reward-funktioner. Kovariansen fortæller mig, om to størrelser (fx singleton- og doubleton-branchlængder) tendens til at være lange eller korte samtidigt.</p>
+<p><em>graph.covariance(reward_a, reward_b)</em> returnerer <span class="math inline">\(\text{Cov}(R_a, R_b)\)</span> under den givne phase-type fordeling.</p>
+<ul>
+<li><strong>Positiv kovarians</strong> (<span class="math inline">\(&gt; 0\)</span>): Stor <span class="math inline">\(N_e\)</span> → lange trætider for alle lineage-typer → singleton og doubleton følges ad</li>
+<li><strong>Negativ kovarians</strong> (<span class="math inline">\(&lt; 0\)</span>): Singleton og doubleton “konkurrerer” — tid brugt i singleton-states reducerer doubleton-bidraget</li>
+</ul>
+<div id="c3f3bfdc" class="cell" data-execution_count="28">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>reward_matrix <span class="op">=</span> graph.states().T</span>
 <span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1031,15 +1086,15 @@ mens doubleton+ akkumuleres ved dybere tider i træet.</code></pre>
 <pre><code>Singleton rewards: [0 4 2 0 1 0]</code></pre>
 </div>
 </div>
-<div id="c568ced5" class="cell" data-execution_count="42">
+<div id="c568ced5" class="cell" data-execution_count="29">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>graph.expectation(singleton)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="42">
+<div class="cell-output cell-output-display" data-execution_count="29">
 <pre><code>1.9999999999999996</code></pre>
 </div>
 </div>
-<div id="535f15ff" class="cell" data-execution_count="43">
+<div id="535f15ff" class="cell" data-execution_count="30">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>graph.covariance(singleton, doubleton)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="43">
+<div class="cell-output cell-output-display" data-execution_count="30">
 <pre><code>-0.2222222222222221</code></pre>
 </div>
 </div>
@@ -1049,7 +1104,7 @@ mens doubleton+ akkumuleres ved dybere tider i træet.</code></pre>
 <h2 class="anchored" data-anchor-id="parametriserede-modeller">Parametriserede modeller</h2>
 <p>Jeg har indtil nu arbejdet med en model med faste rater. Men i praksis vil jeg estimere parametre, fx den effektive populationsstørrelse <span class="math inline">\(N_e\)</span> og rekombinationsraten <span class="math inline">\(R\)</span>.</p>
 <p>Phasic understøtter dette via parameteriserede modeller, hvor overgangsraterne udtrykkes som lineær kombinationer af parametre. En coalescence rate på <span class="math inline">\(\frac{1}{N_e}\)</span> og en rekombinationsrate <span class="math inline">\(R\)</span> kan begge variere, og jeg kan beregne momenter og fordelinger for alle kombinationer. Dette danner grundlaget for inferens i den næste notebook 02.</p>
-<div id="0408f15b" class="cell" data-execution_count="44">
+<div id="0408f15b" class="cell" data-execution_count="31">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># To-locus ARG: modellerer to genetiske loci med rekombination imellem dem</span></span>
 <span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Parameter 1: coalescence-rate = 1/N</span></span>
 <span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Parameter 2: rekombinationsrate R</span></span>
@@ -1124,9 +1179,9 @@ Antal parametre i modellen: 2
   Parameter 2: rekombinationsrate (R)</code></pre>
 </div>
 </div>
-<div id="7732770d" class="cell" data-execution_count="45">
+<div id="7732770d" class="cell" data-execution_count="32">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>graph.plot(max_nodes <span class="op">=</span> <span class="dv">200</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="45">
+<div class="cell-output cell-output-display" data-execution_count="32">
 <div>
 <figure class="figure">
 <p><a href="01_simpel_coalescent_files/figure-html/cell-28-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-12"><img src="01_simpel_coalescent_files/figure-html/cell-28-output-1.svg" class="img-fluid figure-img"></a></p>
@@ -1134,32 +1189,29 @@ Antal parametre i modellen: 2
 </div>
 </div>
 </div>
-<div id="5f5a79d9" class="cell" data-execution_count="46">
+<div id="5f5a79d9" class="cell" data-execution_count="33">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Undersøger hvordan N og R påvirker den forventede TMRCA</span></span>
-<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="co"># - Stor N $\rightarrow$ lang forventet tid (stor population = langsom coalescence)</span></span>
-<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a><span class="co"># - Stor R $\rightarrow$ kortere forventet tid (rekombination bryder linjer op)</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span><span class="st">'N'</span><span class="sc">:&lt;6}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'R'</span><span class="sc">:&lt;6}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'E[TMRCA]'</span><span class="sc">:&lt;12}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'Var[TMRCA]'</span><span class="sc">:&lt;12}</span><span class="ss">"</span>)</span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"-"</span> <span class="op">*</span> <span class="dv">38</span>)</span>
 <span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span><span class="st">'N'</span><span class="sc">:&lt;6}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'R'</span><span class="sc">:&lt;6}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'E[TMRCA]'</span><span class="sc">:&lt;12}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'Var[TMRCA]'</span><span class="sc">:&lt;12}</span><span class="ss">"</span>)</span>
-<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"-"</span> <span class="op">*</span> <span class="dv">38</span>)</span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>N_values <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">1</span>, <span class="fl">1.5</span>, <span class="fl">1.5</span>, <span class="dv">2</span>, <span class="dv">2</span>]</span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>R_values <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">1</span>, <span class="dv">2</span>]</span>
 <span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>N_values <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">1</span>, <span class="fl">1.5</span>, <span class="fl">1.5</span>, <span class="dv">2</span>, <span class="dv">2</span>]</span>
-<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>R_values <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">1</span>, <span class="dv">2</span>]</span>
-<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> N, R <span class="kw">in</span> <span class="bu">zip</span>(N_values, R_values):</span>
-<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>    graph.update_weights([<span class="dv">1</span><span class="op">/</span>N, R])</span>
-<span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>N<span class="sc">:&lt;6}</span><span class="ss"> </span><span class="sc">{</span>R<span class="sc">:&lt;6}</span><span class="ss"> </span><span class="sc">{</span>graph<span class="sc">.</span>expectation()<span class="sc">:&lt;12.4f}</span><span class="ss"> </span><span class="sc">{</span>graph<span class="sc">.</span>variance()<span class="sc">:&lt;12.4f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> N, R <span class="kw">in</span> <span class="bu">zip</span>(N_values, R_values):</span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>    graph.update_weights([<span class="dv">1</span><span class="op">/</span>N, R])</span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>N<span class="sc">:&lt;6}</span><span class="ss"> </span><span class="sc">{</span>R<span class="sc">:&lt;6}</span><span class="ss"> </span><span class="sc">{</span>graph<span class="sc">.</span>expectation()<span class="sc">:&lt;12.4f}</span><span class="ss"> </span><span class="sc">{</span>graph<span class="sc">.</span>variance()<span class="sc">:&lt;12.4f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>N      R      E[TMRCA]     Var[TMRCA]  
 --------------------------------------
-1      1      2.0779       2.0594      
-1      2      2.3557       2.2726      
-1.5    1      3.3566       4.9485      
-1.5    2      3.7751       5.2497      
-2      1      4.7114       9.0902      
+1      1      2.0778       2.0593      
+1      2      2.3556       2.2725      
+1.5    1      3.3564       4.9484      
+1.5    2      3.7750       5.2497      
+2      1      4.7112       9.0900      
 2      2      5.2404       9.4011      </code></pre>
 </div>
 </div>
-<div id="a82ef2b5" class="cell" data-execution_count="47">
+<div id="a82ef2b5" class="cell" data-execution_count="34">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualiser PDF for alle kombinationer af N og R</span></span>
 <span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.arange(<span class="dv">0</span>, <span class="dv">10</span>, <span class="fl">0.1</span>)</span>
 <span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1183,9 +1235,42 @@ Antal parametre i modellen: 2
 </div>
 </div>
 </section>
-<section id="discrete-phase-type-distributions" class="level2">
-<h2 class="anchored" data-anchor-id="discrete-phase-type-distributions">Discrete phase-type distributions</h2>
-<div id="336da2d4" class="cell" data-execution_count="48">
+<section id="diskrete-fordelinger-med-to-parametre" class="level2">
+<h2 class="anchored" data-anchor-id="diskrete-fordelinger-med-to-parametre">Diskrete fordelinger med to parametre</h2>
+<p>Denne sektion viser en udvidet version af mutations-modellen, hvor <strong>to parametre</strong> er frie:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 22%">
+<col style="width: 35%">
+<col style="width: 41%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: right;">Index</th>
+<th>Parameter</th>
+<th>Beskrivelse</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">0</td>
+<td>Coalescence-rate (<span class="math inline">\(1/N_e\)</span>)</td>
+<td>Styrer hvor hurtigt linjer smelter sammen</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td>Mutations-rate (<span class="math inline">\(\mu\)</span>)</td>
+<td>Styrer antal mutationer per tidsenhed</td>
+</tr>
+</tbody>
+</table>
+<p>Begge parametre indgår i raterne via lineær kombination (<em>coeff = [1/N_e-koeff, mu-koeff]</em>). Dette er fundamentet for fælles inferens på <span class="math inline">\(N_e\)</span> og <span class="math inline">\(\mu\)</span> fra diskrete genomdata.</p>
+<p>Resultatet er en <strong>diskret fordeling over antal mutationer</strong>, der afhænger af begge parametre:</p>
+<ul>
+<li>Stor <span class="math inline">\(N_e\)</span> → lang coalesceringstid → mange mutationer</li>
+<li>Stor <span class="math inline">\(\mu\)</span> → mange mutationer per tidsenhed → skifter PMF mod højere tal</li>
+</ul>
+<div id="336da2d4" class="cell" data-execution_count="35">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>))</span>
 <span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_2param(state):</span>
 <span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
@@ -1219,7 +1304,7 @@ Antal parametre i modellen: 2
 <div class="cell-output cell-output-stdout">
 <pre><code>Discrete rewards (indices of AUX vertices): [0 0 0 0 0 0 1 1 1 1]</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="48">
+<div class="cell-output cell-output-display" data-execution_count="35">
 <div>
 <figure class="figure">
 <p><a href="01_simpel_coalescent_files/figure-html/cell-31-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-14"><img src="01_simpel_coalescent_files/figure-html/cell-31-output-2.svg" class="img-fluid figure-img"></a></p>
@@ -1227,13 +1312,13 @@ Antal parametre i modellen: 2
 </div>
 </div>
 </div>
-<div id="a600dc42" class="cell" data-execution_count="49">
+<div id="a600dc42" class="cell" data-execution_count="36">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>mutation_graph.update_weights([<span class="dv">3</span>, <span class="dv">2</span>])</span>
 <span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a><span class="co"># COMPOSABLE_MIGRATION: old call</span></span>
 <span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a><span class="co"># rt_graph = mutation_graph.reward_transform(rewards)</span></span>
 <span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>rt_graph <span class="op">=</span> mutation_graph.reward_transform(rewards)</span>
 <span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>rt_graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="49">
+<div class="cell-output cell-output-display" data-execution_count="36">
 <div>
 <figure class="figure">
 <p><a href="01_simpel_coalescent_files/figure-html/cell-32-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-15"><img src="01_simpel_coalescent_files/figure-html/cell-32-output-1.svg" class="img-fluid figure-img"></a></p>
@@ -1241,19 +1326,19 @@ Antal parametre i modellen: 2
 </div>
 </div>
 </div>
-<div id="a1b970ff" class="cell" data-execution_count="50">
+<div id="a1b970ff" class="cell" data-execution_count="37">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>mutation_graph.update_weights([<span class="dv">3</span>, <span class="dv">2</span>])</span>
 <span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a><span class="co"># COMPOSABLE_MIGRATION: old call</span></span>
 <span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a><span class="co"># rt_graph = mutation_graph.reward_transform(rewards)</span></span>
 <span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>rt_graph <span class="op">=</span> mutation_graph.reward_transform(mutation_graph.rewards)</span>
 <span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a>rt_graph.pdf(<span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="50">
+<div class="cell-output cell-output-display" data-execution_count="37">
 <pre><code>0.14830307025146525</code></pre>
 </div>
 </div>
-<div id="15597008" class="cell" data-execution_count="51">
+<div id="15597008" class="cell" data-execution_count="38">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>mutation_graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="51">
+<div class="cell-output cell-output-display" data-execution_count="38">
 <div>
 <figure class="figure">
 <p><a href="01_simpel_coalescent_files/figure-html/cell-34-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-16"><img src="01_simpel_coalescent_files/figure-html/cell-34-output-1.svg" class="img-fluid figure-img"></a></p>
@@ -1261,19 +1346,19 @@ Antal parametre i modellen: 2
 </div>
 </div>
 </div>
-<div id="a0a617f5" class="cell" data-execution_count="52">
+<div id="a0a617f5" class="cell" data-execution_count="39">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb52"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>rt_graph.expectation(), mutation_graph.expectation(mutation_graph.rewards)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="52">
+<div class="cell-output cell-output-display" data-execution_count="39">
 <pre><code>(2.4444444444444446, 2.444444444444444)</code></pre>
 </div>
 </div>
-<div id="fc078137" class="cell" data-execution_count="53">
+<div id="fc078137" class="cell" data-execution_count="40">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb54"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>rt_graph.variance(), mutation_graph.variance(rewards)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="53">
+<div class="cell-output cell-output-display" data-execution_count="40">
 <pre><code>(7.30864197530864, 4.864197530864198)</code></pre>
 </div>
 </div>
-<div id="322e2c29" class="cell" data-execution_count="54">
+<div id="322e2c29" class="cell" data-execution_count="41">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb56"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>N_values <span class="op">=</span> [<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">4</span>, <span class="dv">4</span>, ]</span>
 <span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>u_values <span class="op">=</span> [<span class="fl">0.1</span>, <span class="fl">0.3</span>, <span class="fl">0.1</span>, <span class="fl">0.3</span>]</span>
 <span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.arange(<span class="dv">0</span>, <span class="dv">10</span>, <span class="dv">1</span>)</span>

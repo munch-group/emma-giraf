@@ -439,6 +439,14 @@ window.Quarto = {
 </div>
 <section id="indlæs-data" class="level2">
 <h2 class="anchored" data-anchor-id="indlæs-data">Indlæs data</h2>
+<p>Jeg indlæser genomdata for kromosom 20 fra det fasede VCZ-datasæt. Data er gemt i Zarr-format og håndteres via <em>sgkit</em>.</p>
+<ul>
+<li><em>sg.load_dataset()</em> åbner datasættet.</li>
+<li><em>sg.count_variant_alleles()</em> tæller antal forekomster af hvert allel per variant (reference- og derived-allel)</li>
+<li><em>ac[:, 1]</em> er derived allele count antal haploide genomer der bærer det alternativt allel. Dette antages at være det derived allel (dvs. ikke-ancestral)</li>
+<li><em>nr_samples</em> er det totale antal haploide genomer per variant (= 2 × antal diploide individer, da data er fasede)</li>
+</ul>
+<p>Det derived allele count for et SNP fortæller, hvor mange af de 454 haploide genomer der bærer den nyere variant. Dette er grundlaget for SFS-beregningen.</p>
 <div id="74925cae" class="cell" data-execution_count="115">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># loader data for chr20 </span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> sg.load_dataset(DATA_DIR <span class="op">/</span> <span class="st">"chr20.phased.rehead.vcz"</span>)</span>
@@ -1129,7 +1137,6 @@ Name: Chacma Baboon, dtype: float64</code></pre>
 Name: Hamadryas baboon, dtype: float64</code></pre>
 </div>
 </div>
-<p>Observeret vs.&nbsp;forventet SFS: Plottet sammenligner den observerede SFS med en neutral standard coalescent (forventet 1/k). Afvigelser fra 1/k-forventningen er hvad Tajima’s D kvantificerer.</p>
 <section id="normaliseret-sfs-og-tajimas-d" class="level3">
 <h3 class="anchored" data-anchor-id="normaliseret-sfs-og-tajimas-d">Normaliseret SFS og Tajima’s D</h3>
 <p>Tajima’s <span class="math inline">\(D\)</span> er en statistiks størrelse der sammenligner to estimater af <span class="math inline">\(\theta = 4N_e\mu\)</span>:</p>
@@ -1143,73 +1150,69 @@ Name: Hamadryas baboon, dtype: float64</code></pre>
 <li><span class="math inline">\(D &lt; 0\)</span>: Overskud af sjældne varianter (ekspansion eller rensende selektion)</li>
 <li><span class="math inline">\(D &gt; 0\)</span>: Overskud af intermediære varianter (flaskehals eller balancerende selektion)</li>
 </ul>
-<div id="8df0b11f" class="cell" data-execution_count="137">
+<div id="8df0b11f" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Tajima's D sammenligner pi (pairwise diversity) med Watterson's theta</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="co"># D &gt; 0: overskud af common variants → balancerende selektion eller admixture</span></span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="co"># D &lt; 0: overskud af singletons → nylig ekspansion eller purifying selektion</span></span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>pop_names <span class="op">=</span> {</span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Yellow Baboon"</span>: (df_P_cynocephalus, sfs_P_cynocephalus, <span class="st">"C1"</span>),</span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Kinda Baboon"</span>:  (df_P_kindae, sfs_P_kindae, <span class="st">"C2"</span>),</span>
-<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Olive Baboon"</span>:  (df_P_anubis, sfs_P_anubis, <span class="st">"C3"</span>),</span>
-<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Guinea Baboon"</span>: (df_P_papio, sfs_P_papio, <span class="st">"C4"</span>),</span>
-<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Chacma Baboon"</span>: (df_P_ursinus, sfs_P_ursinus, <span class="st">"C5"</span>),</span>
-<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Hamadryas Baboon"</span>: (df_P_hamadryas, sfs_P_hamadryas, <span class="st">"C6"</span>), </span>
-<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> tajimas_d(df_pop, n<span class="op">=</span><span class="dv">4</span>):</span>
-<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
-<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a><span class="co">    Beregner Tajima's D for en population.</span></span>
-<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a><span class="co">    Kræver derived count data og subsampler til n haplotyper.</span></span>
-<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
-<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(<span class="dv">0</span>)</span>
-<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>    ngood <span class="op">=</span> df_pop[<span class="st">"derived_count"</span>].values.astype(<span class="bu">int</span>)</span>
-<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>    nbad <span class="op">=</span> (df_pop[<span class="st">"nr_samples"</span>] <span class="op">-</span> df_pop[<span class="st">"derived_count"</span>]).values.astype(<span class="bu">int</span>)</span>
-<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>    k <span class="op">=</span> rng.hypergeometric(</span>
-<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>        ngood<span class="op">=</span>ngood,</span>
-<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a>        nbad<span class="op">=</span>nbad,</span>
-<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a>        nsample<span class="op">=</span>n,</span>
-<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a>    k <span class="op">=</span> k[(k <span class="op">&gt;</span> <span class="dv">0</span>) <span class="op">&amp;</span> (k <span class="op">&lt;</span> n)]</span>
-<span id="cb33-28"><a href="#cb33-28" aria-hidden="true" tabindex="-1"></a>    S <span class="op">=</span> <span class="bu">len</span>(k)  <span class="co"># antal segregerende sites</span></span>
-<span id="cb33-29"><a href="#cb33-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-30"><a href="#cb33-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> S <span class="op">==</span> <span class="dv">0</span>:</span>
-<span id="cb33-31"><a href="#cb33-31" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> np.nan, np.nan, np.nan</span>
-<span id="cb33-32"><a href="#cb33-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-33"><a href="#cb33-33" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Watterson's theta_W = S / a1</span></span>
-<span id="cb33-34"><a href="#cb33-34" aria-hidden="true" tabindex="-1"></a>    a1 <span class="op">=</span> <span class="bu">sum</span>(<span class="dv">1</span><span class="op">/</span>i <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, n))</span>
-<span id="cb33-35"><a href="#cb33-35" aria-hidden="true" tabindex="-1"></a>    theta_W <span class="op">=</span> S <span class="op">/</span> a1</span>
-<span id="cb33-36"><a href="#cb33-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-37"><a href="#cb33-37" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Pi (gennemsnitlig pairwise differences)</span></span>
-<span id="cb33-38"><a href="#cb33-38" aria-hidden="true" tabindex="-1"></a>    pi_val <span class="op">=</span> <span class="bu">sum</span>(ki <span class="op">*</span> (n <span class="op">-</span> ki) <span class="cf">for</span> ki <span class="kw">in</span> k) <span class="op">*</span> <span class="dv">2</span> <span class="op">/</span> (n <span class="op">*</span> (n<span class="op">-</span><span class="dv">1</span>))</span>
-<span id="cb33-39"><a href="#cb33-39" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-40"><a href="#cb33-40" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Tajima's D (forenklet uden variansterm)</span></span>
-<span id="cb33-41"><a href="#cb33-41" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Fuld formel kræver b1, b2, c1, c2 korrektionstermerne</span></span>
-<span id="cb33-42"><a href="#cb33-42" aria-hidden="true" tabindex="-1"></a>    b1 <span class="op">=</span> (n <span class="op">+</span> <span class="dv">1</span>) <span class="op">/</span> (<span class="dv">3</span> <span class="op">*</span> (n <span class="op">-</span> <span class="dv">1</span>))</span>
-<span id="cb33-43"><a href="#cb33-43" aria-hidden="true" tabindex="-1"></a>    b2 <span class="op">=</span> (<span class="dv">2</span> <span class="op">*</span> (n<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> n <span class="op">+</span> <span class="dv">3</span>)) <span class="op">/</span> (<span class="dv">9</span> <span class="op">*</span> n <span class="op">*</span> (n <span class="op">-</span> <span class="dv">1</span>))</span>
-<span id="cb33-44"><a href="#cb33-44" aria-hidden="true" tabindex="-1"></a>    c1 <span class="op">=</span> b1 <span class="op">-</span> <span class="dv">1</span><span class="op">/</span>a1</span>
-<span id="cb33-45"><a href="#cb33-45" aria-hidden="true" tabindex="-1"></a>    a2 <span class="op">=</span> <span class="bu">sum</span>(<span class="dv">1</span><span class="op">/</span>i<span class="op">**</span><span class="dv">2</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, n))</span>
-<span id="cb33-46"><a href="#cb33-46" aria-hidden="true" tabindex="-1"></a>    c2 <span class="op">=</span> b2 <span class="op">-</span> (n <span class="op">+</span> <span class="dv">2</span>)<span class="op">/</span>(a1 <span class="op">*</span> n) <span class="op">+</span> a2<span class="op">/</span>a1<span class="op">**</span><span class="dv">2</span></span>
-<span id="cb33-47"><a href="#cb33-47" aria-hidden="true" tabindex="-1"></a>    e1 <span class="op">=</span> c1 <span class="op">/</span> a1</span>
-<span id="cb33-48"><a href="#cb33-48" aria-hidden="true" tabindex="-1"></a>    e2 <span class="op">=</span> c2 <span class="op">/</span> (a1<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> a2)</span>
-<span id="cb33-49"><a href="#cb33-49" aria-hidden="true" tabindex="-1"></a>    var_d <span class="op">=</span> e1 <span class="op">*</span> S <span class="op">+</span> e2 <span class="op">*</span> S <span class="op">*</span> (S <span class="op">-</span> <span class="dv">1</span>)</span>
-<span id="cb33-50"><a href="#cb33-50" aria-hidden="true" tabindex="-1"></a>    D <span class="op">=</span> (pi_val <span class="op">-</span> theta_W) <span class="op">/</span> np.sqrt(var_d) <span class="cf">if</span> var_d <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> np.nan</span>
-<span id="cb33-51"><a href="#cb33-51" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-52"><a href="#cb33-52" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> D, pi_val, theta_W</span>
-<span id="cb33-53"><a href="#cb33-53" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-54"><a href="#cb33-54" aria-hidden="true" tabindex="-1"></a>tajima_results <span class="op">=</span> {}</span>
-<span id="cb33-55"><a href="#cb33-55" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, (df_pop, _, _) <span class="kw">in</span> pop_names.items():</span>
-<span id="cb33-56"><a href="#cb33-56" aria-hidden="true" tabindex="-1"></a>    D, pi_v, theta_w <span class="op">=</span> tajimas_d(df_pop)</span>
-<span id="cb33-57"><a href="#cb33-57" aria-hidden="true" tabindex="-1"></a>    tajima_results[name] <span class="op">=</span> {<span class="st">"Tajima's D"</span>: <span class="bu">round</span>(D, <span class="dv">4</span>), <span class="st">"pi"</span>: <span class="bu">round</span>(pi_v, <span class="dv">6</span>), <span class="st">"theta_W"</span>: <span class="bu">round</span>(theta_w, <span class="dv">6</span>)}</span>
-<span id="cb33-58"><a href="#cb33-58" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-59"><a href="#cb33-59" aria-hidden="true" tabindex="-1"></a>tajima_df <span class="op">=</span> pd.DataFrame(tajima_results).T</span>
-<span id="cb33-60"><a href="#cb33-60" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Tajima's D per population:"</span>)</span>
-<span id="cb33-61"><a href="#cb33-61" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tajima_df)</span>
-<span id="cb33-62"><a href="#cb33-62" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
-<span id="cb33-63"><a href="#cb33-63" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Fortolkning:"</span>)</span>
-<span id="cb33-64"><a href="#cb33-64" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  D ≈ 0:  konsistent med neutral evolution og konstant population"</span>)</span>
-<span id="cb33-65"><a href="#cb33-65" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  D &gt; 0:  overskud af common variants (admixture, balancerende selektion, bottleneck)"</span>)</span>
-<span id="cb33-66"><a href="#cb33-66" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  D &lt; 0:  overskud af singletons (nylig ekspansion, purifying selektion)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>pop_names <span class="op">=</span> {</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Yellow Baboon"</span>: (df_P_cynocephalus, sfs_P_cynocephalus, <span class="st">"C1"</span>),</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Kinda Baboon"</span>:  (df_P_kindae, sfs_P_kindae, <span class="st">"C2"</span>),</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Olive Baboon"</span>:  (df_P_anubis, sfs_P_anubis, <span class="st">"C3"</span>),</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Guinea Baboon"</span>: (df_P_papio, sfs_P_papio, <span class="st">"C4"</span>),</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Chacma Baboon"</span>: (df_P_ursinus, sfs_P_ursinus, <span class="st">"C5"</span>),</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Hamadryas Baboon"</span>: (df_P_hamadryas, sfs_P_hamadryas, <span class="st">"C6"</span>), </span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> tajimas_d(df_pop, n<span class="op">=</span><span class="dv">4</span>):</span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a><span class="co">    Beregner Tajima's D for en population.</span></span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a><span class="co">    Kræver derived count data og subsampler til n haplotyper.</span></span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(<span class="dv">0</span>)</span>
+<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>    ngood <span class="op">=</span> df_pop[<span class="st">"derived_count"</span>].values.astype(<span class="bu">int</span>)</span>
+<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>    nbad <span class="op">=</span> (df_pop[<span class="st">"nr_samples"</span>] <span class="op">-</span> df_pop[<span class="st">"derived_count"</span>]).values.astype(<span class="bu">int</span>)</span>
+<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>    k <span class="op">=</span> rng.hypergeometric(</span>
+<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>        ngood<span class="op">=</span>ngood,</span>
+<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>        nbad<span class="op">=</span>nbad,</span>
+<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>        nsample<span class="op">=</span>n,</span>
+<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a>    k <span class="op">=</span> k[(k <span class="op">&gt;</span> <span class="dv">0</span>) <span class="op">&amp;</span> (k <span class="op">&lt;</span> n)]</span>
+<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a>    S <span class="op">=</span> <span class="bu">len</span>(k)  <span class="co"># antal segregerende sites</span></span>
+<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-28"><a href="#cb33-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> S <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb33-29"><a href="#cb33-29" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> np.nan, np.nan, np.nan</span>
+<span id="cb33-30"><a href="#cb33-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-31"><a href="#cb33-31" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Watterson's theta_W = S / a1</span></span>
+<span id="cb33-32"><a href="#cb33-32" aria-hidden="true" tabindex="-1"></a>    a1 <span class="op">=</span> <span class="bu">sum</span>(<span class="dv">1</span><span class="op">/</span>i <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, n))</span>
+<span id="cb33-33"><a href="#cb33-33" aria-hidden="true" tabindex="-1"></a>    theta_W <span class="op">=</span> S <span class="op">/</span> a1</span>
+<span id="cb33-34"><a href="#cb33-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-35"><a href="#cb33-35" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Pi (gennemsnitlig pairwise differences)</span></span>
+<span id="cb33-36"><a href="#cb33-36" aria-hidden="true" tabindex="-1"></a>    pi_val <span class="op">=</span> <span class="bu">sum</span>(ki <span class="op">*</span> (n <span class="op">-</span> ki) <span class="cf">for</span> ki <span class="kw">in</span> k) <span class="op">*</span> <span class="dv">2</span> <span class="op">/</span> (n <span class="op">*</span> (n<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb33-37"><a href="#cb33-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-38"><a href="#cb33-38" aria-hidden="true" tabindex="-1"></a>    b1 <span class="op">=</span> (n <span class="op">+</span> <span class="dv">1</span>) <span class="op">/</span> (<span class="dv">3</span> <span class="op">*</span> (n <span class="op">-</span> <span class="dv">1</span>))</span>
+<span id="cb33-39"><a href="#cb33-39" aria-hidden="true" tabindex="-1"></a>    b2 <span class="op">=</span> (<span class="dv">2</span> <span class="op">*</span> (n<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> n <span class="op">+</span> <span class="dv">3</span>)) <span class="op">/</span> (<span class="dv">9</span> <span class="op">*</span> n <span class="op">*</span> (n <span class="op">-</span> <span class="dv">1</span>))</span>
+<span id="cb33-40"><a href="#cb33-40" aria-hidden="true" tabindex="-1"></a>    c1 <span class="op">=</span> b1 <span class="op">-</span> <span class="dv">1</span><span class="op">/</span>a1</span>
+<span id="cb33-41"><a href="#cb33-41" aria-hidden="true" tabindex="-1"></a>    a2 <span class="op">=</span> <span class="bu">sum</span>(<span class="dv">1</span><span class="op">/</span>i<span class="op">**</span><span class="dv">2</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, n))</span>
+<span id="cb33-42"><a href="#cb33-42" aria-hidden="true" tabindex="-1"></a>    c2 <span class="op">=</span> b2 <span class="op">-</span> (n <span class="op">+</span> <span class="dv">2</span>)<span class="op">/</span>(a1 <span class="op">*</span> n) <span class="op">+</span> a2<span class="op">/</span>a1<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb33-43"><a href="#cb33-43" aria-hidden="true" tabindex="-1"></a>    e1 <span class="op">=</span> c1 <span class="op">/</span> a1</span>
+<span id="cb33-44"><a href="#cb33-44" aria-hidden="true" tabindex="-1"></a>    e2 <span class="op">=</span> c2 <span class="op">/</span> (a1<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> a2)</span>
+<span id="cb33-45"><a href="#cb33-45" aria-hidden="true" tabindex="-1"></a>    var_d <span class="op">=</span> e1 <span class="op">*</span> S <span class="op">+</span> e2 <span class="op">*</span> S <span class="op">*</span> (S <span class="op">-</span> <span class="dv">1</span>)</span>
+<span id="cb33-46"><a href="#cb33-46" aria-hidden="true" tabindex="-1"></a>    D <span class="op">=</span> (pi_val <span class="op">-</span> theta_W) <span class="op">/</span> np.sqrt(var_d) <span class="cf">if</span> var_d <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> np.nan</span>
+<span id="cb33-47"><a href="#cb33-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-48"><a href="#cb33-48" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> D, pi_val, theta_W</span>
+<span id="cb33-49"><a href="#cb33-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-50"><a href="#cb33-50" aria-hidden="true" tabindex="-1"></a>tajima_results <span class="op">=</span> {}</span>
+<span id="cb33-51"><a href="#cb33-51" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, (df_pop, _, _) <span class="kw">in</span> pop_names.items():</span>
+<span id="cb33-52"><a href="#cb33-52" aria-hidden="true" tabindex="-1"></a>    D, pi_v, theta_w <span class="op">=</span> tajimas_d(df_pop)</span>
+<span id="cb33-53"><a href="#cb33-53" aria-hidden="true" tabindex="-1"></a>    tajima_results[name] <span class="op">=</span> {<span class="st">"Tajima's D"</span>: <span class="bu">round</span>(D, <span class="dv">4</span>), <span class="st">"pi"</span>: <span class="bu">round</span>(pi_v, <span class="dv">6</span>), <span class="st">"theta_W"</span>: <span class="bu">round</span>(theta_w, <span class="dv">6</span>)}</span>
+<span id="cb33-54"><a href="#cb33-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-55"><a href="#cb33-55" aria-hidden="true" tabindex="-1"></a>tajima_df <span class="op">=</span> pd.DataFrame(tajima_results).T</span>
+<span id="cb33-56"><a href="#cb33-56" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Tajima's D per population:"</span>)</span>
+<span id="cb33-57"><a href="#cb33-57" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tajima_df)</span>
+<span id="cb33-58"><a href="#cb33-58" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb33-59"><a href="#cb33-59" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Fortolkning:"</span>)</span>
+<span id="cb33-60"><a href="#cb33-60" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  D ≈ 0:  konsistent med neutral evolution og konstant population"</span>)</span>
+<span id="cb33-61"><a href="#cb33-61" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  D &gt; 0:  overskud af common variants (admixture, balancerende selektion, bottleneck)"</span>)</span>
+<span id="cb33-62"><a href="#cb33-62" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  D &lt; 0:  overskud af singletons (nylig ekspansion, purifying selektion)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Tajima's D per population:
                   Tajima's D             pi        theta_W
@@ -1382,7 +1385,7 @@ Hamadryas Baboon  0.001657</code></pre>
 </section>
 <section id="gem-data" class="level2">
 <h2 class="anchored" data-anchor-id="gem-data">Gem data</h2>
-<p>Jeg gemmer de beregnede DataFrames som CSV-filer, så Notebook 04 (two-island model) kan indlæse dem direkte uden at genkøre det hele igen.</p>
+<p>Jeg gemmer de beregnede DataFrames som CSV-filer, så jeg i de næste notebooks kan indlæse dem direkte uden at genkøre det hele igen.</p>
 <div id="ee4aba8a" class="cell" data-execution_count="140">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>df_P_cynocephalus.to_csv(OUT_DIR <span class="op">/</span> <span class="st">"derived_counts_P_cynocephalus.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span>
 <span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>df_P_kindae.to_csv(OUT_DIR <span class="op">/</span> <span class="st">"derived_counts_P_kindae.csv"</span>,       index<span class="op">=</span><span class="va">False</span>)</span>
