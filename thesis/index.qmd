@@ -633,7 +633,204 @@ Til sidst opstilles en simplificeret tre-epoke bavian-demografi baseret på stø
 
 # Introduktion
 
+## Hvad er koalescensteorien?
 
+For at forstå genetisk variation i nutidige populationer er det nødvendigt at tænke bagud i tid og rekonstruere, hvordan nulevende DNA-sekvenser er relaterede til hinanden. Koalescensteorien giver en præcis matematisk ramme for dette: givet en stikprøve af DNA-sekvenser fra en population, beskriver koalescenten den tilfældige genealogiske proces, der forener disse sekvenser til et fælles forfadergen det *most recent common ancestor* (MRCA).
+
+Koalescenten er en tidsbagud Markovproces. Det vil sige, at fremtiden er uafhængig af fortiden givet nutiden: antallet af tilbageværende linjer på et givent tidspunkt er alt, hvad vi behøver at vide for at beskrive, hvad der sker dernæst. Det er netop denne Markov-egenskab, der gør det muligt at udtrykke genealogiske størrelser eksakt uden simulering ved hjælp af phase-type distributioner.
+
+## Kingman's koalescent
+
+Det simpleste og mest grundlæggende model er Kingman's standardkoalescent [@Kingman1982]. Antag at man har $n$ DNA-sekvenser samplet fra en population med effektiv størrelse $N$. I et Wright-Fisher-model vælger hvert kromosom i en ny generation sin forfader uniformt tilfældigt. Når man ser bagud i tid, er sandsynligheden for at to linjer samles (koalescerer) i en given generation $1/(2N)$.
+
+I kontinuert tid approksimeres dette med en eksponentielt fordelt ventetid. Med $k$ tilbageværende linjer er koalescensraten
+$$
+\lambda_k = \binom{k}{2} = \frac{k(k-1)}{2}.
+$$
+
+Processen starter i tilstanden $k = n$ og slutter, når alle linjer er samlet i en ved MRCA. Den samlede tid $T_{\text{MRCA}}$ er summen af uafhængige eksponentielle ventetider $T_k \sim \text{Exp}(\lambda_k)$ for $k = n, n-1, \ldots, 2$:
+$$
+T_{\text{MRCA}} = T_n + T_{n-1} + \cdots + T_2.
+$$
+
+Den forventede MRCA-tid er
+$$
+\mathbb{E}[T_{\text{MRCA}}] = \sum_{k=2}^{n} \frac{2}{k(k-1)} = 2\left(1 - \frac{1}{n}\right),
+$$
+
+som konvergerer mod 2 (i enheder af $N$ generationer) for store $n$.
+Den totale grenlængde er
+$$
+T_{\text{total}} = \sum_{k=2}^{n} k \cdot T_k,
+$$
+
+og dens forventede værdi er $\mathbb{E}[T_{\text{total}}] = 2\sum_{k=1}^{n-1} 1/k$, hvorfra det forventede antal segregerende sider under en infinit-sites mutationsmodel er $\mathbb{E}[S] = \theta \cdot \mathbb{E}[T_{\text{total}}] / 2$, med skaleret mutationsrate $\theta = 4Nu$.
+
+## Tilstandsrummet 
+
+For at anvende phase-type teori repræsenterer jeg koalescenten ved en *block-counting process*
+[@Hobolth2021]. En tilstand er en vektor $\mathbf{s} = (s_1, s_2, \ldots, s_{n-1})$, hvor $s_i$
+angiver antallet af linjer med netop $i$ efterkommere i stikprøven. En linje med $i$ efterkommere
+kaldes en *$i$-ton*.
+For $n = 4$ starter processen i tilstand $(4, 0, 0)$ (fire singletons). Herfra kan:
+
+- To singletons koalescere $\rightarrow$ tilstand $(2, 1, 0)$ med rate $\binom{4}{2} = 6$.
+
+Fra $(2, 1, 0)$ kan enten:
+
+- De to singletons koalescere $\rightarrow$ tilstand $(0, 2, 0)$ med rate $\binom{2}{2} = 1$.
+- En singleton og doubleton koalescere $\rightarrow$ tilstand $(1, 0, 1)$ med rate $2 \cdot 1 = 2$.
+
+Processen er absorberet, når alle linjer er samlet, dvs. tilstanden $(0, 0, \ldots, 1)$ MRCA.
+Sub-intensitetsmatricen for $n = 4$ er:
+$$
+\mathbf{S} = \begin{pmatrix}
+-6 & 6 & 0 & 0 \\
+0 & -3 & 2 & 1 \\
+0 & 0 & -1 & 0 \\
+0 & 0 & 0 & -1
+\end{pmatrix}
+$$
+
+## Phase-type distributioner
+
+En *phase-type distribution* er ventetiden til absorption i en kontinuert Markov-kæde med transiente tilstande $\{1, \ldots, p\}$ og et absorberende tilstand. Formelt:
+$$
+\tau \sim \text{PH}_p(\alpha, \mathbf{S}),
+$$
+
+hvor $\alpha$ er startfordelingen over de transiente tilstande og $\mathbf{S}$ er sub-intensitetsmatricen.
+Fordelingsfunktionen, tætheden og forventningsværdien er givet ved:
+$$
+F(t) = 1 - \alpha e^{\mathbf{S}t} \mathbf{e}, \qquad
+f(t) = \alpha e^{\mathbf{S}t} \mathbf{s}, \qquad
+\mathbb{E}[\tau] = \alpha(-\mathbf{S})^{-1} \mathbf{e},
+$$
+
+hvor $\mathbf{s} = -\mathbf{S}\mathbf{e}$ er exitratevektoren og $\mathbf{e}$ er en søjlevektor af ettaller.
+
+### Green-matricen og sojourn-tider
+
+Matricen $\mathbf{U} = (-\mathbf{S})^{-1}$ kaldes Green-matricen. Elementet $U_{ij}$ er den forventede tid brugt i tilstand $j$, givet at processen startede i tilstand $i$. Den totale forventede sojourn-tid i tilstand $j$ er $\alpha \mathbf{U} \cdot \mathbf{e}_j$.
+
+Sojourn-tider er særligt interessante i genealogisk sammenhæng, fordi de fortæller, hvor lang tid koalescenten i gennemsnit bruger i en given tilstand og dermed, hvilke genealogiske faser der bidrager mest til den samlede variation i stikprøven.
+
+### Reward transformationer og site frequency spectrum
+
+Reward-transformationen er et centralt redskab. Givet en rewardvektor $\mathbf{r}$, der angiver en "belønning" per tidsenhed i hver tilstand, er den akkumulerede reward
+$$
+Y = \int_0^\tau r(X_t) \, dt
+$$
+
+selv PH-distribueret via reward-transformationen $\mathbf{S}^ {(\mathbf{r})} = \Delta(\mathbf{r})^{-1} \mathbf{S}$ [@Hobolth2019].
+Det forventede site frequency spectrum (SFS) udnytter netop dette: grenlængden med $i$ efterkommere (altså totallængden af $i$-ton grene) er $Y_i = \int_0^\tau s_i(X_t) \, dt$, og
+$\mathbb{E}[Y_i] = \alpha (-\mathbf{S})^{-1} \mathbf{r}_i$, hvor $\mathbf{r}_i$ er antallet af $i$-ton linjer i hver tilstand.
+
+## Phasic-biblioteket
+
+I dette projekt anvender jeg Python-biblioteket *phasic* [@Phasic2026], som implementerer graph-baserede algoritmer til effektiv beregning med phase-type distributioner. I stedet for at
+arbejde direkte med matricer bygger phasic en rettet graf, hvor:
+
+- Hver knude repræsenterer en tilstand i tilstandsrummet.
+- Hver kant repræsenterer et tilladt spring med sin tilhørende rate.
+- Graph-elimination algoritmen beregner momenter og fordelinger direkte på grafen.
+
+Denne tilgang er beregningsmæssigt effektiv og giver en intuitiv grafisk repræsentation af modellen. Der defineres en *callback-funktion*, der svarer på spørgsmålet: "Givet en tilstand, hvilke overgange er mulige og med hvilken rate?"  phasic bygger herefter tilstandsrummet automatisk.
+
+## Forskningsspørgsmål i dette afsnit
+
+De følgende notebooks udforsker standardkoalescenten og phase-type teorien med disse spørgsmål:
+
+**Notebook 01 — Standardkoalescenten:**
+
+- Hvordan ser tilstandsrummet ud for forskellige stikprøvestørrelser $n$?
+- Hvad sker der med $\mathbb{E}[T_{\text{MRCA}}]$ og $\text{Var}[T_{\text{MRCA}}]$ som funktion af $n$? Konvergerer det som teorien forudsiger mod $2$?
+- Hvordan adskiller PDF'en for TMRCA sig fra en simpel eksponentialfordeling?
+- Hvad sker der med tilstandsrummet (antal tilstande) som funktion af $n$ — og hvornår bliver det beregningsmæssigt tungt?
+
+**Notebook 02 — Phase-type basics og sojourn-tider:**
+
+- Hvad fortæller sojourn-tiderne os om, hvilke genealogiske faser der dominerer?
+- Kan resultaterne fra phasic verificeres mod den analytiske løsning fra sub-intensitetsmatricen?
+- Hvordan ændrer site frequency spectrum sig med $n$?
+- Hvad sker der med SFS-formen, hvis vi tilføjer populationsvækst (reward-baseret approksimation)?
+
+
+
+
+## Fra en population til to
+
+I afsnit 1 antog jeg at alle individer stammede fra en enkelt, homogen population en antagelse der sjældent holder i biologisk virkelighed. Populationer er geografisk strukturerede: individer lever i delbestande med begrænset bevægelse imellem dem. Denne struktur præger genealogierne, og dermed også den genetiske variation jeg observerer. To-ø modellen (*two-island model*) er det simpleste strukturerede koalescent-model og giver en eksakt analytisk ramme for at forstå, hvordan migration ændrer genealogiers form.
+
+## To-ø modellem: biologisk motivation
+
+Forestil dig to adskilte populationer eksempelvis to grupper bavianer separeret af en geografisk barriere. Individer kan med en given rate $m$ flytte fra en gruppe til den anden. Set bagud i tid opfører dette sig som *migration*: en genealogisk linje kan "hoppe" fra en population til den anden med raten $M = 2Nm$, den *skalerede* migrationsrate. Her er $N$ populationsstørrelsen (antaget ens for begge øer) og $m$ er raten per generation per individ.
+
+To grænsetilfælde er særligt informative:
+
+- **$M \to 0$ (fuld isolation):** De to populationer koalescerer aldrig inden for populationerne — to linjer der er samplet fra verschiedene populationer, må vente ekstremt lang tid, fordi de først skal migrere til samme deme, inden de kan koalescere. TMRCA bliver stor med stor varians.
+
+- **$M \to \infty$ (panmiksi):** Populationsstrukturen er irrelevant — migration er så hyppig at modellen opfører sig som en enkelt stor population. TMRCA konvergerer mod standardkoalescenten for den samlede populationsstørrelse.
+
+## Tilstandsrummet for to-ø modellen
+
+I to-ø modellen kræves en mere detaljeret tilstandsbeskrivelse end i standardkoalescenten. For at anvende phasic bruger jeg StateIndexer med to properties: antallet af linjer i population 1 ($pop_1$) og antallet i population 2 ($pop_2$). En tilstand er dermed et par $(i, j)$ der angiver antallet af aktive genealogiske linjer i hver population.
+
+Fra en tilstand $(i, j)$ kan ske:
+
+1. **Koalescens i pop 1:** To linjer i pop 1 smelter sammen. Rate $\binom{i}{2}$. Ny tilstand: $(i-1, j)$.
+
+2. **Koalescens i pop 2:** Tilsvarende. Rate $\binom{j}{2}$. Ny tilstand: $(i, j-1)$.
+
+3. **Migration fra pop 1 til pop 2:** En linje hopper. Rate $i \cdot M/2$. Ny tilstand: $(i-1, j+1)$.
+
+4. **Migration fra pop 2 til pop 1:** Rate $j \cdot M/2$. Ny tilstand: $(i+1, j-1)$.
+
+Absorption sker, når alle linjer er i en population og har koalesceret: tilstanden $(1, 0)$ eller $(0, 1)$ efterfulgt af den endelige koalescenshændelse til MRCA.
+
+Den skalerede migrationsrate er $M = 4Nm$ (baseret på $4N$ snarere end $2N$, fordi man tæller per linje, og hver linje kan migrere i begge retninger). I litteraturen benyttes konventionen $M = 2\mu$ i @Hobolth2024, mens ms-programmet benytter $M = 4N\tilde{m}$.
+
+## Sojourn-tider og TMRCA under migration
+
+Med migration introduceres en ny type sojourn-tid: den tid to linjer bruger i *forskellige* populationer. Disse "trans-population" sojourn-tider bidrager direkte til TMRCA, fordi linjer der er i separate populationer ikke kan koalescere de må først migrere til fælles population.
+
+For to linjer (den simpleste ikke-trivielle case) er TMRCA under to-ø modellen analytisk løst og giver:
+$$
+\mathbb{E}[T_{\text{MRCA}}] = 1 + \frac{1}{M},
+$$
+
+i enheder af $2N$ generationer. Fortolkning: $1$ er den forventede koalescenstid givet at begge linjer er i samme population (som i standardkoalescenten med $n=2$), og $1/M$ er den ekstra tid brugt på at vente på migration til fælles population. For $M \to \infty$ forsvinder leddet $1/M$ og vi gendanner standardresultatet.
+
+## Joint site frequency spectrum (JSFS)
+
+Når jeg har to populationer kan jeg adskille mutationer efter, hvilken population de stammer fra. *Joint site frequency spectrum* (JSFS) er en matrix $F_{ij}$ der angiver den forventede grenlængde for linjer med $i$ efterkommere i $pop_1$ og $j$ efterkommere i $pop_2$. JSFS er et centralt redskab i studier af populationsadskillelse og migration, og kan beregnes eksakt via reward-transformationen i phasic [@Graphbased2022].
+
+Biologisk fortolkning: En variant i cellen $(i, j)$ i JSFS'en betyder, at den pågældende variant opstod på en gren der havde præcis $i$ efterkommere i $pop_1$ og $j$ efterkommere i $pop_2$. Cellerne langs kanten af JSFS (kun $pop_1$ eller kun $pop_2$) svarer til private varianter, mens indre celler svarer til varianter der er delt på tværs af populationerne.
+
+## Asymmetrisk migration og ghost populations
+
+To-ø modellen kan udvides til *asymmetrisk* migration: rate $M_{12}$ fra $pop_1$ til $pop_2$ og $M_{21}$ fra $pop_2$ til $pop_1$. Dette er biologisk mere realistisk for eksempel kan en lille ø-population primært modtage immigranter fra fastlandet, men sjældent selv eksportere.
+Et yderligere lag af kompleksitet er *ghost populations*: en tredje population der aldrig er samplet, men som genealogisk linjer kan passere igennem. En ghost population fungerer som en genealogisk "buffer" linjer der migrerer igennem den, bruger ekstra tid der ikke observeres direkte i data, men som alligevel påvirker TMRCA-fordelingen for de sampledede populationer. I afsnit 3 udvides to-ø modellen med en ghost population i IM-rammen.
+
+## Phasic-implementering: `StateIndexer` med to populations-properties
+
+I to-ø modellen repræsenteres tilstanden ved to heltal $(i, j)$: antallet af linjer i hhv. $pop_1$ og $pop_2$. Phasic's StateIndexer og Property-klasser giver en elegant måde at kode dette på. Her mapper jeg loci til populationer: $pop_1$ og $pop_2$ og migrationshændelser svarer til rekombinationshændelser: begge opdeler en linje fra en tilstand til to.
+
+## Forskningsspørgsmål i dette afsnit
+
+**Notebook 03 — Two-island modellen:**
+
+- Hvad sker der med tilstandsrummet $(i, j)$ for stigende $n$ og $M$?
+- Hvordan ændrer $\mathbb{E}[T_{\text{MRCA}}]$ sig som funktion af $M$? Konvergerer det mod $1 + 1/M$ for to linjer?
+- Hvad sker der med sojourn-tider i "cross-population"-tilstande (linjer i separate populationer) kontra "same-population"-tilstande?
+- Kan jeg skelne $M = 0.1$ fra $M = 10$ ved at se på TMRCA-fordelingens form?
+
+**Notebook 04 — Migrationseffekter i dybden:**
+
+- Hvad sker der med JSFS'en for varierende $M$: private vs. delte varianter?
+- Hvad sker der med den genetiske diversitet inden for og imellem populationer ($F_{ST}$) som funktion af $M$?
+- Hvad sker der, hvis jeg tilføjer asymmetrisk migration $M_{12} \neq M_{21}$?
+- Kan TMRCA-fordelingen bruges til at detektere populationsstruktur i data, og hvornår er strukturen så svag at den er usynlig?
 
 
 
