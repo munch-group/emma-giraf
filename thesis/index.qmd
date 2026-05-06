@@ -714,6 +714,102 @@ Dette speciale undersøger Markovmodeller for genealogiske processer ved hjælp 
 strukturerede modeller med migration. Databehandlingen tager udgangspunkt i vejlederkode og udvider denne med egne analyser af parameterrum og modeladfærd. Endeligt appliceres modellerne på genetiske data fra bavianpopulationer for at belyse populationsstruktur og migrationshistorie.
 
 
+# Statistisk inferens i Markov-genealogiske modeller
+
+Et centralt mål i populationsgenetik er at estimere demografiske parametre: populationsstørrelser, migrationsrater og opdelningstidspunkter ud fra observerede DNA-sekvenser. Når modellen er formuleret som en phase-type fordeling, reduceres inferens til problemet om at estimere parametrene i sub-intensitetsmatricen $\mathbf{T}$ og startfordelingen $\alpha$.
+
+To metodologiske tilgange undersøges i dette speciale. Den første er **method of moments (MoM)**, der finder parameter-estimater $\hat{\theta}$ ved at minimere kvadratafvigelsen mellem modellens teoretiske momenter og de empiriske momenter i data [@Hobolth2024]:
+$$
+\hat{\theta}_{\text{MoM}} = \arg\min_{\theta > 0}
+\left\| \mathbf{m}_{\text{model}}(\theta) - \hat{\mathbf{m}}_{\text{data}} \right\|^2.
+$$
+
+MoM giver et hurtigt punktestimat og er nyttigt til at konstruere data-informerede priors.
+
+Den anden og primære metode er **Stein Variational Gradient Descent (SVGD)** [@Liu2016], der repræsenterer den Bayesianske posterior med et sæt partikler $\{\theta^{(i)}\}_{i=1}^n$ og opdaterer disse iterativt mod den sande posterior ved hjælp af en kernelbaseret update-regel. SVGD kombinerer gradient-information fra log-likelihood og log-prior med en repulsionskraft, der forhindrer partikelkollaps og sikrer diversitet i posterior-repræsentationen.
+Fordelen ved den Bayesianske tilgang er, at man ikke blot får et punktestimat, men den fulde posterior-fordeling og dermed usikkerhedskvantificering, konfidensintervaller og mulighed for posterior predictive checks.
+
+## SVGD: Grundlæggende egenskaber og prior-sensitivitet
+**Tilhørende notebook:** `02_svgd_inference_basics.ipynb`
+
+Der startes med den enklest mulige model: en enkelt-parameter koalescent, hvor $\theta$ kontrollerer koalescensraten. Dette mugliggør at isolere og undersøge SVGD's egenskaber i et setup, inden man bevæger sig til mere komplekse modeller.
+
+### Prior-sensitivitet og sample size-effekter
+
+I Bayesiansk inferens spiller prioren en central rolle særligt for små datasæt, hvor likelihood-overfladen er flad, og prioren dominerer posterioren. Der undersøges tre prior-specifikationer: en vag Gaussisk prior, en informativ (korrekt centreret) Gaussisk prior og
+en halvt-Cauchy prior med tunge haler, der er velegnet for skalaparametre [@Gelman2006].
+
+**Spørgsmål og hypoteser:**
+
+- En informativ men korrekt centreret prior konvergerer hurtigere og giver smallere posterior end en vag prior, men ved $n > 1000$ er begge ekvivalente. Jeg forventer, at likelihood dominerer over prior når $n$ vokser, og at posterior-mean konvergerer mod MLE uanset prior-specifikation.
+- En systematisk forkert prior medfører bias i posterior-mean, der persisterer til $n > 500$.
+  Dette tester, om SVGD korrekt overvejer data-information frem for prior, og kvantificerer prior-dominansens styrke som funktion af $n$.
+- Dækningsfrekvensen for 95%-CI er tæt på 0.95, men underestimerer usikkerheden ved lille $n$ med informativ prior.
+
+### Learning rate og konvergens
+
+SVGD's konvergens afhænger kritisk af learning rate-scheduelen. En for stor konstant rate medfører oscillation; for lille giver langsom konvergens. En eksponentielt aftagende schedule starter med stor step størrelse for at udforske parameterrummet og reducerer gradvist til finjustering.
+
+**Spørgsmål og hypoteser:**
+
+- En eksponentielt aftagende learning rate (ExpStepSize) konvergerer til en smallere og mere stabil posterior end en konstant rate, målt ved std(posterior) og stabilitet af mean over de sidste 50 iterationer.
+- Adam-optimizer er mere robust over for dårlige startbetingelser (forkert prior) end en fast learning rate, fordi den adaptivt skalerer step size per parameter baseret på gradient-historik.
+  Adam opretholdes med $m_t \leftarrow \beta_1 m_{t-1} + (1-\beta_1)g_t$ og $v_t \leftarrow \beta_2 v_{t-1} + (1-\beta_2)g_t^2$, og er dermed mere robust ved heterogene gradienter.
+
+### Regularisering og posterior-dispersion
+
+Momentregularisering fungerer som en ekstra tiltrækning mod de empiriske momenter. For høj regularisering kan føre til posterior-kollaps, hvor alle partikler kollapser til et punktestimat og usikkerheden underestimeres systematisk.
+
+**Spørgsmål og hypoteser:**
+
+- Stærk, konstant regularisering ($\text{reg} \gg 1$) giver systematisk underdisperseret posterior: std(posterior) reduceres med mere end 50% sammenlignet med ingen regularisering.
+- En eksponentielt aftagende regularisering (stærk start, svag slut) giver det bedste kompromis mellem konvergensstabilitet og korrekt posterior-spredning.
+
+
+## To-ø modellen: Identifikabilitet og multi-parameter inferens
+**Tilhørende notebook:** `03_svgd_two_island.ipynb`
+
+To-ø modellen er en struktureret koalescent, hvor to populationer udveksler linjer med migrationsrate $\theta_1$, og koalescerer inden for hver population med rate $\theta_0 = \frac{1}{N}$. Modellen er det simpleste eksempel på en struktureret koalescent [@Wakeley2008] og udgør
+byggesten mod mere komplekse IM-modeller.
+
+### Identifikabilitet og parameter-konfundering
+
+Et fundamentalt spørgsmål i populationsgenetisk inferens er, om modellens parametre er identifikable fra de tilgængelige data. I to-ø modellen er $\theta_0$ og $\theta_1$ potentielt konfunderede: lav koalescensrate i en struktureret model kan ligne høj koalescensrate i en panmiktisk model, fordi begge giver lange TMRCA-tider.
+
+**Spørgsmål og hypoteser:**
+
+- Ved lav migration ($\theta_1 < 0.5$) er $(\theta_0, \theta_1)$ stærkt konfunderede, og joint posterior viser en negativ, aflang korrelationsstruktur (likelihood-ridge). Ved $\theta_1 > 2$ adskilles parametrene. Dette undersøges via pairwise posterior-plots under tre migrationsregimer.
+
+- Likelihood-overfladen i $(\theta_0, \theta_1)$-rummet er aflang langs en diagonal ridge ved lav migration, hvilket afspejler den matematiske konfundering: $\mathbb{E}[\text{TMRCA}]$ er en funktion af begge parametre, og iso-linjer for $\mathbb{E}[\text{TMRCA}]$ er ikke parallelle med koordinatakserne.
+
+### Method of Moments som prior-konstruktion
+
+MoM løser et system af momentligninger og giver et punktestimat, der kan bruges som center for en informativ prior til SVGD [@Hobolth2024]. Man undersøger, hvornår MoM-estimater alene er tilstrækkelige, og hvornår den fulde posterior er nødvendig.
+
+**Spørgsmål og hypoteser:**
+
+- MoM-estimater konvergerer mod SVGD-posterior-mean for $n > 1000$, men afviger ved lille $n$ og ved lav identifikabilitet (lav migration). SVGD's primære bidrag ved store $n$ er usikkerhedskvantificering, ikke bedre punkt-estimation.
+
+### Migrationsrate og TMRCA-fordeling
+
+Migrationsraten påvirker den fulde fordeling af TMRCA ikke blot forventningsværdien. Man undersøger formen på denne sammenhæng analytisk og numerisk.
+
+**Spørgsmål og hypoteser:**
+
+- $\mathbb{E}[\text{TMRCA}]$ falder monotont med stigende migration og konvergerer mod $\mathbb{E}[H]_{\text{panmixia}} = 1/\theta_0$ for $\theta_1 \to \infty$.
+
+- Variansen $\text{Var}[\text{TMRCA}]$ har et maksimum ved en mellemliggende migrationsrate, fordi strukturen bidrager med ekstra variation (lange tider i isolation) som kompenseres ved fuld blanding.
+- PDF'ens form skifter fra bimodal-lignende (ved lav migration: peak fra isolation og peak fra migration-event) til eksponentiel-lignende ved høj migration.
+
+## Informationsindhold: TMRCA vs. SFS-features
+
+Et praktisk spørgsmål er, hvilke aspekter af data der bærer mest information om de demografiske parametre. Sammenligning af inference baseret på direkte TMRCA-observationer med inference baseret på belønningstransformerede SFS-komponenter (singleton, doubleton, tripleton branch lengths) via
+phasics multi-feature SVGD [@Hobolth2021].
+
+**Spørgsmål og hypoteser:**
+
+- Singleton gren længde (1-ton) er mere sensitive over for populationsstruktur end TMRCA alene, fordi de akkumuleres primært i perioden med mange lineager (tidligt i koalescensen), hvor migrationsraten har størst effekt. Inferens fra SFS-features giver smallere posterior for $\theta$.
+- Kombinationen af alle tre SFS-features (1-ton, 2-ton, 3-ton) giver den smalleste posterior og laveste bias sammenlignet med enkelt-feature inferens.
 
 
 # References
