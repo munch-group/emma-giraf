@@ -269,7 +269,7 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../notebooks/koalescent_basics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Notebook 1: Koalescenten som Phase-type fordeling</span></a>
+  <a href="../notebooks/koalescent_basics.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Notebook 1: Koalescenten som fase-type fordeling</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -330,11 +330,11 @@ window.Quarto = {
     <h2 id="toc-title">Table of contents</h2>
    
   <ul class="collapse">
-  <li><a href="#del-1-prior-sensitivitet-hvor-meget-betyder-prior-valget" id="toc-del-1-prior-sensitivitet-hvor-meget-betyder-prior-valget" class="nav-link active" data-scroll-target="#del-1-prior-sensitivitet-hvor-meget-betyder-prior-valget">Del 1 – Prior-sensitivitet: Hvor meget betyder prior-valget?</a></li>
-  <li><a href="#del-2-learning-rate-og-konvergens" id="toc-del-2-learning-rate-og-konvergens" class="nav-link" data-scroll-target="#del-2-learning-rate-og-konvergens">Del 2 – Learning rate og konvergens</a></li>
-  <li><a href="#del-3-regularisering-og-posterior-kollaps" id="toc-del-3-regularisering-og-posterior-kollaps" class="nav-link" data-scroll-target="#del-3-regularisering-og-posterior-kollaps">Del 3 – Regularisering og posterior-kollaps</a></li>
-  <li><a href="#del-4-posterior-validering-dækker-95-ci-den-sande-parameter" id="toc-del-4-posterior-validering-dækker-95-ci-den-sande-parameter" class="nav-link" data-scroll-target="#del-4-posterior-validering-dækker-95-ci-den-sande-parameter">Del 4 – Posterior-validering: Dækker 95% CI den sande parameter?</a></li>
-  <li><a href="#del-5-posterior-predictive-check" id="toc-del-5-posterior-predictive-check" class="nav-link" data-scroll-target="#del-5-posterior-predictive-check">Del 5 – Posterior predictive check</a></li>
+  <li><a href="#prior-sensitivitet-hvor-meget-betyder-prior-valget" id="toc-prior-sensitivitet-hvor-meget-betyder-prior-valget" class="nav-link active" data-scroll-target="#prior-sensitivitet-hvor-meget-betyder-prior-valget">Prior-sensitivitet: Hvor meget betyder prior-valget?</a></li>
+  <li><a href="#læringsrate-og-konvergens" id="toc-læringsrate-og-konvergens" class="nav-link" data-scroll-target="#læringsrate-og-konvergens">Læringsrate og konvergens</a></li>
+  <li><a href="#regularisering-og-posterior-kollaps" id="toc-regularisering-og-posterior-kollaps" class="nav-link" data-scroll-target="#regularisering-og-posterior-kollaps">Regularisering og posterior-kollaps</a></li>
+  <li><a href="#posterior-validering-dækker-95-ci-den-sande-parameter" id="toc-posterior-validering-dækker-95-ci-den-sande-parameter" class="nav-link" data-scroll-target="#posterior-validering-dækker-95-ci-den-sande-parameter">Posterior-validering: Dækker 95% CI den sande parameter?</a></li>
+  <li><a href="#posterior-predictive-check" id="toc-posterior-predictive-check" class="nav-link" data-scroll-target="#posterior-predictive-check">Posterior predictive check</a></li>
   </ul>
 <div class="toc-actions"><ul class="collapse"><li><a href="https://github.dev/munch-group/emma-giraf/blob/main/notebooks/svgd_inferens_basis.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/emma-giraf/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/emma-giraf/blob/main/notebooks/svgd_inferens_basis.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
     </div>
@@ -360,32 +360,33 @@ window.Quarto = {
 </header>
 
 
-<p>I denne notebook vil jeg se på Stein Variational Gradient Descent (SVGD) som metode til Bayesiansk parameterestimering i fase-type modeller. Jeg starter med en single-parameter koalescent og undersøger, hvordan valget af prior, learning rate og regularisering påvirker konvergens og posterior-præcision. Jeg undersøger desuden sample size-effekter og posterior-bredde.</p>
-<p><strong>SVGD</strong> repræsenterer posterioren med et sæt partikler der iterativt opdateres mod den sande posterior ved at kombinere gradient-information fra likelihood og prior med et kernelbaseret repulsionskraft, der forhindrer partikelkollaps.</p>
-<div id="7a81c81d" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">"CUDA_VISIBLE_DEVICES"</span>] <span class="op">=</span> <span class="st">"0"</span>   </span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">"XLA_FLAGS"</span>] <span class="op">=</span> <span class="st">"--xla_force_host_platform_device_count=1"</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<p>I denne notebook vil jeg se på Stein Variational Gradient Descent (SVGD) som metode til Bayesiansk parameterestimering i fase-type modeller. Jeg starter med en single-parameter koalescent og undersøger, hvordan valget af prior, lærings rate og regularisering påvirker konvergens og posterior-præcision. Jeg undersøger desuden prøvestørrelse-effekter og posterior-bredde.</p>
+<p><strong>SVGD</strong> repræsenterer posterioren med et sæt partikler der iterativt opdateres mod den sande posterior ved at kombinere gradient-information fra likelihood og prior med et kernelbaseret kraft, der forhindrer partikelkollaps.</p>
+<div id="7a81c81d" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Importer de nødvendige pakker</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">"CUDA_VISIBLE_DEVICES"</span>] <span class="op">=</span> <span class="st">"0"</span>   </span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">"XLA_FLAGS"</span>] <span class="op">=</span> <span class="st">"--xla_force_host_platform_device_count=1"</span></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    Graph, with_ipv,</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    GaussPrior, HalfCauchyPrior, DataPrior,</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    Adam, ExpStepSize, ExpRegularization,</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    clear_caches,</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>)  <span class="co"># ALWAYS import phasic first</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config InlineBackend.figure_format <span class="op">=</span> <span class="st">'svg'</span></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>sns.set_palette(<span class="st">'tab10'</span>)</span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>plt.rcParams[<span class="st">'figure.figsize'</span>] <span class="op">=</span> (<span class="dv">9</span>, <span class="dv">4</span>)</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>clear_caches()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    Graph, with_ipv,</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    GaussPrior, HalfCauchyPrior, DataPrior,</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    Adam, ExpStepSize, ExpRegularization,</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    clear_caches,</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>) </span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config InlineBackend.figure_format <span class="op">=</span> <span class="st">'svg'</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>sns.set_palette(<span class="st">'tab10'</span>)</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>plt.rcParams[<span class="st">'figure.figsize'</span>] <span class="op">=</span> (<span class="dv">9</span>, <span class="dv">4</span>)</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>clear_caches()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 
 <style>
@@ -451,11 +452,11 @@ table {
 <span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>true_theta <span class="op">=</span> [<span class="fl">7.0</span>]</span>
 <span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<section id="del-1-prior-sensitivitet-hvor-meget-betyder-prior-valget" class="level2">
-<h2 class="anchored" data-anchor-id="del-1-prior-sensitivitet-hvor-meget-betyder-prior-valget">Del 1 – Prior-sensitivitet: Hvor meget betyder prior-valget?</h2>
+<section id="prior-sensitivitet-hvor-meget-betyder-prior-valget" class="level2">
+<h2 class="anchored" data-anchor-id="prior-sensitivitet-hvor-meget-betyder-prior-valget">Prior-sensitivitet: Hvor meget betyder prior-valget?</h2>
 <p>SVGD er en Bayesiansk metode, og prioren spiller en central rolle især for små datasæt. Jeg undersøger tre scenarier: vag Gaussisk prior, informativ Gaussisk prior og Half-Cauchy prior.</p>
-<section id="hypotese-1" class="level3">
-<h3 class="anchored" data-anchor-id="hypotese-1">Hypotese 1</h3>
+<section id="hypotese" class="level3">
+<h3 class="anchored" data-anchor-id="hypotese">Hypotese</h3>
 <ul>
 <li>En informativ, men korrekt centreret prior konvergerer hurtigere og giver smallere posterior end en vag prior. En vag prior med store sample sizes konvergerer til det samme resultat som en informativ prior.</li>
 </ul>
@@ -490,8 +491,8 @@ table {
 </div>
 </div>
 </div>
-<div id="ccf1d400" class="cell" data-execution_count="6">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Kør SVGD med alle fire priors og sammenlign</span></span>
+<div id="ccf1d400" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Kører SVGD med alle fire priors og sammenligner</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>step <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.005</span>, tau<span class="op">=</span><span class="fl">30.0</span>)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>svgd_results <span class="op">=</span> {}</span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -552,13 +553,13 @@ Sand θ = 7.0</code></pre>
 </div>
 </div>
 </section>
-<section id="hypotese-1b-prior-dominans-som-funktion-af-sample-size" class="level3">
-<h3 class="anchored" data-anchor-id="hypotese-1b-prior-dominans-som-funktion-af-sample-size">Hypotese 1b – Prior dominans som funktion af sample size</h3>
+<section id="hypotese-prior-dominans-som-funktion-af-prøvestørrelse" class="level3">
+<h3 class="anchored" data-anchor-id="hypotese-prior-dominans-som-funktion-af-prøvestørrelse">Hypotese: Prior dominans som funktion af prøvestørrelse</h3>
 <ul>
-<li>Ved lav sample størrelse (<span class="math inline">\(n &lt; 200\)</span>) dominerer prioren stærkt. Den forkert centrerede prior giver systematisk bias, der først forsvinder ved <span class="math inline">\(n &gt; 1000\)</span>.</li>
+<li>Ved lav prøvestørrelse (<span class="math inline">\(n &lt; 200\)</span>) dominerer prioren stærkt. Den forkert centrerede prior giver systematisk bias, der først forsvinder ved <span class="math inline">\(n &gt; 1000\)</span>.</li>
 </ul>
-<div id="6c567740" class="cell" data-execution_count="13">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Prior-dominans: sammenlign korrekt vs. forkert prior over sample sizes</span></span>
+<div id="6c567740" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Prior-dominans: sammenlign korrekt vs. forkert prior over prøvestørrelser</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>sample_sizes <span class="op">=</span> [<span class="dv">50</span>, <span class="dv">100</span>, <span class="dv">250</span>, <span class="dv">500</span>, <span class="dv">1000</span>, <span class="dv">3000</span>, <span class="dv">10000</span>]</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>rows <span class="op">=</span> []</span>
 <span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -581,11 +582,11 @@ Sand θ = 7.0</code></pre>
 <span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    axes[<span class="dv">1</span>].plot(grp[<span class="st">'n'</span>], grp[<span class="st">'std'</span>],  marker<span class="op">=</span><span class="st">'o'</span>, label<span class="op">=</span>prior_name)</span>
 <span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].axhline(true_theta[<span class="dv">0</span>], color<span class="op">=</span><span class="st">'black'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, label<span class="op">=</span><span class="st">'Sand θ'</span>)</span>
-<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_xscale(<span class="st">'log'</span>)<span class="op">;</span> axes[<span class="dv">0</span>].set_xlabel(<span class="st">'Sample size (log)'</span>)<span class="op">;</span> axes[<span class="dv">0</span>].set_ylabel(<span class="st">'Posterior mean'</span>)</span>
-<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'Posterior mean vs. sample size'</span>)<span class="op">;</span> axes[<span class="dv">0</span>].legend()</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_xscale(<span class="st">'log'</span>)<span class="op">;</span> axes[<span class="dv">0</span>].set_xlabel(<span class="st">'Prøvestørrelse (log)'</span>)<span class="op">;</span> axes[<span class="dv">0</span>].set_ylabel(<span class="st">'Posterior mean'</span>)</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'Posterior mean vs. prøvestørrelse'</span>)<span class="op">;</span> axes[<span class="dv">0</span>].legend()</span>
 <span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_xscale(<span class="st">'log'</span>)<span class="op">;</span> axes[<span class="dv">1</span>].set_xlabel(<span class="st">'Sample size (log)'</span>)<span class="op">;</span> axes[<span class="dv">1</span>].set_ylabel(<span class="st">'Posterior std'</span>)</span>
-<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'Posterior std vs. sample size'</span>)<span class="op">;</span> axes[<span class="dv">1</span>].legend()</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_xscale(<span class="st">'log'</span>)<span class="op">;</span> axes[<span class="dv">1</span>].set_xlabel(<span class="st">'Prøvestørrelse (log)'</span>)<span class="op">;</span> axes[<span class="dv">1</span>].set_ylabel(<span class="st">'Posterior std'</span>)</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'Posterior std vs. prøvestørrelse'</span>)<span class="op">;</span> axes[<span class="dv">1</span>].legend()</span>
 <span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
 <span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
 <span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_prior.to_string(index<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -616,15 +617,15 @@ Sand θ = 7.0</code></pre>
 </div>
 </section>
 </section>
-<section id="del-2-learning-rate-og-konvergens" class="level2">
-<h2 class="anchored" data-anchor-id="del-2-learning-rate-og-konvergens">Del 2 – Learning rate og konvergens</h2>
-<p>SVGD’s konvergens afhænger stærkt af learning rate-scheduelen. Jeg sammenligner tre strategier: konstant, eksponentielt aftagende og Adam-optimizer.</p>
-<section id="hypotese-2" class="level3">
-<h3 class="anchored" data-anchor-id="hypotese-2">Hypotese 2</h3>
+<section id="læringsrate-og-konvergens" class="level2">
+<h2 class="anchored" data-anchor-id="læringsrate-og-konvergens">Læringsrate og konvergens</h2>
+<p>SVGD’s konvergens afhænger stærkt af læringsraten. Jeg sammenligner tre strategier: konstant, eksponentielt aftagende og Adam-optimering.</p>
+<section id="hypotese-1" class="level3">
+<h3 class="anchored" data-anchor-id="hypotese-1">Hypotese</h3>
 <ul>
-<li>En eksponentielt aftagende learning rate konvergerer hurtigere og til en smallere posterior end en konstant rate. Adam-optimizer er mere robust over for dårlige startbetingelser, men konvergerer ikke nødvendigvis til en bedre posterior.</li>
+<li>En eksponentielt aftagende læringsrate konvergerer hurtigere og til en smallere posterior end en konstant rate. Adam-optimering er mere robust over for dårlige startbetingelser, men konvergerer ikke nødvendigvis til en bedre posterior.</li>
 </ul>
-<p>Jeg måler konvergens som stabilisering af posterior-mean og posterior-std.</p>
+<p>Jeg måler konvergens som stabilisering af posterior-middel og posterior-std.</p>
 <div id="62669e7d" class="cell" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> graph.sample(<span class="dv">2000</span>)</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>prior <span class="op">=</span> prior_korrekt</span>
@@ -695,11 +696,11 @@ Sand θ = 7.0</code></pre>
 </div>
 </section>
 </section>
-<section id="del-3-regularisering-og-posterior-kollaps" class="level2">
-<h2 class="anchored" data-anchor-id="del-3-regularisering-og-posterior-kollaps">Del 3 – Regularisering og posterior-kollaps</h2>
+<section id="regularisering-og-posterior-kollaps" class="level2">
+<h2 class="anchored" data-anchor-id="regularisering-og-posterior-kollaps">Regularisering og posterior-kollaps</h2>
 <p>Momentregularisering fungerer som en ekstra kraft, der trækker partiklerne mod de empiriske momenter. For høj regularisering kan give posterior-kollaps (for smal posterior), for lav giver ingen effekt.</p>
-<section id="hypotese-3" class="level3">
-<h3 class="anchored" data-anchor-id="hypotese-3">Hypotese 3</h3>
+<section id="hypotese-2" class="level3">
+<h3 class="anchored" data-anchor-id="hypotese-2">Hypotese</h3>
 <ul>
 <li>Stærk regularisering (<span class="math inline">\(\text{reg} &gt;&gt; 1\)</span>) i de tidlige iterationer stabiliserer konvergens og reducerer risikoen for partikel-divergens, men overdreven regularisering over alle iterationer fører til systematisk underdisperseret posterior.</li>
 </ul>
@@ -728,8 +729,8 @@ Sand θ = 7.0</code></pre>
 Sand θ = 7.0</code></pre>
 </div>
 </div>
-<div id="643ad6bd" class="cell" data-execution_count="22">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Vis posterior width (std) som funktion af regulariseringsstyrke</span></span>
+<div id="643ad6bd" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Viser posterior width (std) som funktion af regulariseringsstyrke</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, (name, res) <span class="kw">in</span> <span class="bu">zip</span>(axes, svgd_reg.items()):</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    res[<span class="st">'svgd'</span>].plot_ci(true_theta<span class="op">=</span>true_theta)</span>
 <span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    ax.set_title(<span class="ss">f'</span><span class="sc">{</span>name<span class="sc">}</span><span class="ch">\n</span><span class="ss">std=</span><span class="sc">{</span>res[<span class="st">"std"</span>]<span class="sc">:.4f}</span><span class="ss">'</span>, fontsize<span class="op">=</span><span class="dv">8</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -764,16 +765,16 @@ Sand θ = 7.0</code></pre>
 </div>
 </section>
 </section>
-<section id="del-4-posterior-validering-dækker-95-ci-den-sande-parameter" class="level2">
-<h2 class="anchored" data-anchor-id="del-4-posterior-validering-dækker-95-ci-den-sande-parameter">Del 4 – Posterior-validering: Dækker 95% CI den sande parameter?</h2>
+<section id="posterior-validering-dækker-95-ci-den-sande-parameter" class="level2">
+<h2 class="anchored" data-anchor-id="posterior-validering-dækker-95-ci-den-sande-parameter">Posterior-validering: Dækker 95% CI den sande parameter?</h2>
 <p>Et veldefineret Bayesiansk konfidensinterval bør have korrekt dækning dvs. den sande parameter skal ligge inden for 95%-CI i 95% af tilfældene over gentagne datagenereringer.</p>
-<section id="hypotese-4" class="level3">
-<h3 class="anchored" data-anchor-id="hypotese-4">Hypotese 4</h3>
+<section id="hypotese-3" class="level3">
+<h3 class="anchored" data-anchor-id="hypotese-3">Hypotese</h3>
 <ul>
-<li>Dækningsfrekvensen for 95%-CI er tæt på 0.95, men afviger ved meget small sample sizes, hvor prioren dominerer og kan give systematisk under- eller overdækning afhængig af prior-centrering.</li>
+<li>Dækningsfrekvensen for 95%-CI er tæt på 0.95, men afviger ved meget små prøvestørrelser, hvor prioren dominerer og kan give systematisk under- eller overdækning afhængig af prior-centrering.</li>
 </ul>
 <div id="00c9e68d" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Coverage-analyse: simuler gentagne inferenser</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># StopIterationimuler gentagne inferenser</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>N_REPS <span class="op">=</span> <span class="dv">50</span>  <span class="co"># antal gentagelser per sample size</span></span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>step_cov  <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.005</span>, tau<span class="op">=</span><span class="fl">30.0</span>)</span>
 <span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>coverage_results <span class="op">=</span> []</span>
@@ -826,18 +827,18 @@ Sand θ = 7.0</code></pre>
 </div>
 </section>
 </section>
-<section id="del-5-posterior-predictive-check" class="level2">
-<h2 class="anchored" data-anchor-id="del-5-posterior-predictive-check">Del 5 – Posterior predictive check</h2>
-<p>Et posterior predictive check (PPC) validerer, om modellen med de estimerede parametre kan reproducere de observerede data. Jeg sammenligner empirisk CDF med den fittede models CDF.</p>
-<section id="hypotese-5" class="level3">
-<h3 class="anchored" data-anchor-id="hypotese-5">Hypotese 5</h3>
+<section id="posterior-predictive-check" class="level2">
+<h2 class="anchored" data-anchor-id="posterior-predictive-check">Posterior predictive check</h2>
+<p>Et posterior predictive check (PPC) validerer, om modellen med de estimerede parametre kan reproducere de observerede data. Jeg sammenligner empirisk CDF med den fittede model CDF.</p>
+<section id="hypotese-4" class="level3">
+<h3 class="anchored" data-anchor-id="hypotese-4">Hypotese</h3>
 <ul>
-<li>Modellen med posterior mean-estimat reproducer de observerede TMRCA-tider præcist (ECDF tæt på model CDF), men kun når data-størrelsen er tilstrækkelig. For forkert prior med lille sample size forventes systematisk afvigelse.</li>
+<li>Modellen med posterior middel-estimat reproducer de observerede TMRCA-tider præcist (ECDF tæt på model CDF), men kun når data-størrelsen er tilstrækkelig. For forkert prior med lille sample size forventes systematisk afvigelse.</li>
 </ul>
-<div id="90ac7973" class="cell" data-execution_count="26">
+<div id="90ac7973" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> ecdf</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Final SVGD med korrekt prior og N=2000</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co"># SVGD med korrekt prior og N=2000</span></span>
 <span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> graph.sample(<span class="dv">2000</span>)</span>
 <span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>svgd_final <span class="op">=</span> graph.svgd(observed_data, prior<span class="op">=</span>prior_korrekt,</span>
 <span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>                         learning_rate<span class="op">=</span>ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.005</span>, tau<span class="op">=</span><span class="fl">30.0</span>),</span>
@@ -865,10 +866,10 @@ Sand θ = 7.0</code></pre>
 <span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].plot(x_range, graph.cdf(x_range), <span class="st">'C1'</span>, lw<span class="op">=</span><span class="dv">2</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, label<span class="op">=</span><span class="st">'Model CDF'</span>)</span>
 <span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'Posterior predictive: CDF'</span>)<span class="op">;</span> axes[<span class="dv">1</span>].legend()</span>
 <span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a><span class="co"># Convergence</span></span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a><span class="co"># Konvergence</span></span>
 <span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>svgd_final.plot_convergence()</span>
 <span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a><span class="co"># Reset til sand parameter</span></span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a><span class="co"># Nulstil til sand parameter</span></span>
 <span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
@@ -1296,8 +1297,8 @@ Sand θ = 7.0</code></pre>
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../notebooks/koalescent_basics.html" class="pagination-link" aria-label="Notebook 1: Koalescenten som Phase-type fordeling">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Notebook 1: Koalescenten som Phase-type fordeling</span></span>
+      <a href="../notebooks/koalescent_basics.html" class="pagination-link" aria-label="Notebook 1: Koalescenten som fase-type fordeling">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Notebook 1: Koalescenten som fase-type fordeling</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
