@@ -464,10 +464,13 @@ Bavianerne fungerer dermed som et konkret modelsystem, der motiverer de matemati
 
 ## Problemformulering
 
-Formålet med dette speciale er at undersøge, hvordan Markov-modeller og koalescent teori kan anvendes til at rekonstrukere genetisk populationshistorie, med bavianer som konkret case. Det lægges særligt vægt på at forstå den matematiske struktur bag metoderne samt at implementere og afprøve dem i Python via biblioteket *phasic*. Der er der følgende problemformulering:
+Formålet med dette speciale er at undersøge, hvordan koalescentteorien og dens udvidelser til strukturerede populationer kan formuleres eksakt som fase-type fordelinger, og hvordan Bayesiansk inferens via Stein Variational Gradient Descent (SVGD) kan anvendes til at estimere parametre fra genomdata. Som konkret case anvendes genomdata fra bavianpopulationer (*P. Papio*), der er karakteriseret ved kompleks admixture og dokumenteret gene flow mellem arter [@sorensen2023]. 
+Følgende fire spørgsmål undersøges:
 
-Hvordan kan fase-type fordelinger og Bayesiansk inferens via SVGD anvendes til at karakterisere populationsstruktur og migrationshistorie i bavianpopulationer, og hvilke modelegenskaber herunder identifikabilitet, prior-sensitivitet og tidsinhomogenitet er afgørende for pålidelig parameterestimering?
-
+- Kan koalescentens kendte analytiske egenskaber herunder forventet TMRCA, sojourn times, samlede grenlængde og site frequency spectrum reproduceres eksakt via den grafbaserede fase-type implementering, og hvad afslører disse størrelser om den underliggende genealogiske proces?
+- Hvordan påvirker valget af prior, læringsrate-schedule og regularisering SVGD's posteriorestimater, og hvad er de praktiske grænser for prøvestørrelse, numerisk præcision og parallelisering for de modeller der undersøges?
+- Er koalescensraten og migrationsraten identificerbare simultant i two-island og IM-modellen, og hvad er effekten af asymmetrisk migration, ghost-populationer og split-tidspunkt på TMRCA-fordelingen?
+- Indeholder diskrete joint SFS-observationer mere information om parametre end kontinuerte TMRCA-tider, og hvad er den kritiske prøvestørrelse og mutationsrate der afgør, hvornår joint-inferens er at foretrække?
 
 ## Populationer i dette speciale
 
@@ -496,167 +499,89 @@ I det følgende beskrives, hvordan modellerne er implementeret og anvendt på di
 
 ## Oversigt
 
-Analysen er struktureret i seks Jupyter Notebooks der tilsammen dækker en progression fra matematisk verifikation over metodisk afprøvning til empirisk anvendelse. De første tre notebooks etablerer det teoretiske fundament og tester inferensmetoder på simulerede data. Notebook fire til seks undersøger beregningsmæssige grænser, demografisk modellering og diskret likelihood-inferens. Alle notebooks er skrevet i Python med phasic-biblioteket [@Roikjer2022], og alle figurer og tabeller er reproducerbare fra koden.
+Analysen er struktureret i seks Jupyter Notebooks der tilsammen dækker en progression fra matematisk grundlag over metodisk afprøvning til empirisk modellering. Alle modeller er implementeret i Python via *phasic*-biblioteket, der anvender grafbaserede algoritmer til eksakt beregning af fase-type størrelser. Simulerede data er genereret direkte fra modellerne via *graph.sample()*, og i udvalgte tilfælde via msprime. Alle analyser er reproducerbare og versionsstyret med Git.
+
+## Koalescentmodellen som fase-type fordeling
+
+Udgangspunktet for hele analysen er en korrekt implementering af Kingmans koalescent i phasic. Koalescenten med $n = 4$ prøver konstrueres via en callback-funktion der rekursivt opbygger tilstandsrummet. En tilstand er repræsenteret som en vektor $(s_1, s_2, \ldots, s_n)$, hvor $s_i$ angiver antallet af lineager med netop $i$ efterkommere, og koalescensraten i tilstanden med $k$ linjer er $\binom{k}{2}$.
+
+For at verificere at implementeringen er korrekt sammenlignes de numerisk beregnede størrelser med kendte analytiske resultater. Den forventede tid til MRCA er $\mathbb{E}[H] = 2(1 - 1/n)$, den forventede sojourn time i tilstanden med $k$ linjer er $2/(k(k-1))$, og den forventede totale grenlængde er $\mathbb{E}[L] = 2\sum_{k=1}^{n-1} 1/k$ (Wattersons formel). Den numeriske afvigelse fra alle tre formler er under $10^{-6}$ i alle tilfælde, og som yderligere validering simuleres 10.000 koalescenttider og det empiriske gennemsnit sammenlignes med den analytiske forventning.
+
+Koalescentens kovariansstruktur beregnes eksakt via den multivariate fase-type ramme uden brug af simulering. Kovariansmatricen for SFS-komponenterne (singleton, doubleton og tripleton grenlængder) beregnes, og PDF'en for hver komponent beregnes via reward-transformation. Herudover verificeres Wattersons estimator empirisk: det forventede antal segregerende sites $\mathbb{E}[S] = \theta \cdot a_n$ bekræftes via *discretize* med en Poisson-mutationsmodel. Skalering med populationsstørrelse $N$ undersøges ved at parametrisere koalescensraten som $1/N$ og beregne $\mathbb{E}[H]$ og $\text{Var}[H]$ for $N \in \{0.5, 1, 2, 5, 10, 50\}$.
 
 
-## Notebook 01: Koalescenten som fase-type fordeling
+## Bayesiansk inferens med SVGD
 
-Den første notebook etablerer koalescentmodellen i phasic og verificerer, at implementeringen reproducerer kendte analytiske resultater. Formålet er at opbygge tillid til beregningsrammen inden den bruges til mere komplekse analyser.
-
-### Implementering af koalescentmodellen
-
-Koalescenten implementeres via en callback-funktion der automatisk konstruerer tilstandsrummet rekursivt. En tilstand repræsenteres som en vektor $(s_1, s_2, \ldots, s_n)$, hvor $s_i$ angiver antallet af linjer med netop $i$ efterkommere. For en prøvestørrelse på $n = 4$ giver dette seks tilstande. Koalescensraten i tilstanden med $k$ linjer er $\binom{k}{2}$, og modellen bygges som et vægtet grafproblem der løses via grafbaseret Gaussisk elimination [@Roikjer2022].
-
-### Verifikation af analytiske resultater
-
-For at verificere implementeringen beregnes forventning, varians og de første ti momenter og sammenlignes med kendte analytiske formler. Den forventede tid til MRCA er $\mathbb{E}[H] = 2(1 - 1/n)$, og den forventede opholdstid (sojourn time) i tilstanden med $k$ linjer er $2/(k(k-1))$ — svarende til den reciprokke koalescensrate. Begge størrelser verificeres for prøvestørrelser $n = 2$ til 8, og den numeriske afvigelse fra de analytiske formler er under $10^{-6}$ i alle tilfælde. Som yderligere validering simuleres $10.000$ samples via *graph.sample()*, og det simulerede gennemsnit sammenlignes med den analytiske forventning.
-
-PDF og CDF beregnes og plottes, og den forventede linje-dynamik over tid visualiseres via *state_probability(t)* som et stackplot af forventet antal linjer per type.
-
-### Reward-transformationer og Site Frequency Spectrum
-
-Med reward-transformationer beregnes SFS-komponenter analytisk uden simulering. En reward-vektor $\mathbf{r}_k$ tæller antallet af $k$-tons linjer i hver tilstand, og den forventede akkumulerede reward frem til absorption giver det forventede antal mutationer i hvert SFS-bin direkte. Den forventede samlede grenlængde verificeres mod Wattersons formel $\mathbb{E}[L] = 2\sum_{k=1}^{n-1} 1/k$, og kovariansmatricen for SFS-komponenterne beregnes via den multivariate fase-type ramme [@Hobolth2024].
-
-Den fulde sandsynlighedsfordeling (PDF og CDF) for tid brugt i hvert lineagetype beregnes via *graph.reward_transform()*. Singleton og doubleton grenlængder forventes at være negativt korrelerede, da begge akkumuleres i den tidlige fase af koalescenten.
-
-### Skalering med populationsstørrelse og diskrete mutationer
-
-Koalescenten parameteriseres med $1/N$ som en fri parameter, og det verificeres at $\mathbb{E}[H] \propto N$ og $\text{Var}[H] \propto N^2$ over $N \in \{0.5, 1, 2, 5, 10, 50\}$. Diskrete mutationer tilføjes via *discretize* med en Poisson-mutationsmodel, og det forventede antal segregerende sites verificeres mod Wattersons estimator $\mathbb{E}[S] = \theta \cdot a_n$ [@Hobolth2024].
-
-
-## Notebook 02: Bayesiansk inferens med SVGD
-
-Den anden notebook undersøger SVGD som metode til Bayesiansk parameterestimering i fase-type modeller. Alle analyser udføres på simulerede data fra en single-parameter koalescent med sand parameter $\theta = 7$.
-
-## SVGD og inferensopstilling
-
-SVGD repræsenterer posterioren med $80$ partikler der iterativt opdateres via en kernelbaseret opdateringsregel der kombinerer gradient-information fra log-likelihood og log-prior med en kraft der forhindrer partikelkollaps [@Liu2016]. Som alternativ undersøges Method of Moments (MoM), der finder $\hat{\theta}$ ved at minimere kvadratafvigelsen mellem modellens teoretiske momenter og de empiriske momenter i data. MoM giver et hurtigt punktestimat og bruges primært til at konstruere informative startpriors til SVGD.
+Alle analyser i dette afsnit er gennemført på simulerede data fra en enkelt-parameter koalescent med sand parameter $\theta = 7$ og 2.000 observationer. Inferens udføres med Stein Variational Gradient Descent (SVGD), der repræsenterer den Bayesianske posterior med 80 partikler opdateret over 200–400 iterationer. Method of Moments (MoM) bruges som hurtig punktestimator og til at konstruere data-informerede priors til SVGD.
 
 ### Prior-sensitivitet
 
-Tre prior-specifikationer afprøves: en vag Gaussisk prior, en informativ (korrekt centreret) Gaussisk prior og en systematisk forkert centreret prior. For hvert prior sammenlignes posterior-mean og posterior-std over sample sizes $n \in \{50, 100, 250, 500, 1000, 3000, 10000\}$. Analysen viser, at likelihood dominerer over prior når $n$ vokser, og at en forkert prior giver systematisk bias der aftager med sample size. Dækningsfrekvensen for 95%-CI valideres via 50 replikater per sample size for korrekt og forkert prior.
+Tre prior-specifikationer sammenlignes: en vag Gaussisk prior med bredt konfidensinterval $[1, 25]$, en informativ korrekt centreret Gaussisk prior med interval $[4, 10]$ og en systematisk forkert centreret prior. For at undersøge hvornår likelihood dominerer over prioren køres SVGD med korrekt og forkert prior for prøvestørrelser $n \in \{50, 100, 250, 500, 1000, 3000, 10000\}$, og posterior-mean samt posterior-std rapporteres for hver kombination.
 
-### Lærings rate og regularisering
+### Læringsrate og regularisering
 
-Fem optimeringsstrategier sammenlignes: konstant learning rate på 0.01 og 0.05, eksponentielt aftagende learning rate (ExpStepSize med $\text{start}=0.05$, $\text{slut}=0.005$, $\tau=30$) og Adam-optimizer. Konvergens måles som stabilisering af posterior-mean og posterior-std over de seneste 50 iterationer.
-Desuden sammenlignes fire regulariseringsstrategier: ingen regularisering, svag eksponentielt aftagende ($1 \to 0.01$), moderat ($10 \to 0.1$) og stærk konstant (50). For høj regularisering forventes posterior-kollaps, hvor std(posterior) reduceres markant.
+Otte optimeringsstrategier sammenlignes systematisk: konstant læringsrate med to hastigheder, eksponentielt aftagende *ExpStepSize* med to tidskonstanter, *WarmupExpStepSize* med kort og lang opvarmningsperiode, Adam-optimizer og Adam med warmup. Strategierne sammenlignes på identiske data og konvergens vurderes som stabilitet af posterior-mean over de seneste 50 iterationer.
+Fire regulariseringsstrategier sammenlignes desuden: ingen regularisering, svag eksponentielt aftagende, moderat og stærk konstant regularisering. Effekten på posterior-spredning måles som posterior-std under hver strategi.
 
 ### Posterior predictive check
 
-Modellen opdateres med posterior mean-estimatet, og den resulterende PDF og CDF sammenlignes med den empiriske CDF fra observerede data. Dette kontrollerer, om modellen kan reproducere strukturen i data.
+For at validere at modellen kan reproducere de observerede data sammenlignes PDF og CDF beregnet ved posterior-gennemsnittet med den empiriske fordelingsfunktion.
 
-### Joint probability-inferens
+### IM-modellen
 
-Som alternativ til TMRCA-observationer undersøges joint probability-inferens via *joint_prob_graph*. Denne graf kobler koalescentmodellen til en mutationsmodel og beregner sandsynligheder for specifikke kombinationer af mutationshændelser $(k_1, k_2)$ antallet af singletons og doubletons i et SNP-par. Defekten (sandsynlighedsmasse afskåret af *tot_reward_limit*) kontrolleres og holdes under 0.05 i alle analyser. Posterior-bredde fra
-joint-inferens sammenlignes med TMRCA-inferens for at kvantificere informationsgevinsten.
+Isolation with Migration (IM)-modellen implementeres som en tidsinhomogen fase-type fordeling med to epoker adskilt af et split-tidspunkt $t_s$. I den første epoke ($0 \to t_s$) eksisterer to separate populationer med migration. I den anden epoke ($t_s \to \infty$) er der en fælles ancestral population uden migration. Parametrene $N_1$, $N_2$, $N_a$, $m$ og $t_s$ estimeres simultant via SVGD med en DataPrior konstrueret fra method of moments.
 
-## Notebook 03: Identifikabilitet og inferens i two-island modellen
+### Ghost-population
 
-Den tredje notebook undersøger two-island modellens statistiske egenskaber via SVGD med fokus på tre problemstillinger: om koalescens- og migrationsrate kan estimeres separat, hvornår MoM er tilstrækkeligt, og hvilke observationstyper der bærer mest information.
+En tre-populations model implementeres, hvor den tredje population aldrig samples. Linjer kan migrere til og fra denne ghost-population med rate $\theta_{\text{ghost}}$. Den forventede TMRCA beregnes analytisk som funktion af $\theta_{\text{ghost}} \in [0, 5]$ og sammenlignes med den tilsvarende to-ø model uden ghost-population.
 
-### Two-island modellen
+## Two-island modellen og identifikabilitet
 
-Two-island modellen implementeres i phasic ved at udvide tilstandsrummet med en populationslabel $\mathtt{in\_pop} \in \{1, 2\}$ per linje. Koalescens kan kun ske inden for samme population med rater $\theta_0 = 1/N_1$ og $1/N_2$. Migration skifter en linje label med rate $\theta_1$. Modellen er tidshomogen og er det simpleste eksempel på struktureret koalescent [@Wakeley2008].
+Two-island modellen implementeres ved at udvide tilstandsrummet med en populationslabel $\mathtt{in\_pop} \in \{1, 2\}$ per linje. Koalescens sker kun inden for samme population med rate $\theta_0 = 1/N$, og migration skifter en linjer population med symmetrisk rate $\theta_1$. Modellen kalibreres på 3.000 simulerede TMRCA-observationer.
 
-### Identifikabilitet
+### Identifikabilitet og likelihood-overflade
 
-Joint posterioren for $(\theta_0, \theta_1)$ undersøges under tre migrationsregimer: lav ($\theta_1 = 0.2$), moderat ($\theta_1 = 1.0$) og høj ($\theta_1 = 5.0$) migration med $n_{\text{obs}} = 3000$ og DataPrior baseret på MoM. Pairwise posterior-plots viser graden af konfundering. Likelihood-overfladen i $(\theta_0, \theta_1)$-rummet visualiseres som 2D contourplots af $\mathbb{E}[\text{TMRCA}]$ og $\text{Var}[\text{TMRCA}]$ over et $40 \times 40$ grid for at identificere likelihood-ridges ved lav migration.
+Joint posterioren for $(\theta_0, \theta_1)$ undersøges under tre migrationsregimer: lav, moderat og høj migration via pairwise posterior-plots. Likelihood-overfladen visualiseres som 2D contourplots af $\mathbb{E}[\text{TMRCA}]$ og $\text{Var}[\text{TMRCA}]$ over et $40 \times 40$ grid i $(\theta_0, \theta_1)$-rummet.
 
-### Method of Moments versus SVGD
+### Method of Moments vs. SVGD
 
-For sand $\theta = [0.7, 1.0]$ sammenlignes MoM og SVGD over sample sizes $n \in \{100, 300, 1000, 3000, 10000\}$. Tabellen viser posterior-mean, posterior-std og afvigelse fra MoM-estimat som funktion af $n$ for begge parametre. Analysen kvantificerer, hvornår den fulde posterior er nødvendig frem for et punktestimat.
+For sand $\theta = [0.7, 1.0]$ sammenlignes MoM-punktestimater med SVGD-posterior-mean over prøvestørrelser $n \in \{100, 300, 1000, 3000, 10000\}$ for at belyse, hvornår den fulde posterior tilføjer information ud over et enkelt punktestimat.
 
-### Migrationsrate og TMRCA-fordeling
+### Informationsindhold og asymmetrisk migration
 
-$\mathbb{E}[\text{TMRCA}]$ og $\text{Var}[\text{TMRCA}]$ beregnes analytisk som funktion af migrationsraten over $\theta_1 \in [0.01, 100]$ (40 punkter på log-skala). Grænseværdien for panmixia verificeres mod standard 2-sample koalescent. PDF-formen sammenlignes for lav og høj migration.
+SVGD-inferens baseret på TMRCA-observationer sammenlignes med inferens baseret på de tre SFS-komponenter via phasics multi-feature SVGD. Two-island modellen udvides desuden til to uafhængige migrationsrater $m_{12}$ og $m_{21}$, og det undersøges om de er identificerbare hver for sig. Som end-to-end validering simuleres genealogier fra en to-ø model i msprime, skaleres til koalescentenheder og estimaterne sammenlignes med de sande parametre.
 
-### Informationsindhold i observationstyper
+## Numerisk præcision og beregningsskalering
 
-SVGD-inferens baseret på direkte TMRCA-observationer ($n = 5000$) sammenlignes med inferens baseret på SFS-features (1-ton, 2-ton, 3-ton branch lengths) via phasics multi-feature SVGD med *dense_to_sparse*-format [@Hobolth2021]. Posterior-bredden for $\theta$ sammenlignes for de to observationstyper og for kombinationen af alle tre SFS-features.
+### Præcision og MPFR
 
-## Notebook 04: Numerisk præcision, parallel skalering og beregningsgrænser
+For koalescenten med $n = 2$ til 17 beregnes $\mathbb{E}[H]$ og momenter 2 og 5 med standard 64-bit double-precision og med MPFR-aritmetik (128-bit og 256-bit). Relativ og absolut fejl tabeliseres. Analysen gentages for ekstreme parameterværdier $\theta \in \{0.001, 0.01, ..., 200\}$ for at vise at konditionsproblemer er modelbetingede. MPFR-overhead måles som tidsratio over 10 kørsler.
 
-Den fjerde notebook undersøger de beregningsmæssige egenskaber ved phasic: hvornår fejler standard 64-bit aritmetik, hvordan skalerer SVGD med parallelisering, og hvad er den praktiske øvre grænse for modelkompleksitet.
+### Tilstandsrumsudvækst og parallelisering
 
-### Numerisk præcision og MPFR
+Grafkonstruktionstid, beregningstid og peak-hukommelse profileres for $n = 2$ til 15. SVGD-beregningstid benchmarkes for tre paralleliseringsstrategier over varierende partikelantal og posterior-estimater sammenlignes på tværs af strategierne. En systematisk søgning over 20 kombinationer af partikelantal og iterationsantal gennemføres, og resultaterne præsenteres som heatmaps af posterior-std, bias og beregningstid.
 
-Gaussisk elimination på fase-type-grafer involverer multiplikatorer der kan variere over mange størrelsesordener. Konditionstallet er et mål for numerisk ustabilitet, og phasic aktiverer automatisk MPFR-aritmetik (Multiple Precision Floating-Point Reliable) når konditionstallet overstiger $10^{12}$ [@Roikjer2022].
-For koalescenten med $n$ samples er raterne i grafen i intervallet $[1, n(n-1)/2]$. E[H] og momenter 2 og 5 beregnes med både double-precision og MPFR for $n = 2$ til 17, og relativ og absolut fejl tabeliseres. Analysen gentages for parameteriserede modeller med ekstremt skalerede $\theta \in \{0.001, 0.01, 0.1, 1, 5, 10, 50, 200\}$ ved $n = 8$ for at vise at konditionsproblemer er modelbetingede, ikke kun $n$-betingede. MPFR-overhead måles via tidsmåling over 10 kørsler for $n \in \{4, 6, 8, 10, 12\}$ med 128-bit og 256-bit præcision.
 
-## Tilstandsrumsvækst og beregningsgrænser
+## Tidsinhomogen koalescent og demografisk modellering
 
-Beregningstiden for grafkonstruktion, E[H], 10 momenter, PDF (100 punkter) og peak hukommelsesforbruget via `tracemalloc` profileres for $n = 2$ til 15. Resultaterne plottes i log-skala som funktion af tilstandsrumsantal $|V|$.
+### Flaskehals og multi-epoch scenarier
 
-## Parallel skalering af SVGD
+En populationsflaskehals modelleres via *distribution_context* for flaskehalsdybder $f \in \{1, 2, 5, 10, 50\}$. Flaskehalstidspunktets effekt på de individuelle SFS-komponenter undersøges ved at variere $t_{\text{start}}$ over fem værdier. Fem demografiske scenarier sammenlignes desuden: konstant størrelse, ekspansion, kontraktion, flaskehals med recovery og stepwise vækst. Den normaliserede SFS akkumuleret over tid visualiseres som et heatmap via *accumulated_occupancy(t)*.
 
-SVGD paralleliseres via JAX med to strategier: *pmap* (multi-device) og *vmap* (single-device vectorisering). Beregningstid og ms per iteration benchmarkes over partikelantal $\{n_d, 2n_d, 4n_d, 8n_d, 16n_d, 32n_d\}$ (multipla af antal tilgængelige devices $n_d$) for alle tre strategier (*pmap*, *vmap*, sekventiel). Posterior-kvaliteten sammenlignes for at verificere at parallelisering ikke påvirker statistisk korrekthed.
+## Joint sandsynlighedsinferens
 
-## Integreret anbefaling
+Joint sandsynlighedsinferens implementeres via *joint_prob_graph*. Deficitet kvantificeres over et grid af mutationsrater og reward-grænser. For $\theta \in \{2, 5, 10, 20\}$ og 1.000 observationer sammenlignes posterior fra joint SFS-inferens og TMRCA-inferens. Konvergenshastighed undersøges for $n \in \{50, 100, 250, 500, 1000, 3000\}$.
 
-På baggrund af de tre delanalyser identificeres den optimale konfiguration for to-ø modellen: MPFR-behov, partikelantal og paralleliseringsstrategi evalueres samlet, og en fuld SVGD-kørsel med 400 iterationer og 80 partikler tidsmåles og valideres.
-
-## Notebook 05: Tidsinhomogen koalescent og demografisk inferens
-
-Den femte notebook udvider koalescentrammen til tidsinhomogene modeller, hvor populationsstørrelsen varierer over tid. To tilgange implementeres og sammenlignes.
-
-### Tilgange til tidsinhomogenitet
-
-Den trinvise tilgang via *distribution_context* ændrer kantvægte på faste tidspunkter og integrerer CDF'en numerisk i diskrete skridt. Tilgangen er fleksibel men approksimativ, og præcisionen afhænger af steglængden [@Roikjer2022]. Den epoch-baserede tilgang via *add_epoch* konstruerer en tidshomogen graf over et udvidet tilstandsrum, hvor epoker repræsenteres som diskrete tilstande. Denne tilgang er eksakt for stykkevis konstante $N_e(t)$-funktioner.
-
-### Populationsflaskehals
-
-En flaskehals modelleres ved at reducere $N_e$ med en faktor $f$ i intervallet $[t_{\text{start}}, t_{\text{end}}]$ via `distribution_context`. CDF og PDF beregnes for $f \in \{1, 2, 5, 10, 50\}$ og sammenlignes med baseline (ingen flaskehals). Den relative ændring i SFS-komponenter undersøges for varierende $t_{\text{start}} \in \{0.3, 0.6, 1.0, 1.5, 2.5\}$ med fast flaskehalsdybde for at identificere hvilke komponenter der er mest sensitive over for tidspunktet.
-
-### SFS-heatmap over tid
-
-*accumulated_occupancy(t)* bruges til at beregne normaliseret SFS akkumuleret til hvert tidspunkt $t$ for $n_{\text{steps}} = 150$ tidspunkter. Resultatet visualiseres som et heatmap med SFS-komponent på y-aksen og tid på x-aksen, med og uden flaskehals. Flaskehalsen forventes at vise sig som et pludseligt horisontalt bånd ved $t_{\text{start}}$.
-
-### Multi-epoch demografiske scenarier
-
-Fem demografiske scenarier analyseres med den trinvise tilgang: konstant størrelse, ekspansion, kontraktion, flaskehals med recovery og stepwise vækst. CDF og PDF plottes for alle scenarier og sammenlignes for at identificere diagnostiske signaturer.
-
-### Epoch-model og validering
-
-Den epoch-baserede tilgang implementeres for en 2-epoch model og de første fem momenter beregnes eksakt. Resultatet sammenlignes med den numeriske approksimation fra *distribution_context*, og den absolutte afvigelse og køretid rapporteres.
-
-## Laplace-transformation og rekombination
-
-*graph.laplace_transform(rho)* bruges til at beregne $P(\text{ingen rekombination})$ som funktion af rekombinationsafstanden $\rho \in [0.01, 10]$ for populationsstørrelser $N \in \{0.5, 1.0, 3.0\}$. Resultatet plottes i semilog og log-log skala. Effekten af en flaskehals på LD-strukturen sammenlignes med en konstant-N population.
-
-## Notebook 06: Inferens via joint sandsynligheder og diskrete SFS-observationer
-
-Den sjette notebook undersøger Bayesiansk inferens baseret på joint sandsynligheder den eksakte sandsynlighedstabel over kombinationer af diskrete mutationshændelser. Denne tilgang udnytter den multivariate diskrete fase-type teori [@Hobolth2021] og er fundamentalt forskellig fra TMRCA-inferens, fordi observationerne er tælle-data frem for kontinuerte absorptionstider.
-
-### Joint probability-grafen og deficit
-
-Via *joint_prob_graph* konstrueres en udvidet koalescentgraf med absorptionstilstande der svarer til observerede mutationskombinationer $(z_1, z_2, \ldots)$. En øvre grænse *tot_reward_limit* $= L$ sættes på det samlede antal sporede mutationer, og observationer der overskrider grænsen sendes til en trash-tilstand. Den manglende sandsynlighedsmasse deficitet kvantificeres over et grid: $\mu \in \{0.5, 1.0, 2.0, 5.0\}$ og $L \in \{1, 2, 3, 4, 5, 7\}$. Tablens størrelse som funktion af $L$ og sammenhængen mellem deficit og SVGD-estimat bias rapporteres.
-
-### Joint versus marginal inferens
-
-For sand $\theta \in \{2, 5, 10, 20\}$ og $\mu = 1$ med $n_{\text{obs}} = 1000$ sammenlignes posterior-mean og posterior-std fra joint SFS-inferens og TMRCA-inferens. Joint-observationer samples via *sample_joint_observations*, og TMRCA-observationer via *graph.sample*. Posterior- bredden og bias rapporteres for begge metoder.
-
-### Sandsynlighedstabellens 2D-struktur
-
-Den joint sandsynlighedstabel visualiseres som et 2D heatmap over $(z_1, z_2)$ antal 1-ton og 2-ton mutationer — for $\theta \in \{2, 7, 20\}$ med $L = 4$ og $\mu = 1$. For lav $\theta$ forventes sandsynlighedsmassen koncentreret langs diagonalen, fordi singleton og doubleton er negativt korrelerede. For høj $\theta$ forventes en mere rektangulær fordeling.
-
-### Sample size og konvergenshastighed
-
-For sand $\theta = 7$ og $\mu = 1$ sammenlignes posterior-std fra joint-inferens og TMRCA-inferens over $n \in \{50, 100, 250, 500, 1000, 3000\}$. Resultaterne plottes i log-log skala med en $O(1/\sqrt{n})$-referencelinje for at bekræfte konvergenshastighed.
-
-### To-locus ARG: Joint inferens af koalescens og rekombination
-
-Det udvidede to-locus ARG implementeres med tilstandsrum $(i, j, k)$ — antal lineager ancestrale til begge loci, kun locus 1, og kun locus 2 — og parametre $\theta_0$ (koalescensrate) og $R$ (rekombinationsrate). *joint_prob_graph* konstrueres med *reward_only=['loc1', 'loc2']*, og 1000 joint-observationer samples med $\theta_0 = 10$, $R = 1$ og $\mu$ fastholdt. SVGD estimerer $(\theta_0, R)$ simultant, og pairwise posterior-plot viser graden af konfundering ved lav rekombination.
-
+Data simuleres med $\mu_{\text{sand}} = 1.0$, og SVGD køres med misspecificerede mutationsrater $\mu_{\text{fit}} \in \{0.3, 0.7, 1.0, 1.5, 2.5\}$ for at kvantificere den systematiske bias. Endelig implementeres et to-locus ARG, og koalescensrate og rekombinationsrate estimeres simultant fra 1.000 joint-observationer.
 
 
 # Resultater
 
 
-# Discussion
+# Diskussion
 
 
-
-# Conclusion
+# Konklusion
 
 
 # References
