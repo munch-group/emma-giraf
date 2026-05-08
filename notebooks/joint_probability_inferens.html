@@ -299,7 +299,7 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../notebooks/bavian_data.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Notebook 9: Bavian data</span></a>
+  <a href="../notebooks/bavian_data.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Notebook 7: Bavian data</span></a>
   </div>
 </li>
       </ul>
@@ -335,6 +335,8 @@ window.Quarto = {
   <li><a href="#joint-sandsynlighedstabellens-struktur-og-det-2d-mønster" id="toc-joint-sandsynlighedstabellens-struktur-og-det-2d-mønster" class="nav-link" data-scroll-target="#joint-sandsynlighedstabellens-struktur-og-det-2d-mønster">Joint sandsynlighedstabellens struktur og det 2D-mønster</a></li>
   <li><a href="#prøvestørrelse-effekt-på-joint-inferens" id="toc-prøvestørrelse-effekt-på-joint-inferens" class="nav-link" data-scroll-target="#prøvestørrelse-effekt-på-joint-inferens">Prøvestørrelse effekt på joint-inferens</a></li>
   <li><a href="#to-locus-arg-joint-inferens-af-koalescens-og-rekombination" id="toc-to-locus-arg-joint-inferens-af-koalescens-og-rekombination" class="nav-link" data-scroll-target="#to-locus-arg-joint-inferens-af-koalescens-og-rekombination">To-locus ARG: Joint inferens af koalescens og rekombination</a></li>
+  <li><a href="#multi-feature-svgd-singleton-doubleton-og-tripleton-separat" id="toc-multi-feature-svgd-singleton-doubleton-og-tripleton-separat" class="nav-link" data-scroll-target="#multi-feature-svgd-singleton-doubleton-og-tripleton-separat">Multi-feature SVGD: Singleton, doubleton og tripleton separat</a></li>
+  <li><a href="#udforskning-af-data-hvad-sker-der-ved-forskellige-prøvestørrelser-og-mutationsrater" id="toc-udforskning-af-data-hvad-sker-der-ved-forskellige-prøvestørrelser-og-mutationsrater" class="nav-link" data-scroll-target="#udforskning-af-data-hvad-sker-der-ved-forskellige-prøvestørrelser-og-mutationsrater">Udforskning af data: Hvad sker der ved forskellige prøvestørrelser og mutationsrater?</a></li>
   </ul>
 <div class="toc-actions"><ul class="collapse"><li><a href="https://github.dev/munch-group/emma-giraf/blob/main/notebooks/joint_probability_inferens.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/emma-giraf/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/emma-giraf/blob/main/notebooks/joint_probability_inferens.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
     </div>
@@ -360,7 +362,7 @@ window.Quarto = {
 </header>
 
 
-<p>I denne notebook vil jeg undersøge Bayesiansk inferens baseret på joint sandsynligheder den eksakte sandsynlighedstabel over kombinationer af diskrete mutationshændelser (singletons, doubletons osv.). Dette er fundamentalt anderledes fra TMRCA-inferens: i stedet for kontinuerte absorptionstider bruger jeg tælle-data om, hvilken kategori hver mutation falder i.</p>
+<p>I denne notebook vil jeg undersøge Bayesiansk inferens baseret på joint sandsynligheder den eksakte sandsynlighedstabel over kombinationer af diskrete mutationshændelser (singletons, doubletons osv.). Dette er anderledes fra TMRCA-inferens: i stedet for kontinuerte absorptionstider bruger jeg tælle-data om, hvilken kategori hver mutation falder i.</p>
 <p>Via <em>joint_prob_graph</em> konstrueres en udvidet graf, der tracker alle kombinationer af diskrete hændelser (mutationer) op til en øvre grænse. Absorptionstilstandene i denne graf svarer til specifikke observationstyper, og SVGD kan da optimere mod den observerede fordelingen.</p>
 <p>Jeg vil gerne undersøge følgende spørgsmål:</p>
 <ul>
@@ -910,6 +912,202 @@ Samplet 1000 observationer. Første 5: [[0, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0
 <span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">'Two-locus ARG: joint inferens af koalescens og rekombination'</span>, fontsize<span class="op">=</span><span class="dv">12</span>)</span>
 <span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+</section>
+</section>
+<section id="multi-feature-svgd-singleton-doubleton-og-tripleton-separat" class="level2">
+<h2 class="anchored" data-anchor-id="multi-feature-svgd-singleton-doubleton-og-tripleton-separat">Multi-feature SVGD: Singleton, doubleton og tripleton separat</h2>
+<p>Frem for blot TMRCA kan jeg bruge de tre SFS-komponenter (singleton, doubleton, tripleton grenlængder) som separate features i SVGD. Dette giver mere information per observation, da kovariansen mellem features udnyttes.</p>
+<section id="spørgsmål" class="level3">
+<h3 class="anchored" data-anchor-id="spørgsmål">Spørgsmål</h3>
+<ul>
+<li>Giver multi-feature SVGD (alle tre SFS-komponenter) en smallere posterior end single-feature (kun TMRCA eller samlede grenlængde)? Og er gevinsten størst for lav eller høj θ?</li>
+</ul>
+<div id="6bea3632" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples] <span class="op">+</span> [<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_1param(state):</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[i<span class="op">+</span>j<span class="op">+</span><span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)]])</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>true_theta <span class="op">=</span> [<span class="fl">7.0</span>]</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent_1param)</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta)</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> graph.states().T[:<span class="op">-</span><span class="dv">1</span>]  <span class="co"># 1-ton, 2-ton, 3-ton (ingen 4-ton)</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>N_OBS <span class="op">=</span> <span class="dv">3000</span></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>prior <span class="op">=</span> GaussPrior(ci<span class="op">=</span>[<span class="dv">3</span>, <span class="dv">15</span>])</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>step <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.005</span>, tau<span class="op">=</span><span class="fl">30.0</span>)</span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Build sparse multi-feature data</span></span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>obs_matrix <span class="op">=</span> np.full((N_OBS <span class="op">*</span> rewards.shape[<span class="dv">0</span>], rewards.shape[<span class="dv">0</span>]), np.nan)</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(rewards.shape[<span class="dv">0</span>]):</span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>    obs_matrix[i<span class="op">*</span>N_OBS:(i<span class="op">+</span><span class="dv">1</span>)<span class="op">*</span>N_OBS, i] <span class="op">=</span> graph.sample(N_OBS, rewards<span class="op">=</span>rewards[i])</span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>sparse_obs <span class="op">=</span> dense_to_sparse(obs_matrix)</span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Sammenlign tre observationstyper</span></span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> {}</span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. TMRCA</span></span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>data_tmrca <span class="op">=</span> graph.sample(N_OBS)</span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>sv1 <span class="op">=</span> graph.svgd(data_tmrca, prior<span class="op">=</span>prior, learning_rate<span class="op">=</span>step, n_iterations<span class="op">=</span><span class="dv">300</span>)</span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'TMRCA'</span>] <span class="op">=</span> sv1.get_results()</span>
+<span id="cb18-39"><a href="#cb18-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-40"><a href="#cb18-40" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Total branch length</span></span>
+<span id="cb18-41"><a href="#cb18-41" aria-hidden="true" tabindex="-1"></a>total_reward <span class="op">=</span> rewards.<span class="bu">sum</span>(axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb18-42"><a href="#cb18-42" aria-hidden="true" tabindex="-1"></a>data_total <span class="op">=</span> graph.sample(N_OBS, rewards<span class="op">=</span>total_reward)</span>
+<span id="cb18-43"><a href="#cb18-43" aria-hidden="true" tabindex="-1"></a>sv2 <span class="op">=</span> graph.svgd(data_total, rewards<span class="op">=</span>total_reward, prior<span class="op">=</span>prior,</span>
+<span id="cb18-44"><a href="#cb18-44" aria-hidden="true" tabindex="-1"></a>                  learning_rate<span class="op">=</span>step, n_iterations<span class="op">=</span><span class="dv">300</span>)</span>
+<span id="cb18-45"><a href="#cb18-45" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'Total branch length'</span>] <span class="op">=</span> sv2.get_results()</span>
+<span id="cb18-46"><a href="#cb18-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-47"><a href="#cb18-47" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Multi-feature: 1-ton + 2-ton + 3-ton</span></span>
+<span id="cb18-48"><a href="#cb18-48" aria-hidden="true" tabindex="-1"></a>sv3 <span class="op">=</span> graph.svgd(sparse_obs, rewards<span class="op">=</span>rewards, prior<span class="op">=</span>prior,</span>
+<span id="cb18-49"><a href="#cb18-49" aria-hidden="true" tabindex="-1"></a>                  learning_rate<span class="op">=</span>step, n_iterations<span class="op">=</span><span class="dv">300</span>)</span>
+<span id="cb18-50"><a href="#cb18-50" aria-hidden="true" tabindex="-1"></a>results[<span class="st">'Multi-feature SFS'</span>] <span class="op">=</span> sv3.get_results()</span>
+<span id="cb18-51"><a href="#cb18-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-52"><a href="#cb18-52" aria-hidden="true" tabindex="-1"></a><span class="co"># Rapporter</span></span>
+<span id="cb18-53"><a href="#cb18-53" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Sand θ = </span><span class="sc">{</span>true_theta[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb18-54"><a href="#cb18-54" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span><span class="st">'Metode'</span><span class="sc">:&lt;25}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'θ_mean'</span><span class="sc">:&gt;10}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'θ_std'</span><span class="sc">:&gt;10}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'CI_low'</span><span class="sc">:&gt;8}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'CI_high'</span><span class="sc">:&gt;8}</span><span class="ss">"</span>)</span>
+<span id="cb18-55"><a href="#cb18-55" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"-"</span> <span class="op">*</span> <span class="dv">65</span>)</span>
+<span id="cb18-56"><a href="#cb18-56" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, res <span class="kw">in</span> results.items():</span>
+<span id="cb18-57"><a href="#cb18-57" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">:&lt;25}</span><span class="ss"> </span><span class="sc">{</span>res[<span class="st">'theta_mean'</span>]<span class="sc">.</span>item()<span class="sc">:&gt;10.4f}</span><span class="ss"> </span><span class="sc">{</span>res[<span class="st">'theta_std'</span>]<span class="sc">.</span>item()<span class="sc">:&gt;10.5f}</span><span class="ss"> "</span></span>
+<span id="cb18-58"><a href="#cb18-58" aria-hidden="true" tabindex="-1"></a>          <span class="ss">f"</span><span class="sc">{</span>res[<span class="st">'ci_low'</span>]<span class="sc">.</span>item()<span class="sc">:&gt;8.3f}</span><span class="ss"> </span><span class="sc">{</span>res[<span class="st">'ci_high'</span>]<span class="sc">.</span>item()<span class="sc">:&gt;8.3f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="d1f9ff48" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualiser de tre posteriors side om side</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">13</span>, <span class="dv">4</span>))</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>svgd_list <span class="op">=</span> [sv1, sv2, sv3]</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>names <span class="op">=</span> [<span class="st">'TMRCA'</span>, <span class="st">'Total branch length'</span>, <span class="st">'Multi-feature SFS'</span>]</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, sv, name, res <span class="kw">in</span> <span class="bu">zip</span>(axes, svgd_list, names, results.values()):</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    sv.plot_ci(true_theta<span class="op">=</span>true_theta, ax<span class="op">=</span>ax)</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>    ax.set_title(<span class="ss">f'</span><span class="sc">{</span>name<span class="sc">}</span><span class="ch">\n</span><span class="ss">std=</span><span class="sc">{</span>res[<span class="st">"theta_std"</span>]<span class="sc">.</span>item()<span class="sc">:.5f}</span><span class="ss">'</span>)</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">'Posterior-bredde: TMRCA vs. single-feature vs. multi-feature'</span>, fontsize<span class="op">=</span><span class="dv">12</span>)</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()<span class="op">;</span> plt.show()</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Gevinst som funktion af θ</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>theta_vals <span class="op">=</span> [<span class="dv">2</span>, <span class="dv">5</span>, <span class="dv">10</span>, <span class="dv">20</span>]</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>N_OBS_SCAN <span class="op">=</span> <span class="dv">2000</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>rows_gain <span class="op">=</span> []</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> theta <span class="kw">in</span> theta_vals:</span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>    graph.update_weights([theta])</span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>    d_tmrca <span class="op">=</span> graph.sample(N_OBS_SCAN)</span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>    obs_mf <span class="op">=</span> np.full((N_OBS_SCAN <span class="op">*</span> rewards.shape[<span class="dv">0</span>], rewards.shape[<span class="dv">0</span>]), np.nan)</span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(rewards.shape[<span class="dv">0</span>]):</span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>        obs_mf[i<span class="op">*</span>N_OBS_SCAN:(i<span class="op">+</span><span class="dv">1</span>)<span class="op">*</span>N_OBS_SCAN, i] <span class="op">=</span> graph.sample(N_OBS_SCAN, rewards<span class="op">=</span>rewards[i])</span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>    sparse_mf <span class="op">=</span> dense_to_sparse(obs_mf)</span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>    p_local <span class="op">=</span> GaussPrior(ci<span class="op">=</span>[theta<span class="op">*</span><span class="fl">0.2</span>, theta<span class="op">*</span><span class="dv">3</span>])</span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>    sv_t <span class="op">=</span> graph.svgd(d_tmrca, prior<span class="op">=</span>p_local, learning_rate<span class="op">=</span>step, n_iterations<span class="op">=</span><span class="dv">200</span>)</span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>    sv_m <span class="op">=</span> graph.svgd(sparse_mf, rewards<span class="op">=</span>rewards, prior<span class="op">=</span>p_local,</span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>                       learning_rate<span class="op">=</span>step, n_iterations<span class="op">=</span><span class="dv">200</span>)</span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>    std_t <span class="op">=</span> sv_t.get_results()[<span class="st">'theta_std'</span>].item()</span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>    std_m <span class="op">=</span> sv_m.get_results()[<span class="st">'theta_std'</span>].item()</span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>    rows_gain.append({<span class="st">'θ'</span>: theta, <span class="st">'std TMRCA'</span>: <span class="bu">round</span>(std_t,<span class="dv">5</span>),</span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>                      <span class="st">'std Multi'</span>: <span class="bu">round</span>(std_m,<span class="dv">5</span>),</span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>                      <span class="st">'Gevinst (%)'</span>: <span class="bu">round</span>((std_t<span class="op">-</span>std_m)<span class="op">/</span>std_t<span class="op">*</span><span class="dv">100</span>, <span class="dv">1</span>)})</span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a>df_gain <span class="op">=</span> pd.DataFrame(rows_gain)</span>
+<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Gevinst ved multi-feature vs. TMRCA:"</span>)</span>
+<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_gain.to_string(index<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+</section>
+<section id="udforskning-af-data-hvad-sker-der-ved-forskellige-prøvestørrelser-og-mutationsrater" class="level2">
+<h2 class="anchored" data-anchor-id="udforskning-af-data-hvad-sker-der-ved-forskellige-prøvestørrelser-og-mutationsrater">Udforskning af data: Hvad sker der ved forskellige prøvestørrelser og mutationsrater?</h2>
+<p>Jeg “leger med dataen” ved systematisk at variere prøvestørrelsen <span class="math inline">\(n_{\text{obs}}\)</span> og mutationsrate <span class="math inline">\(\mu\)</span> og observere, hvordan joint probability-tabellen og posterior-estimaterne ændrer sig.</p>
+<section id="spørgsmål-1" class="level3">
+<h3 class="anchored" data-anchor-id="spørgsmål-1">Spørgsmål</h3>
+<ul>
+<li>Er der en kritisk prøvestørrelse, under hvilken joint-inferens ikke er bedre end TMRCA-inferens? Og hvad er effekten af at bruge den forkerte mutationsrate i inferensen?</li>
+</ul>
+<div id="bd351dc2" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>nr_samples_jp <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>indexer_jp <span class="op">=</span> StateIndexer(</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    lineage<span class="op">=</span>[Property(<span class="st">'descendants'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span>nr_samples_jp)]</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples_jp]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples_jp<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coal_joint(state):</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, j <span class="kw">in</span> all_pairs_jp(indexer_jp.lineage):</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>        p1 <span class="op">=</span> indexer_jp.lineage.index_to_props(i)</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>        p2 <span class="op">=</span> indexer_jp.lineage.index_to_props(j)</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>        same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>        new <span class="op">=</span> state.copy()</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>        new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>        des <span class="op">=</span> indexer_jp.lineage.props_to_index(descendants<span class="op">=</span>p1.descendants<span class="op">+</span>p2.descendants)</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> des <span class="op">&lt;</span> indexer_jp.lineage.state_length:</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>            new[des] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>        transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)]])</span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>graph_jp <span class="op">=</span> Graph(coal_joint)</span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>true_theta_jp <span class="op">=</span> [<span class="fl">7.0</span>]</span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>mu_true <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>jp_graph <span class="op">=</span> graph_jp.joint_prob_graph(indexer_jp, tot_reward_limit<span class="op">=</span><span class="dv">3</span>, mutation_rate<span class="op">=</span>mu_true)</span>
+<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sample_joint(jp_g, theta, mu, n):</span>
+<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>    jp_g.update_weights(theta <span class="op">+</span> [mu])</span>
+<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a>    table <span class="op">=</span> jp_g.joint_prob_table()</span>
+<span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> (table[<span class="st">'prob'</span>] <span class="op">/</span> table[<span class="st">'prob'</span>].<span class="bu">sum</span>()).to_numpy()</span>
+<span id="cb20-34"><a href="#cb20-34" aria-hidden="true" tabindex="-1"></a>    idx <span class="op">=</span> np.random.choice(table.index.values, n, p<span class="op">=</span>p)</span>
+<span id="cb20-35"><a href="#cb20-35" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> table.loc[idx, table.columns[:<span class="op">-</span><span class="dv">1</span>]].to_numpy().tolist()</span>
+<span id="cb20-36"><a href="#cb20-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-37"><a href="#cb20-37" aria-hidden="true" tabindex="-1"></a>step_jp <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.005</span>, tau<span class="op">=</span><span class="fl">30.0</span>)</span>
+<span id="cb20-38"><a href="#cb20-38" aria-hidden="true" tabindex="-1"></a>prior_jp <span class="op">=</span> GaussPrior(ci<span class="op">=</span>[<span class="dv">3</span>, <span class="dv">15</span>])</span>
+<span id="cb20-39"><a href="#cb20-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-40"><a href="#cb20-40" aria-hidden="true" tabindex="-1"></a><span class="co"># Del A: Sample size effekt</span></span>
+<span id="cb20-41"><a href="#cb20-41" aria-hidden="true" tabindex="-1"></a>sample_sizes_jp <span class="op">=</span> [<span class="dv">50</span>, <span class="dv">100</span>, <span class="dv">300</span>, <span class="dv">1000</span>, <span class="dv">3000</span>]</span>
+<span id="cb20-42"><a href="#cb20-42" aria-hidden="true" tabindex="-1"></a>rows_ss <span class="op">=</span> []</span>
+<span id="cb20-43"><a href="#cb20-43" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> n <span class="kw">in</span> sample_sizes_jp:</span>
+<span id="cb20-44"><a href="#cb20-44" aria-hidden="true" tabindex="-1"></a>    obs <span class="op">=</span> sample_joint(jp_graph, true_theta_jp, mu_true, n)</span>
+<span id="cb20-45"><a href="#cb20-45" aria-hidden="true" tabindex="-1"></a>    sv <span class="op">=</span> jp_graph.svgd(obs, fixed<span class="op">=</span>[(<span class="dv">1</span>, mu_true)], prior<span class="op">=</span>prior_jp,</span>
+<span id="cb20-46"><a href="#cb20-46" aria-hidden="true" tabindex="-1"></a>                        learning_rate<span class="op">=</span>step_jp, n_iterations<span class="op">=</span><span class="dv">250</span>)</span>
+<span id="cb20-47"><a href="#cb20-47" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> sv.get_results()</span>
+<span id="cb20-48"><a href="#cb20-48" aria-hidden="true" tabindex="-1"></a>    rows_ss.append({<span class="st">'n'</span>: n,</span>
+<span id="cb20-49"><a href="#cb20-49" aria-hidden="true" tabindex="-1"></a>                    <span class="st">'θ_mean'</span>: <span class="bu">round</span>(res[<span class="st">'theta_mean'</span>][<span class="dv">0</span>].item(), <span class="dv">4</span>),</span>
+<span id="cb20-50"><a href="#cb20-50" aria-hidden="true" tabindex="-1"></a>                    <span class="st">'θ_std'</span>:  <span class="bu">round</span>(res[<span class="st">'theta_std'</span>][<span class="dv">0</span>].item(), <span class="dv">5</span>),</span>
+<span id="cb20-51"><a href="#cb20-51" aria-hidden="true" tabindex="-1"></a>                    <span class="st">'Indeholder sand'</span>: <span class="bu">bool</span>(res[<span class="st">'ci_low'</span>][<span class="dv">0</span>].item() <span class="op">&lt;=</span> true_theta_jp[<span class="dv">0</span>] <span class="op">&lt;=</span> res[<span class="st">'ci_high'</span>][<span class="dv">0</span>].item())})</span>
+<span id="cb20-52"><a href="#cb20-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-53"><a href="#cb20-53" aria-hidden="true" tabindex="-1"></a>df_ss <span class="op">=</span> pd.DataFrame(rows_ss)</span>
+<span id="cb20-54"><a href="#cb20-54" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Sample size effekt på joint-inferens:"</span>)</span>
+<span id="cb20-55"><a href="#cb20-55" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_ss.to_string(index<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb20-56"><a href="#cb20-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-57"><a href="#cb20-57" aria-hidden="true" tabindex="-1"></a><span class="co"># Del B: Forkert mutationsrate</span></span>
+<span id="cb20-58"><a href="#cb20-58" aria-hidden="true" tabindex="-1"></a>rows_mu <span class="op">=</span> []</span>
+<span id="cb20-59"><a href="#cb20-59" aria-hidden="true" tabindex="-1"></a>mu_test_values <span class="op">=</span> [<span class="fl">0.3</span>, <span class="fl">0.7</span>, <span class="fl">1.0</span>, <span class="fl">1.5</span>, <span class="fl">2.5</span>]</span>
+<span id="cb20-60"><a href="#cb20-60" aria-hidden="true" tabindex="-1"></a>obs_fixed <span class="op">=</span> sample_joint(jp_graph, true_theta_jp, mu_true, <span class="dv">2000</span>)</span>
+<span id="cb20-61"><a href="#cb20-61" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> mu_fit <span class="kw">in</span> mu_test_values:</span>
+<span id="cb20-62"><a href="#cb20-62" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Brug forkert mu til at fitte</span></span>
+<span id="cb20-63"><a href="#cb20-63" aria-hidden="true" tabindex="-1"></a>    jp_wrong <span class="op">=</span> graph_jp.joint_prob_graph(indexer_jp, tot_reward_limit<span class="op">=</span><span class="dv">3</span>, mutation_rate<span class="op">=</span>mu_fit)</span>
+<span id="cb20-64"><a href="#cb20-64" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
+<span id="cb20-65"><a href="#cb20-65" aria-hidden="true" tabindex="-1"></a>        sv_w <span class="op">=</span> jp_wrong.svgd(obs_fixed, fixed<span class="op">=</span>[(<span class="dv">1</span>, mu_fit)], prior<span class="op">=</span>prior_jp,</span>
+<span id="cb20-66"><a href="#cb20-66" aria-hidden="true" tabindex="-1"></a>                              learning_rate<span class="op">=</span>step_jp, n_iterations<span class="op">=</span><span class="dv">200</span>)</span>
+<span id="cb20-67"><a href="#cb20-67" aria-hidden="true" tabindex="-1"></a>        res_w <span class="op">=</span> sv_w.get_results()</span>
+<span id="cb20-68"><a href="#cb20-68" aria-hidden="true" tabindex="-1"></a>        rows_mu.append({<span class="st">'μ_sand'</span>: mu_true, <span class="st">'μ_fittet'</span>: mu_fit,</span>
+<span id="cb20-69"><a href="#cb20-69" aria-hidden="true" tabindex="-1"></a>                        <span class="st">'θ_mean'</span>: <span class="bu">round</span>(res_w[<span class="st">'theta_mean'</span>][<span class="dv">0</span>].item(), <span class="dv">4</span>),</span>
+<span id="cb20-70"><a href="#cb20-70" aria-hidden="true" tabindex="-1"></a>                        <span class="st">'θ_std'</span>:  <span class="bu">round</span>(res_w[<span class="st">'theta_std'</span>][<span class="dv">0</span>].item(), <span class="dv">5</span>)})</span>
+<span id="cb20-71"><a href="#cb20-71" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">Exception</span> <span class="im">as</span> e:</span>
+<span id="cb20-72"><a href="#cb20-72" aria-hidden="true" tabindex="-1"></a>        rows_mu.append({<span class="st">'μ_sand'</span>: mu_true, <span class="st">'μ_fittet'</span>: mu_fit, <span class="st">'θ_mean'</span>: <span class="va">None</span>, <span class="st">'θ_std'</span>: <span class="va">None</span>})</span>
+<span id="cb20-73"><a href="#cb20-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-74"><a href="#cb20-74" aria-hidden="true" tabindex="-1"></a>df_mu <span class="op">=</span> pd.DataFrame(rows_mu)</span>
+<span id="cb20-75"><a href="#cb20-75" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Effekt af forkert mutationsrate (sand μ=1.0):"</span>)</span>
+<span id="cb20-76"><a href="#cb20-76" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_mu.to_string(index<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb20-77"><a href="#cb20-77" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Sand θ = </span><span class="sc">{</span>true_theta_jp[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
 
 
 </section>
@@ -1323,8 +1521,8 @@ Samplet 1000 observationer. Første 5: [[0, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../notebooks/bavian_data.html" class="pagination-link" aria-label="Notebook 9: Bavian data">
-        <span class="nav-page-text"><span class="chapter-title">Notebook 9: Bavian data</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../notebooks/bavian_data.html" class="pagination-link" aria-label="Notebook 7: Bavian data">
+        <span class="nav-page-text"><span class="chapter-title">Notebook 7: Bavian data</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

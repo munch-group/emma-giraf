@@ -299,7 +299,7 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../notebooks/bavian_data.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Notebook 9: Bavian data</span></a>
+  <a href="../notebooks/bavian_data.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Notebook 7: Bavian data</span></a>
   </div>
 </li>
       </ul>
@@ -334,6 +334,7 @@ window.Quarto = {
   <li><a href="#tilstandsrumsvækst-og-beregningsgrænser" id="toc-tilstandsrumsvækst-og-beregningsgrænser" class="nav-link" data-scroll-target="#tilstandsrumsvækst-og-beregningsgrænser">Tilstandsrumsvækst og beregningsgrænser</a></li>
   <li><a href="#parallel-svgd-skalering-med-antal-cpu-kerner" id="toc-parallel-svgd-skalering-med-antal-cpu-kerner" class="nav-link" data-scroll-target="#parallel-svgd-skalering-med-antal-cpu-kerner">Parallel SVGD: Skalering med antal CPU-kerner</a></li>
   <li><a href="#integreret-analyse-optimal-konfiguration-for-to-ø-model" id="toc-integreret-analyse-optimal-konfiguration-for-to-ø-model" class="nav-link" data-scroll-target="#integreret-analyse-optimal-konfiguration-for-to-ø-model">Integreret analyse: Optimal konfiguration for to-ø model</a></li>
+  <li><a href="#optimal-konfiguration-systematisk-grid-søgning-over-n_partikler-n_iterations" id="toc-optimal-konfiguration-systematisk-grid-søgning-over-n_partikler-n_iterations" class="nav-link" data-scroll-target="#optimal-konfiguration-systematisk-grid-søgning-over-n_partikler-n_iterations">Optimal konfiguration: Systematisk grid-søgning over (<em>n_partikler, n_iterations</em>)</a></li>
   </ul>
 <div class="toc-actions"><ul class="collapse"><li><a href="https://github.dev/munch-group/emma-giraf/blob/main/notebooks/numerical_precision_and_scaling.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/emma-giraf/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/emma-giraf/blob/main/notebooks/numerical_precision_and_scaling.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
     </div>
@@ -359,9 +360,9 @@ window.Quarto = {
 </header>
 
 
-<p>I denne notebook undersøger jeg tre indbyrdes forbundne spørgsmål om phasic-bibliotekets beregningsmæssige egenskaber:</p>
+<p>I denne notebook undersøger jeg tre ting idenfor phasic beregningsmæssige egenskaber:</p>
 <ol type="1">
-<li><strong>Numerisk præcision (MPFR):</strong> Hvornår fejler standard 64-bit floating-point aritmetik for Gaussisk elimination, og hvad er den faktiske numeriske fejl? Jeg undersøger condition number som funktion af modelkompleksitet og kvantificerer præcistabene.</li>
+<li><strong>Numerisk præcision (MPFR):</strong> Hvornår fejler standard 64-bit floating-point aritmetik for Gaussisk elimination, og hvad er den faktiske numeriske fejl? Jeg undersøger kondition nummer som funktion af modelkompleksitet og kvantificerer præcistabene.</li>
 <li><strong>Parallel skalering:</strong> Hvordan skalerer SVGD med antallet af CPU-kerner? Er speedup’en lineær, og hvornår dominerer overhead?</li>
 <li><strong>Beregningsgrænser:</strong> Hvad er den praktiske øvre grænse for prøvestørrelse og modellkompleksitet? Jeg profilerer hukommelse og tid som funktion af tilstandsrumsudvækst.</li>
 </ol>
@@ -1254,6 +1255,87 @@ Resultat:
 </figure>
 </div>
 </div>
+</div>
+</section>
+</section>
+<section id="optimal-konfiguration-systematisk-grid-søgning-over-n_partikler-n_iterations" class="level2">
+<h2 class="anchored" data-anchor-id="optimal-konfiguration-systematisk-grid-søgning-over-n_partikler-n_iterations">Optimal konfiguration: Systematisk grid-søgning over (<em>n_partikler, n_iterations</em>)</h2>
+<p>Jeg søger den optimale kombination af partikelantal og iterationsantal der balancerer præcision og beregningstid. Dette er praktisk relevant, når man har en given tidsbudget.</p>
+<section id="hypotese-4" class="level3">
+<h3 class="anchored" data-anchor-id="hypotese-4">Hypotese</h3>
+<ul>
+<li>Der er et diminishing returns-mønster: at dobble antallet af partikler giver mindre gevinst end at dobble antallet af iterationer, når partikelantallet allerede er <span class="math inline">\(&gt; 20\)</span>.</li>
+</ul>
+<div id="b0465a05" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples] <span class="op">+</span> [<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_grid(state):</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[i<span class="op">+</span>j<span class="op">+</span><span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>            transitions.append((new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)]))</span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a>true_theta <span class="op">=</span> [<span class="fl">7.0</span>]</span>
+<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>g_grid <span class="op">=</span> Graph(coalescent_grid)</span>
+<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a>g_grid.update_weights(true_theta)</span>
+<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a>data_grid <span class="op">=</span> g_grid.sample(<span class="dv">2000</span>)</span>
+<span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a>prior_grid <span class="op">=</span> GaussPrior(ci<span class="op">=</span>[<span class="dv">3</span>, <span class="dv">15</span>])</span>
+<span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a>step_grid  <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.005</span>, tau<span class="op">=</span><span class="fl">30.0</span>)</span>
+<span id="cb35-22"><a href="#cb35-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-23"><a href="#cb35-23" aria-hidden="true" tabindex="-1"></a>particle_counts <span class="op">=</span> [<span class="dv">10</span>, <span class="dv">20</span>, <span class="dv">40</span>, <span class="dv">80</span>, <span class="dv">160</span>]</span>
+<span id="cb35-24"><a href="#cb35-24" aria-hidden="true" tabindex="-1"></a>iteration_counts <span class="op">=</span> [<span class="dv">50</span>, <span class="dv">100</span>, <span class="dv">200</span>, <span class="dv">400</span>]</span>
+<span id="cb35-25"><a href="#cb35-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-26"><a href="#cb35-26" aria-hidden="true" tabindex="-1"></a>rows_grid <span class="op">=</span> []</span>
+<span id="cb35-27"><a href="#cb35-27" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> n_p <span class="kw">in</span> particle_counts:</span>
+<span id="cb35-28"><a href="#cb35-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> n_i <span class="kw">in</span> iteration_counts:</span>
+<span id="cb35-29"><a href="#cb35-29" aria-hidden="true" tabindex="-1"></a>        t0 <span class="op">=</span> time.perf_counter()</span>
+<span id="cb35-30"><a href="#cb35-30" aria-hidden="true" tabindex="-1"></a>        sv <span class="op">=</span> g_grid.svgd(data_grid, prior<span class="op">=</span>prior_grid, learning_rate<span class="op">=</span>step_grid,</span>
+<span id="cb35-31"><a href="#cb35-31" aria-hidden="true" tabindex="-1"></a>                          n_particles<span class="op">=</span>n_p, n_iterations<span class="op">=</span>n_i)</span>
+<span id="cb35-32"><a href="#cb35-32" aria-hidden="true" tabindex="-1"></a>        t_elapsed <span class="op">=</span> time.perf_counter() <span class="op">-</span> t0</span>
+<span id="cb35-33"><a href="#cb35-33" aria-hidden="true" tabindex="-1"></a>        res <span class="op">=</span> sv.get_results()</span>
+<span id="cb35-34"><a href="#cb35-34" aria-hidden="true" tabindex="-1"></a>        rows_grid.append({</span>
+<span id="cb35-35"><a href="#cb35-35" aria-hidden="true" tabindex="-1"></a>            <span class="st">'n_partikler'</span>: n_p, <span class="st">'n_iterations'</span>: n_i,</span>
+<span id="cb35-36"><a href="#cb35-36" aria-hidden="true" tabindex="-1"></a>            <span class="st">'tid (s)'</span>: <span class="bu">round</span>(t_elapsed, <span class="dv">3</span>),</span>
+<span id="cb35-37"><a href="#cb35-37" aria-hidden="true" tabindex="-1"></a>            <span class="st">'θ_mean'</span>: <span class="bu">round</span>(res[<span class="st">'theta_mean'</span>].item(), <span class="dv">4</span>),</span>
+<span id="cb35-38"><a href="#cb35-38" aria-hidden="true" tabindex="-1"></a>            <span class="st">'θ_std'</span>:  <span class="bu">round</span>(res[<span class="st">'theta_std'</span>].item(), <span class="dv">5</span>),</span>
+<span id="cb35-39"><a href="#cb35-39" aria-hidden="true" tabindex="-1"></a>            <span class="st">'bias'</span>:   <span class="bu">round</span>(<span class="bu">abs</span>(res[<span class="st">'theta_mean'</span>].item() <span class="op">-</span> true_theta[<span class="dv">0</span>]), <span class="dv">4</span>),</span>
+<span id="cb35-40"><a href="#cb35-40" aria-hidden="true" tabindex="-1"></a>        })</span>
+<span id="cb35-41"><a href="#cb35-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-42"><a href="#cb35-42" aria-hidden="true" tabindex="-1"></a>df_grid <span class="op">=</span> pd.DataFrame(rows_grid)</span>
+<span id="cb35-43"><a href="#cb35-43" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_grid.pivot(index<span class="op">=</span><span class="st">'n_partikler'</span>, columns<span class="op">=</span><span class="st">'n_iterations'</span>, values<span class="op">=</span><span class="st">'θ_std'</span>).<span class="bu">round</span>(<span class="dv">5</span>))</span>
+<span id="cb35-44"><a href="#cb35-44" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb35-45"><a href="#cb35-45" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Tid (sekunder):"</span>)</span>
+<span id="cb35-46"><a href="#cb35-46" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_grid.pivot(index<span class="op">=</span><span class="st">'n_partikler'</span>, columns<span class="op">=</span><span class="st">'n_iterations'</span>, values<span class="op">=</span><span class="st">'tid (s)'</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="852ccc32" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Heatmaps: std og tid</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">15</span>, <span class="dv">4</span>))</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, metric, title, fmt <span class="kw">in</span> <span class="bu">zip</span>(axes,</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>    [<span class="st">'θ_std'</span>, <span class="st">'tid (s)'</span>, <span class="st">'bias'</span>],</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>    [<span class="st">'Posterior std (lavere er bedre)'</span>, <span class="st">'Beregningstid (s)'</span>, <span class="st">'Bias |θ_mean - θ_sand|'</span>],</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>    [<span class="st">'.5f'</span>, <span class="st">'.2f'</span>, <span class="st">'.4f'</span>]):</span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>    pivot <span class="op">=</span> df_grid.pivot(index<span class="op">=</span><span class="st">'n_partikler'</span>, columns<span class="op">=</span><span class="st">'n_iterations'</span>, values<span class="op">=</span>metric)</span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>    im <span class="op">=</span> ax.imshow(pivot.values, aspect<span class="op">=</span><span class="st">'auto'</span>, cmap<span class="op">=</span><span class="st">'viridis_r'</span> <span class="cf">if</span> metric <span class="op">!=</span> <span class="st">'tid (s)'</span> <span class="cf">else</span> <span class="st">'viridis'</span>)</span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>    ax.set_xticks(<span class="bu">range</span>(<span class="bu">len</span>(pivot.columns)))<span class="op">;</span> ax.set_xticklabels(pivot.columns)</span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>    ax.set_yticks(<span class="bu">range</span>(<span class="bu">len</span>(pivot.index)))<span class="op">;</span>   ax.set_yticklabels(pivot.index)</span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>    ax.set_xlabel(<span class="st">'n_iterations'</span>)<span class="op">;</span> ax.set_ylabel(<span class="st">'n_partikler'</span>)</span>
+<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a>    ax.set_title(title)</span>
+<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a>    plt.colorbar(im, ax<span class="op">=</span>ax)</span>
+<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(pivot.index)):</span>
+<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(pivot.columns)):</span>
+<span id="cb36-17"><a href="#cb36-17" aria-hidden="true" tabindex="-1"></a>            ax.text(j, i, <span class="ss">f'</span><span class="sc">{</span>pivot<span class="sc">.</span>values[i,j]<span class="sc">:</span>{fmt}<span class="sc">}</span><span class="ss">'</span>, ha<span class="op">=</span><span class="st">'center'</span>, va<span class="op">=</span><span class="st">'center'</span>,</span>
+<span id="cb36-18"><a href="#cb36-18" aria-hidden="true" tabindex="-1"></a>                    color<span class="op">=</span><span class="st">'white'</span>, fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb36-19"><a href="#cb36-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-20"><a href="#cb36-20" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="ss">f'Grid-søgning: (n_partikler, n_iterations) — sand θ=</span><span class="sc">{</span>true_theta[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">'</span>, fontsize<span class="op">=</span><span class="dv">12</span>)</span>
+<span id="cb36-21"><a href="#cb36-21" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 
 
