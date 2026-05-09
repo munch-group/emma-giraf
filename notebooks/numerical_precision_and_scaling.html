@@ -440,7 +440,7 @@ table {
 </style>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  Removed 19 file(s), preserved directory structure
+<pre><code>  Removed 22 file(s), preserved directory structure
 MPFR tilgængeligt:    True
 JAX devices:          1
 Device type:          cpu</code></pre>
@@ -1266,7 +1266,7 @@ Resultat:
 <ul>
 <li>Der er et diminishing returns-mønster: at dobble antallet af partikler giver mindre gevinst end at dobble antallet af iterationer, når partikelantallet allerede er <span class="math inline">\(&gt; 20\)</span>.</li>
 </ul>
-<div id="b0465a05" class="cell">
+<div id="b0465a05" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples] <span class="op">+</span> [<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>))</span>
@@ -1313,29 +1313,54 @@ Resultat:
 <span id="cb35-44"><a href="#cb35-44" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
 <span id="cb35-45"><a href="#cb35-45" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Tid (sekunder):"</span>)</span>
 <span id="cb35-46"><a href="#cb35-46" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_grid.pivot(index<span class="op">=</span><span class="st">'n_partikler'</span>, columns<span class="op">=</span><span class="st">'n_iterations'</span>, values<span class="op">=</span><span class="st">'tid (s)'</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>n_iterations      50       100      200      400
+n_partikler                                     
+10            0.03089  0.15735  0.03420  0.04902
+20            0.23447  0.06960  0.02343  0.24726
+40            0.40945  0.65821  0.20887  0.11983
+80            1.22903  1.11277  0.89672  0.54640
+160           1.33393  1.52216  1.21808  0.98187
+
+Tid (sekunder):
+n_iterations     50      100     200      400
+n_partikler                                  
+10             5.783   2.553   4.451    7.659
+20             4.295   4.298   8.023   14.483
+40             6.223   7.715  13.481   25.961
+80             9.712  13.712  26.541   50.643
+160           17.649  28.344  51.288  102.191</code></pre>
 </div>
-<div id="852ccc32" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Heatmaps: std og tid</span></span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">15</span>, <span class="dv">4</span>))</span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, metric, title, fmt <span class="kw">in</span> <span class="bu">zip</span>(axes,</span>
-<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>    [<span class="st">'θ_std'</span>, <span class="st">'tid (s)'</span>, <span class="st">'bias'</span>],</span>
-<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>    [<span class="st">'Posterior std (lavere er bedre)'</span>, <span class="st">'Beregningstid (s)'</span>, <span class="st">'Bias |θ_mean - θ_sand|'</span>],</span>
-<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>    [<span class="st">'.5f'</span>, <span class="st">'.2f'</span>, <span class="st">'.4f'</span>]):</span>
-<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>    pivot <span class="op">=</span> df_grid.pivot(index<span class="op">=</span><span class="st">'n_partikler'</span>, columns<span class="op">=</span><span class="st">'n_iterations'</span>, values<span class="op">=</span>metric)</span>
-<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>    im <span class="op">=</span> ax.imshow(pivot.values, aspect<span class="op">=</span><span class="st">'auto'</span>, cmap<span class="op">=</span><span class="st">'viridis_r'</span> <span class="cf">if</span> metric <span class="op">!=</span> <span class="st">'tid (s)'</span> <span class="cf">else</span> <span class="st">'viridis'</span>)</span>
-<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>    ax.set_xticks(<span class="bu">range</span>(<span class="bu">len</span>(pivot.columns)))<span class="op">;</span> ax.set_xticklabels(pivot.columns)</span>
-<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>    ax.set_yticks(<span class="bu">range</span>(<span class="bu">len</span>(pivot.index)))<span class="op">;</span>   ax.set_yticklabels(pivot.index)</span>
-<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>    ax.set_xlabel(<span class="st">'n_iterations'</span>)<span class="op">;</span> ax.set_ylabel(<span class="st">'n_partikler'</span>)</span>
-<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a>    ax.set_title(title)</span>
-<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a>    plt.colorbar(im, ax<span class="op">=</span>ax)</span>
-<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(pivot.index)):</span>
-<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(pivot.columns)):</span>
-<span id="cb36-17"><a href="#cb36-17" aria-hidden="true" tabindex="-1"></a>            ax.text(j, i, <span class="ss">f'</span><span class="sc">{</span>pivot<span class="sc">.</span>values[i,j]<span class="sc">:</span>{fmt}<span class="sc">}</span><span class="ss">'</span>, ha<span class="op">=</span><span class="st">'center'</span>, va<span class="op">=</span><span class="st">'center'</span>,</span>
-<span id="cb36-18"><a href="#cb36-18" aria-hidden="true" tabindex="-1"></a>                    color<span class="op">=</span><span class="st">'white'</span>, fontsize<span class="op">=</span><span class="dv">8</span>)</span>
-<span id="cb36-19"><a href="#cb36-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-20"><a href="#cb36-20" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="ss">f'Grid-søgning: (n_partikler, n_iterations) — sand θ=</span><span class="sc">{</span>true_theta[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">'</span>, fontsize<span class="op">=</span><span class="dv">12</span>)</span>
-<span id="cb36-21"><a href="#cb36-21" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="852ccc32" class="cell" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Heatmaps: std og tid</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">15</span>, <span class="dv">4</span>))</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, metric, title, fmt <span class="kw">in</span> <span class="bu">zip</span>(axes,</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>    [<span class="st">'θ_std'</span>, <span class="st">'tid (s)'</span>, <span class="st">'bias'</span>],</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>    [<span class="st">'Posterior std (lavere er bedre)'</span>, <span class="st">'Beregningstid (s)'</span>, <span class="st">'Bias |θ_mean - θ_sand|'</span>],</span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>    [<span class="st">'.5f'</span>, <span class="st">'.2f'</span>, <span class="st">'.4f'</span>]):</span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>    pivot <span class="op">=</span> df_grid.pivot(index<span class="op">=</span><span class="st">'n_partikler'</span>, columns<span class="op">=</span><span class="st">'n_iterations'</span>, values<span class="op">=</span>metric)</span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>    im <span class="op">=</span> ax.imshow(pivot.values, aspect<span class="op">=</span><span class="st">'auto'</span>, cmap<span class="op">=</span><span class="st">'viridis_r'</span> <span class="cf">if</span> metric <span class="op">!=</span> <span class="st">'tid (s)'</span> <span class="cf">else</span> <span class="st">'viridis'</span>)</span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a>    ax.set_xticks(<span class="bu">range</span>(<span class="bu">len</span>(pivot.columns)))<span class="op">;</span> ax.set_xticklabels(pivot.columns)</span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a>    ax.set_yticks(<span class="bu">range</span>(<span class="bu">len</span>(pivot.index)))<span class="op">;</span>   ax.set_yticklabels(pivot.index)</span>
+<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a>    ax.set_xlabel(<span class="st">'n_iterations'</span>)<span class="op">;</span> ax.set_ylabel(<span class="st">'n_partikler'</span>)</span>
+<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a>    ax.set_title(title)</span>
+<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a>    plt.colorbar(im, ax<span class="op">=</span>ax)</span>
+<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(pivot.index)):</span>
+<span id="cb37-16"><a href="#cb37-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(pivot.columns)):</span>
+<span id="cb37-17"><a href="#cb37-17" aria-hidden="true" tabindex="-1"></a>            ax.text(j, i, <span class="ss">f'</span><span class="sc">{</span>pivot<span class="sc">.</span>values[i,j]<span class="sc">:</span>{fmt}<span class="sc">}</span><span class="ss">'</span>, ha<span class="op">=</span><span class="st">'center'</span>, va<span class="op">=</span><span class="st">'center'</span>,</span>
+<span id="cb37-18"><a href="#cb37-18" aria-hidden="true" tabindex="-1"></a>                    color<span class="op">=</span><span class="st">'white'</span>, fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb37-19"><a href="#cb37-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-20"><a href="#cb37-20" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="ss">f'Grid-søgning: (n_partikler, n_iterations) — sand θ=</span><span class="sc">{</span>true_theta[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">'</span>, fontsize<span class="op">=</span><span class="dv">12</span>)</span>
+<span id="cb37-21"><a href="#cb37-21" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><a href="numerical_precision_and_scaling_files/figure-html/cell-19-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-7"><img src="numerical_precision_and_scaling_files/figure-html/cell-19-output-1.svg" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
 </div>
 
 
