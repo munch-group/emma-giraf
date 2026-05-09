@@ -829,11 +829,11 @@ table {
 <span id="cb8-94"><a href="#cb8-94" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Absolut afvigelse    = </span><span class="sc">{</span><span class="bu">abs</span>(E_epoch <span class="op">-</span> E_ctx)<span class="sc">:.2e}</span><span class="ss">"</span>)</span>
 <span id="cb8-95"><a href="#cb8-95" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Epoch-model er </span><span class="sc">{</span>t_ctx<span class="op">/</span>t_epoch<span class="sc">:.1f}</span><span class="ss">x hurtigere end numerisk approksimation"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Epoch-model E[TMRCA]  = 2.000000  (tid: 10.1 ms)
-Numerisk approx.     = 1.000000  (tid: 9.5 ms)
+<pre><code>Epoch-model E[TMRCA]  = 2.000000  (tid: 6.4 ms)
+Numerisk approx.     = 1.000000  (tid: 7.2 ms)
 Absolut afvigelse    = 1.00e+00
 
-Epoch-model er 0.9x hurtigere end numerisk approksimation</code></pre>
+Epoch-model er 1.1x hurtigere end numerisk approksimation</code></pre>
 </div>
 </div>
 </section>
@@ -923,7 +923,7 @@ Epoch-model er 0.9x hurtigere end numerisk approksimation</code></pre>
 <ul>
 <li>IM-modellen giver længere forventet TMRCA end en simpel two-island model uden split, fordi linjer der ikke koalescerer inden <span class="math inline">\(t_s\)</span> er tvunget til at koalescere i den (typisk større) ancestrale population.</li>
 </ul>
-<div id="5ced20b8" class="cell">
+<div id="5ced20b8" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">2</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>indexer_im <span class="op">=</span> StateIndexer(</span>
@@ -972,43 +972,47 @@ Epoch-model er 0.9x hurtigere end numerisk approksimation</code></pre>
 <span id="cb12-46"><a href="#cb12-46" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-47"><a href="#cb12-47" aria-hidden="true" tabindex="-1"></a>g_im <span class="op">=</span> Graph(im_model)</span>
 <span id="cb12-48"><a href="#cb12-48" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"IM two-island: </span><span class="sc">{</span>g_im<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss"> tilstande"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>IM two-island: 6 tilstande</code></pre>
 </div>
-<div id="d58629bf" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># IM-model: sammenlign E[TMRCA] som funktion af split-tidspunkt t_s</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>theta_modern  <span class="op">=</span> [<span class="fl">0.7</span>, <span class="fl">1.0</span>]   </span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>theta_anc     <span class="op">=</span> [<span class="fl">0.3</span>, <span class="fl">0.0</span>]   </span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>split_times <span class="op">=</span> np.linspace(<span class="fl">0.1</span>, <span class="fl">5.0</span>, <span class="dv">40</span>)</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>E_im_vals, E_no_split <span class="op">=</span> [], []</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t_s <span class="kw">in</span> split_times:</span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Step-wise IM</span></span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    g_im.update_weights(theta_modern)</span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    ctx <span class="op">=</span> g_im.distribution_context()</span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Kør til split</span></span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> ctx.time() <span class="op">&lt;</span> t_s:</span>
-<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>        ctx.step()</span>
-<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> ctx.cdf() <span class="op">&gt;</span> <span class="fl">0.9999</span>: <span class="cf">break</span></span>
-<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Skift til ancestral epoke</span></span>
-<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    g_im.update_weights(theta_anc)</span>
-<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> ctx.cdf() <span class="op">&lt;</span> <span class="fl">0.9999</span>:</span>
-<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>        ctx.step()</span>
-<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># E[TMRCA] via accumulated_occupancy</span></span>
-<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>    acc <span class="op">=</span> g_im.accumulated_occupancy(t_s <span class="op">*</span> <span class="dv">10</span>)</span>
-<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>    E_im_vals.append(<span class="bu">float</span>(np.<span class="bu">sum</span>(acc)))</span>
-<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Ingen split reference: two-island uden epoch</span></span>
-<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>    g_im.update_weights(theta_modern)</span>
-<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>    E_no_split.append(g_im.expectation())</span>
-<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="dv">4</span>))</span>
-<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>ax.plot(split_times, E_im_vals, <span class="st">'o-'</span>, color<span class="op">=</span><span class="st">'C0'</span>, label<span class="op">=</span><span class="st">'IM-model (epoch ved t_s)'</span>)</span>
-<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a>ax.axhline(E_no_split[<span class="dv">0</span>], color<span class="op">=</span><span class="st">'C1'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, label<span class="op">=</span><span class="st">'Two-island uden split'</span>)</span>
-<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>ax.axhline(<span class="dv">1</span><span class="op">/</span>theta_anc[<span class="dv">0</span>], color<span class="op">=</span><span class="st">'C2'</span>, linestyle<span class="op">=</span><span class="st">':'</span>, label<span class="op">=</span><span class="ss">f'Ancestral panmixia (N_a = 1/</span><span class="sc">{</span>theta_anc[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">)'</span>)</span>
-<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'Split-tidspunkt $t_s$ (koalescentenheder)'</span>)</span>
-<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'E[TMRCA]'</span>)</span>
-<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'IM-model: E[TMRCA] som funktion af split-tidspunkt'</span>)</span>
-<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
-<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="e7e3a4b0" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># IM-model: sammenlign E[TMRCA] som funktion af split-tidspunkt t_s</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>theta_modern  <span class="op">=</span> [<span class="fl">0.7</span>, <span class="fl">1.0</span>]   </span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>theta_anc     <span class="op">=</span> [<span class="fl">0.3</span>, <span class="fl">0.0</span>]   </span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>split_times <span class="op">=</span> np.linspace(<span class="fl">0.1</span>, <span class="fl">5.0</span>, <span class="dv">40</span>)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>E_im_vals, E_no_split <span class="op">=</span> [], []</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t_s <span class="kw">in</span> split_times:</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Step-wise IM</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    g_im.update_weights(theta_modern)</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    ctx <span class="op">=</span> g_im.distribution_context()</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Kør til split</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> ctx.time() <span class="op">&lt;</span> t_s:</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>        ctx.step()</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> ctx.cdf() <span class="op">&gt;</span> <span class="fl">0.9999</span>: <span class="cf">break</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Skift til ancestral epoke</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    g_im.update_weights(theta_anc)</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> ctx.cdf() <span class="op">&lt;</span> <span class="fl">0.9999</span>:</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>        ctx.step()</span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># E[TMRCA] via accumulated_occupancy</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    acc <span class="op">=</span> g_im.accumulated_occupancy(t_s <span class="op">*</span> <span class="dv">10</span>)</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    E_im_vals.append(<span class="bu">float</span>(np.<span class="bu">sum</span>(acc)))</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Ingen split reference: two-island uden epoch</span></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>    g_im.update_weights(theta_modern)</span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>    E_no_split.append(g_im.expectation())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="4afecabe" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="dv">4</span>))</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>ax.plot(split_times, E_im_vals, <span class="st">'o-'</span>, color<span class="op">=</span><span class="st">'C0'</span>, label<span class="op">=</span><span class="st">'IM-model (epoch ved t_s)'</span>)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>ax.axhline(E_no_split[<span class="dv">0</span>], color<span class="op">=</span><span class="st">'C1'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, label<span class="op">=</span><span class="st">'Two-island uden split'</span>)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>ax.axhline(<span class="dv">1</span><span class="op">/</span>theta_anc[<span class="dv">0</span>], color<span class="op">=</span><span class="st">'C2'</span>, linestyle<span class="op">=</span><span class="st">':'</span>, label<span class="op">=</span><span class="ss">f'Ancestral panmixia (N_a = 1/</span><span class="sc">{</span>theta_anc[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">)'</span>)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'Split-tidspunkt $t_s$ (koalescentenheder)'</span>)</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'E[TMRCA]'</span>)</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'IM-model: E[TMRCA] som funktion af split-tidspunkt'</span>)</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 
 
