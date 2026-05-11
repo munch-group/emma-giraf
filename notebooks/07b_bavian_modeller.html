@@ -310,6 +310,7 @@ window.Quarto = {
   <li><a href="#isolation-with-migration-im-model" id="toc-isolation-with-migration-im-model" class="nav-link" data-scroll-target="#isolation-with-migration-im-model">Isolation with Migration (IM)-model</a></li>
   <li><a href="#etmrca-som-funktion-af-migrationsrate" id="toc-etmrca-som-funktion-af-migrationsrate" class="nav-link" data-scroll-target="#etmrca-som-funktion-af-migrationsrate">E[TMRCA] som funktion af migrationsrate</a></li>
   <li><a href="#joint-probability-inferens-på-baviandata" id="toc-joint-probability-inferens-på-baviandata" class="nav-link" data-scroll-target="#joint-probability-inferens-på-baviandata">Joint probability inferens på baviandata</a></li>
+  <li><a href="#tidsinhomogen-3-epoke-model-pa-baviandata" id="toc-tidsinhomogen-3-epoke-model-pa-baviandata" class="nav-link" data-scroll-target="#tidsinhomogen-3-epoke-model-pa-baviandata">Tidsinhomogen 3-epoke model pa baviandata</a></li>
   <li><a href="#opsummering-af-resultater" id="toc-opsummering-af-resultater" class="nav-link" data-scroll-target="#opsummering-af-resultater">Opsummering af resultater</a></li>
   </ul>
 <div class="toc-actions"><ul class="collapse"><li><a href="https://github.dev/munch-group/emma-giraf/blob/main/notebooks/07b_bavian_modeller.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/emma-giraf/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/emma-giraf/blob/main/notebooks/07b_bavian_modeller.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
@@ -94895,37 +94896,218 @@ Sammenligning:
 </div>
 </div>
 </section>
+<section id="tidsinhomogen-3-epoke-model-pa-baviandata" class="level2">
+<h2 class="anchored" data-anchor-id="tidsinhomogen-3-epoke-model-pa-baviandata">Tidsinhomogen 3-epoke model pa baviandata</h2>
+<p>Jeg fitter en 3-epoke model med faste epoch-tidspunkter valgt ud fra Sorensen et al.&nbsp;(2023)’s PSMC-profiler: 0, 50.000 år og 500.000 år. De frie parametre er <span class="math inline">\(N_e\)</span> i hver epoke.</p>
+<p>Dette giver en rekonstruktion for tre bavianpopulationer: <em>P. cynocephalus</em>, <em>P. kindae</em> og <em>P. anubis</em>.</p>
+<div id="b169de37" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>all_pairs_ti <span class="op">=</span> partial(combinations_with_replacement, r<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Tre epoker baseret pa Sorensen et al. (2023) PSMC-profiler</span></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>baboon_years_ti <span class="op">=</span> [<span class="dv">0</span>, <span class="dv">50_000</span>, <span class="dv">500_000</span>]</span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>GEN_TI <span class="op">=</span> <span class="dv">11</span></span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>gens_ti <span class="op">=</span> [y <span class="op">/</span> GEN_TI <span class="cf">for</span> y <span class="kw">in</span> baboon_years_ti]</span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>n_epochs_ti <span class="op">=</span> <span class="bu">len</span>(baboon_years_ti)</span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>nr_samples_ti <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>indexer_ti <span class="op">=</span> StateIndexer(</span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>    lineages<span class="op">=</span>[Property(<span class="st">"ton"</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span>nr_samples_ti)],</span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>    slots<span class="op">=</span>[<span class="st">"epoch"</span>],</span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>ipv_ti <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer_ti.state_length</span>
+<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a>ipv_ti[indexer_ti.props_to_index(ton<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> nr_samples_ti</span>
+<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_epoch_ti(state, epochs<span class="op">=</span><span class="va">None</span>, epoch_idx<span class="op">=</span><span class="va">None</span>, indexer<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a>    epoch_idx <span class="op">=</span> <span class="bu">int</span>(epoch_idx)</span>
+<span id="cb39-21"><a href="#cb39-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state[indexer.epoch] <span class="op">!=</span> epoch_idx:</span>
+<span id="cb39-22"><a href="#cb39-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
+<span id="cb39-23"><a href="#cb39-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, j <span class="kw">in</span> all_pairs_ti(indexer.lineages):</span>
+<span id="cb39-24"><a href="#cb39-24" aria-hidden="true" tabindex="-1"></a>        pi <span class="op">=</span> indexer.lineages.index_to_props(i)</span>
+<span id="cb39-25"><a href="#cb39-25" aria-hidden="true" tabindex="-1"></a>        pj <span class="op">=</span> indexer.lineages.index_to_props(j)</span>
+<span id="cb39-26"><a href="#cb39-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state.<span class="bu">sum</span>() <span class="op">&lt;=</span> <span class="dv">1</span>: <span class="cf">continue</span></span>
+<span id="cb39-27"><a href="#cb39-27" aria-hidden="true" tabindex="-1"></a>        same <span class="op">=</span> <span class="bu">int</span>(pi.ton <span class="op">==</span> pj.ton)</span>
+<span id="cb39-28"><a href="#cb39-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb39-29"><a href="#cb39-29" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb39-30"><a href="#cb39-30" aria-hidden="true" tabindex="-1"></a>        new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb39-31"><a href="#cb39-31" aria-hidden="true" tabindex="-1"></a>        k <span class="op">=</span> indexer.lineages.props_to_index(ton<span class="op">=</span>pi.ton<span class="op">+</span>pj.ton)</span>
+<span id="cb39-32"><a href="#cb39-32" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> k <span class="op">&lt;</span> indexer.lineages.state_length:</span>
+<span id="cb39-33"><a href="#cb39-33" aria-hidden="true" tabindex="-1"></a>            new[k] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb39-34"><a href="#cb39-34" aria-hidden="true" tabindex="-1"></a>        coeff <span class="op">=</span> [<span class="fl">0.0</span>] <span class="op">*</span> (n_epochs_ti <span class="op">+</span> <span class="dv">1</span>)</span>
+<span id="cb39-35"><a href="#cb39-35" aria-hidden="true" tabindex="-1"></a>        coeff[epoch_idx] <span class="op">=</span> state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)</span>
+<span id="cb39-36"><a href="#cb39-36" aria-hidden="true" tabindex="-1"></a>        transitions.append([new, coeff])</span>
+<span id="cb39-37"><a href="#cb39-37" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb39-38"><a href="#cb39-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-39"><a href="#cb39-39" aria-hidden="true" tabindex="-1"></a>graph_ti <span class="op">=</span> Graph(</span>
+<span id="cb39-40"><a href="#cb39-40" aria-hidden="true" tabindex="-1"></a>    coalescent_epoch_ti,</span>
+<span id="cb39-41"><a href="#cb39-41" aria-hidden="true" tabindex="-1"></a>    ipv<span class="op">=</span>ipv_ti,</span>
+<span id="cb39-42"><a href="#cb39-42" aria-hidden="true" tabindex="-1"></a>    epoch_idx<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb39-43"><a href="#cb39-43" aria-hidden="true" tabindex="-1"></a>    epochs<span class="op">=</span><span class="bu">list</span>(<span class="bu">range</span>(n_epochs_ti)),</span>
+<span id="cb39-44"><a href="#cb39-44" aria-hidden="true" tabindex="-1"></a>    indexer<span class="op">=</span>indexer_ti,</span>
+<span id="cb39-45"><a href="#cb39-45" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb39-46"><a href="#cb39-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-47"><a href="#cb39-47" aria-hidden="true" tabindex="-1"></a><span class="co"># Epoch-skift koefficienter</span></span>
+<span id="cb39-48"><a href="#cb39-48" aria-hidden="true" tabindex="-1"></a>N_ref_cy <span class="op">=</span> N_ref_dict[<span class="st">"P. cynocephalus"</span>]</span>
+<span id="cb39-49"><a href="#cb39-49" aria-hidden="true" tabindex="-1"></a>epoch_lengths_coal <span class="op">=</span> [</span>
+<span id="cb39-50"><a href="#cb39-50" aria-hidden="true" tabindex="-1"></a>    (baboon_years_ti[<span class="dv">1</span>] <span class="op">-</span> baboon_years_ti[<span class="dv">0</span>]) <span class="op">/</span> (GEN_TI <span class="op">*</span> <span class="dv">2</span> <span class="op">*</span> N_ref_cy),</span>
+<span id="cb39-51"><a href="#cb39-51" aria-hidden="true" tabindex="-1"></a>    (baboon_years_ti[<span class="dv">2</span>] <span class="op">-</span> baboon_years_ti[<span class="dv">1</span>]) <span class="op">/</span> (GEN_TI <span class="op">*</span> <span class="dv">2</span> <span class="op">*</span> N_ref_cy),</span>
+<span id="cb39-52"><a href="#cb39-52" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb39-53"><a href="#cb39-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-54"><a href="#cb39-54" aria-hidden="true" tabindex="-1"></a><span class="co"># Init vaegter: theta = [1/N_ep0, 1/N_ep1, 1/N_ep2, 1/dt1, 1/dt2]</span></span>
+<span id="cb39-55"><a href="#cb39-55" aria-hidden="true" tabindex="-1"></a>init_theta_ti <span class="op">=</span> [<span class="fl">1.0</span>, <span class="fl">1.0</span>, <span class="fl">1.0</span>,</span>
+<span id="cb39-56"><a href="#cb39-56" aria-hidden="true" tabindex="-1"></a>                 <span class="fl">1.0</span><span class="op">/</span>epoch_lengths_coal[<span class="dv">0</span>],</span>
+<span id="cb39-57"><a href="#cb39-57" aria-hidden="true" tabindex="-1"></a>                 <span class="fl">1.0</span><span class="op">/</span>epoch_lengths_coal[<span class="dv">1</span>]]</span>
+<span id="cb39-58"><a href="#cb39-58" aria-hidden="true" tabindex="-1"></a>graph_ti.update_weights(init_theta_ti)</span>
+<span id="cb39-59"><a href="#cb39-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-60"><a href="#cb39-60" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"3-epoke model: </span><span class="sc">{</span>graph_ti<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss"> tilstande"</span>)</span>
+<span id="cb39-61"><a href="#cb39-61" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Epoker (aar): </span><span class="sc">{</span>baboon_years_ti<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb39-62"><a href="#cb39-62" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Epoch-laengder (koalescentenheder): </span><span class="sc">{</span>[<span class="bu">round</span>(e,<span class="dv">4</span>) <span class="cf">for</span> e <span class="kw">in</span> epoch_lengths_coal]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="e29d5798" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Konverter SNP-data til observationer</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> load_and_convert_ti(df, nr_sub<span class="op">=</span>nr_samples_ti, seed<span class="op">=</span><span class="dv">0</span>, max_obs<span class="op">=</span><span class="dv">5000</span>):</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(seed)</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>    derived <span class="op">=</span> df[<span class="st">"derived_count"</span>].values.astype(<span class="bu">int</span>)</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>    n_total <span class="op">=</span> df[<span class="st">"nr_samples"</span>].values.astype(<span class="bu">int</span>)</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>    obs <span class="op">=</span> []</span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>    idx <span class="op">=</span> rng.integers(<span class="dv">0</span>, <span class="bu">len</span>(df), size<span class="op">=</span>max_obs<span class="op">*</span><span class="dv">5</span>)</span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> idx:</span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">len</span>(obs) <span class="op">&gt;=</span> max_obs: <span class="cf">break</span></span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>        n, ac <span class="op">=</span> n_total[i], derived[i]</span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> n <span class="op">&lt;</span> nr_sub: <span class="cf">continue</span></span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>        k <span class="op">=</span> rng.hypergeometric(ac, n <span class="op">-</span> ac, nr_sub)</span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="dv">0</span> <span class="op">&lt;</span> k <span class="op">&lt;</span> nr_sub:</span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a>            vec <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> (nr_sub <span class="op">-</span> <span class="dv">1</span>)</span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a>            vec[k <span class="op">-</span> <span class="dv">1</span>] <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a>            obs.append(vec)</span>
+<span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> obs</span>
+<span id="cb40-18"><a href="#cb40-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-19"><a href="#cb40-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Index for epoch-switch og SVGD-fixed</span></span>
+<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a>EPOCH_SW_0 <span class="op">=</span> <span class="dv">3</span>  <span class="co"># 1/dt_epoke0</span></span>
+<span id="cb40-21"><a href="#cb40-21" aria-hidden="true" tabindex="-1"></a>EPOCH_SW_1 <span class="op">=</span> <span class="dv">4</span>  <span class="co"># 1/dt_epoke1</span></span>
+<span id="cb40-22"><a href="#cb40-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-23"><a href="#cb40-23" aria-hidden="true" tabindex="-1"></a>fixed_ti <span class="op">=</span> [</span>
+<span id="cb40-24"><a href="#cb40-24" aria-hidden="true" tabindex="-1"></a>    (EPOCH_SW_0, <span class="fl">1.0</span><span class="op">/</span>epoch_lengths_coal[<span class="dv">0</span>]),</span>
+<span id="cb40-25"><a href="#cb40-25" aria-hidden="true" tabindex="-1"></a>    (EPOCH_SW_1, <span class="fl">1.0</span><span class="op">/</span>epoch_lengths_coal[<span class="dv">1</span>]),</span>
+<span id="cb40-26"><a href="#cb40-26" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb40-27"><a href="#cb40-27" aria-hidden="true" tabindex="-1"></a>prior_ti <span class="op">=</span> [</span>
+<span id="cb40-28"><a href="#cb40-28" aria-hidden="true" tabindex="-1"></a>    GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="fl">10.0</span>]),   <span class="co"># 1/N_ep0</span></span>
+<span id="cb40-29"><a href="#cb40-29" aria-hidden="true" tabindex="-1"></a>    GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="fl">10.0</span>]),   <span class="co"># 1/N_ep1</span></span>
+<span id="cb40-30"><a href="#cb40-30" aria-hidden="true" tabindex="-1"></a>    GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="fl">10.0</span>]),   <span class="co"># 1/N_ep2</span></span>
+<span id="cb40-31"><a href="#cb40-31" aria-hidden="true" tabindex="-1"></a>    <span class="va">None</span>, <span class="va">None</span>,                    <span class="co"># epoch-switch (fixed)</span></span>
+<span id="cb40-32"><a href="#cb40-32" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb40-33"><a href="#cb40-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-34"><a href="#cb40-34" aria-hidden="true" tabindex="-1"></a>step_ti <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.005</span>, tau<span class="op">=</span><span class="fl">40.0</span>)</span>
+<span id="cb40-35"><a href="#cb40-35" aria-hidden="true" tabindex="-1"></a>results_ti <span class="op">=</span> {}</span>
+<span id="cb40-36"><a href="#cb40-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-37"><a href="#cb40-37" aria-hidden="true" tabindex="-1"></a>pop_ti_list <span class="op">=</span> {</span>
+<span id="cb40-38"><a href="#cb40-38" aria-hidden="true" tabindex="-1"></a>    <span class="st">"P. cynocephalus"</span>: df_P_cynocephalus,</span>
+<span id="cb40-39"><a href="#cb40-39" aria-hidden="true" tabindex="-1"></a>    <span class="st">"P. kindae"</span>:       df_P_kindae,</span>
+<span id="cb40-40"><a href="#cb40-40" aria-hidden="true" tabindex="-1"></a>    <span class="st">"P. anubis"</span>:       df_P_anubis,</span>
+<span id="cb40-41"><a href="#cb40-41" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb40-42"><a href="#cb40-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-43"><a href="#cb40-43" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> pop_name, df_pop <span class="kw">in</span> pop_ti_list.items():</span>
+<span id="cb40-44"><a href="#cb40-44" aria-hidden="true" tabindex="-1"></a>    obs_ti <span class="op">=</span> load_and_convert_ti(df_pop)</span>
+<span id="cb40-45"><a href="#cb40-45" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(obs_ti) <span class="op">&lt;</span> <span class="dv">50</span>:</span>
+<span id="cb40-46"><a href="#cb40-46" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>pop_name<span class="sc">}</span><span class="ss">: for faa observationer (</span><span class="sc">{</span><span class="bu">len</span>(obs_ti)<span class="sc">}</span><span class="ss">)"</span>)</span>
+<span id="cb40-47"><a href="#cb40-47" aria-hidden="true" tabindex="-1"></a>        <span class="cf">continue</span></span>
+<span id="cb40-48"><a href="#cb40-48" aria-hidden="true" tabindex="-1"></a>    graph_ti.update_weights(init_theta_ti)</span>
+<span id="cb40-49"><a href="#cb40-49" aria-hidden="true" tabindex="-1"></a>    sv_ti <span class="op">=</span> graph_ti.svgd(</span>
+<span id="cb40-50"><a href="#cb40-50" aria-hidden="true" tabindex="-1"></a>        obs_ti,</span>
+<span id="cb40-51"><a href="#cb40-51" aria-hidden="true" tabindex="-1"></a>        fixed<span class="op">=</span>fixed_ti,</span>
+<span id="cb40-52"><a href="#cb40-52" aria-hidden="true" tabindex="-1"></a>        prior<span class="op">=</span>prior_ti,</span>
+<span id="cb40-53"><a href="#cb40-53" aria-hidden="true" tabindex="-1"></a>        optimizer<span class="op">=</span>Adam(<span class="fl">0.25</span>),</span>
+<span id="cb40-54"><a href="#cb40-54" aria-hidden="true" tabindex="-1"></a>        n_iterations<span class="op">=</span><span class="dv">250</span>,</span>
+<span id="cb40-55"><a href="#cb40-55" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb40-56"><a href="#cb40-56" aria-hidden="true" tabindex="-1"></a>    res_ti <span class="op">=</span> sv_ti.get_results()</span>
+<span id="cb40-57"><a href="#cb40-57" aria-hidden="true" tabindex="-1"></a>    results_ti[pop_name] <span class="op">=</span> (sv_ti, res_ti)</span>
+<span id="cb40-58"><a href="#cb40-58" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>pop_name<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span><span class="bu">len</span>(obs_ti)<span class="sc">}</span><span class="ss"> obs | theta=</span><span class="sc">{</span>[<span class="bu">round</span>(res_ti[<span class="st">'theta_mean'</span>][i].item(),<span class="dv">4</span>) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">3</span>)]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="e32212a1" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Konverter til biologiske enheder og visualiser</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>colors_ti <span class="op">=</span> {<span class="st">"P. cynocephalus"</span>: <span class="st">"C1"</span>, <span class="st">"P. kindae"</span>: <span class="st">"C3"</span>, <span class="st">"P. anubis"</span>: <span class="st">"C4"</span>}</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">5</span>))</span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> pop_name, (sv_ti, res_ti) <span class="kw">in</span> results_ti.items():</span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>    N_ref_pop <span class="op">=</span> N_ref_dict[pop_name]</span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>    theta_ti  <span class="op">=</span> res_ti[<span class="st">"theta_mean"</span>]</span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>    years_plt <span class="op">=</span> baboon_years_ti <span class="op">+</span> [<span class="dv">700_000</span>]</span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>    Ne_vals <span class="op">=</span> []</span>
+<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(n_epochs_ti):</span>
+<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a>        th <span class="op">=</span> theta_ti[k].item()</span>
+<span id="cb41-14"><a href="#cb41-14" aria-hidden="true" tabindex="-1"></a>        Ne_ep <span class="op">=</span> (<span class="fl">1.0</span> <span class="op">/</span> th) <span class="op">*</span> N_ref_pop <span class="cf">if</span> th <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> np.nan</span>
+<span id="cb41-15"><a href="#cb41-15" aria-hidden="true" tabindex="-1"></a>        Ne_vals.append(Ne_ep)</span>
+<span id="cb41-16"><a href="#cb41-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-17"><a href="#cb41-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n_epochs_ti):</span>
+<span id="cb41-18"><a href="#cb41-18" aria-hidden="true" tabindex="-1"></a>        ax.hlines(Ne_vals[i], years_plt[i], years_plt[i<span class="op">+</span><span class="dv">1</span>],</span>
+<span id="cb41-19"><a href="#cb41-19" aria-hidden="true" tabindex="-1"></a>                  lw<span class="op">=</span><span class="dv">3</span>, color<span class="op">=</span>colors_ti.get(pop_name, <span class="st">"C0"</span>),</span>
+<span id="cb41-20"><a href="#cb41-20" aria-hidden="true" tabindex="-1"></a>                  label<span class="op">=</span>pop_name <span class="cf">if</span> i <span class="op">==</span> <span class="dv">0</span> <span class="cf">else</span> <span class="st">""</span>)</span>
+<span id="cb41-21"><a href="#cb41-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> i <span class="op">&lt;</span> n_epochs_ti <span class="op">-</span> <span class="dv">1</span>:</span>
+<span id="cb41-22"><a href="#cb41-22" aria-hidden="true" tabindex="-1"></a>            ax.vlines(years_plt[i<span class="op">+</span><span class="dv">1</span>], Ne_vals[i], Ne_vals[i<span class="op">+</span><span class="dv">1</span>],</span>
+<span id="cb41-23"><a href="#cb41-23" aria-hidden="true" tabindex="-1"></a>                      lw<span class="op">=</span><span class="dv">2</span>, color<span class="op">=</span>colors_ti.get(pop_name, <span class="st">"C0"</span>),</span>
+<span id="cb41-24"><a href="#cb41-24" aria-hidden="true" tabindex="-1"></a>                      linestyle<span class="op">=</span><span class="st">"--"</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb41-25"><a href="#cb41-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-26"><a href="#cb41-26" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> yr <span class="kw">in</span> baboon_years_ti[<span class="dv">1</span>:]:</span>
+<span id="cb41-27"><a href="#cb41-27" aria-hidden="true" tabindex="-1"></a>    ax.axvline(yr, color<span class="op">=</span><span class="st">"grey"</span>, linestyle<span class="op">=</span><span class="st">":"</span>, alpha<span class="op">=</span><span class="fl">0.4</span>)</span>
+<span id="cb41-28"><a href="#cb41-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-29"><a href="#cb41-29" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">"År (BP)"</span>)</span>
+<span id="cb41-30"><a href="#cb41-30" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">"N_e (effektiv populationsst.)"</span>)</span>
+<span id="cb41-31"><a href="#cb41-31" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">"Tidsinhomogen 3-epoke model: N_e over tid per bavianpopulation"</span>)</span>
+<span id="cb41-32"><a href="#cb41-32" aria-hidden="true" tabindex="-1"></a>ax.legend(fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb41-33"><a href="#cb41-33" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb41-34"><a href="#cb41-34" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb41-35"><a href="#cb41-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-36"><a href="#cb41-36" aria-hidden="true" tabindex="-1"></a><span class="co"># Sammenfatning</span></span>
+<span id="cb41-37"><a href="#cb41-37" aria-hidden="true" tabindex="-1"></a>rows_ti <span class="op">=</span> []</span>
+<span id="cb41-38"><a href="#cb41-38" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> pop_name, (sv_ti, res_ti) <span class="kw">in</span> results_ti.items():</span>
+<span id="cb41-39"><a href="#cb41-39" aria-hidden="true" tabindex="-1"></a>    N_ref_pop <span class="op">=</span> N_ref_dict[pop_name]</span>
+<span id="cb41-40"><a href="#cb41-40" aria-hidden="true" tabindex="-1"></a>    theta_ti  <span class="op">=</span> res_ti[<span class="st">"theta_mean"</span>]</span>
+<span id="cb41-41"><a href="#cb41-41" aria-hidden="true" tabindex="-1"></a>    rows_ti.append({</span>
+<span id="cb41-42"><a href="#cb41-42" aria-hidden="true" tabindex="-1"></a>        <span class="st">"Population"</span>:   pop_name,</span>
+<span id="cb41-43"><a href="#cb41-43" aria-hidden="true" tabindex="-1"></a>        <span class="st">"N_e (ep. 0)"</span>:  <span class="ss">f"</span><span class="sc">{</span>(<span class="dv">1</span><span class="op">/</span>theta_ti[<span class="dv">0</span>].item())<span class="op">*</span>N_ref_pop<span class="sc">:.0f}</span><span class="ss">"</span>,</span>
+<span id="cb41-44"><a href="#cb41-44" aria-hidden="true" tabindex="-1"></a>        <span class="st">"N_e (ep. 1)"</span>:  <span class="ss">f"</span><span class="sc">{</span>(<span class="dv">1</span><span class="op">/</span>theta_ti[<span class="dv">1</span>].item())<span class="op">*</span>N_ref_pop<span class="sc">:.0f}</span><span class="ss">"</span>,</span>
+<span id="cb41-45"><a href="#cb41-45" aria-hidden="true" tabindex="-1"></a>        <span class="st">"N_e (ep. 2)"</span>:  <span class="ss">f"</span><span class="sc">{</span>(<span class="dv">1</span><span class="op">/</span>theta_ti[<span class="dv">2</span>].item())<span class="op">*</span>N_ref_pop<span class="sc">:.0f}</span><span class="ss">"</span>,</span>
+<span id="cb41-46"><a href="#cb41-46" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb41-47"><a href="#cb41-47" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(pd.DataFrame(rows_ti).to_string(index<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb41-48"><a href="#cb41-48" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Epoker: </span><span class="sc">{</span>baboon_years_ti[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">–</span><span class="sc">{</span>baboon_years_ti[<span class="dv">1</span>]<span class="sc">}</span><span class="ss"> År | "</span></span>
+<span id="cb41-49"><a href="#cb41-49" aria-hidden="true" tabindex="-1"></a>      <span class="ss">f"</span><span class="sc">{</span>baboon_years_ti[<span class="dv">1</span>]<span class="sc">}</span><span class="ss">–</span><span class="sc">{</span>baboon_years_ti[<span class="dv">2</span>]<span class="sc">}</span><span class="ss"> År | "</span></span>
+<span id="cb41-50"><a href="#cb41-50" aria-hidden="true" tabindex="-1"></a>      <span class="ss">f"</span><span class="sc">{</span>baboon_years_ti[<span class="dv">2</span>]<span class="sc">}</span><span class="ss">+ År"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
 <section id="opsummering-af-resultater" class="level2">
 <h2 class="anchored" data-anchor-id="opsummering-af-resultater">Opsummering af resultater</h2>
 <p>Samlede estimater for alle analyserede populationer og modeller.</p>
 <div id="1836be4e" class="cell" data-execution_count="32">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Samlet resultattabel</span></span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>summary_rows <span class="op">=</span> []</span>
-<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name <span class="kw">in</span> populations:</span>
-<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> svgd_results[name]</span>
-<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>    Ne <span class="op">=</span> res[<span class="st">'Ne'</span>]</span>
-<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>    N_ref <span class="op">=</span> N_ref_dict[name]</span>
-<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>    pi_val <span class="op">=</span> nucleotide_diversity(populations[name])</span>
-<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>    D <span class="op">=</span> tajimas_d(populations[name])</span>
-<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>    summary_rows.append({</span>
-<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Population'</span>: name,</span>
-<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">'π̂'</span>: <span class="ss">f'</span><span class="sc">{</span>pi_val<span class="sc">:.6f}</span><span class="ss">'</span>,</span>
-<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>        <span class="st">'N_e (π̂)'</span>: <span class="ss">f'</span><span class="sc">{</span>N_ref<span class="sc">:.0f}</span><span class="ss">'</span>,</span>
-<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a>        <span class="st">'N_e (SVGD)'</span>: <span class="ss">f'</span><span class="sc">{</span>Ne<span class="sc">:.0f}</span><span class="ss">'</span> <span class="cf">if</span> <span class="kw">not</span> np.isnan(Ne) <span class="cf">else</span> <span class="st">'N/A'</span>,</span>
-<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a>        <span class="st">"Tajima's D"</span>: <span class="ss">f'</span><span class="sc">{</span>D<span class="sc">:.3f}</span><span class="ss">'</span> <span class="cf">if</span> <span class="kw">not</span> np.isnan(D) <span class="cf">else</span> <span class="st">'N/A'</span>,</span>
-<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>    })</span>
-<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a>df_summary <span class="op">=</span> pd.DataFrame(summary_rows)</span>
-<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"=== Samlet opsummering ==="</span>)</span>
-<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_summary.to_string(index<span class="op">=</span><span class="va">False</span>))</span>
-<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-21"><a href="#cb39-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">=== Two-island model (P. cynocephalus + P. kindae) ==="</span>)</span>
-<span id="cb39-22"><a href="#cb39-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  θ₀ = </span><span class="sc">{</span>theta0_hat<span class="sc">:.5f}</span><span class="ss">  →  N_e ≈ </span><span class="sc">{</span><span class="dv">1</span><span class="op">/</span>theta0_hat<span class="sc">:.0f}</span><span class="ss">"</span>)</span>
-<span id="cb39-23"><a href="#cb39-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  θ₁ = </span><span class="sc">{</span>theta1_hat<span class="sc">:.4f}</span><span class="ss">  →  m per generation ≈ </span><span class="sc">{</span>theta1_hat<span class="op">/</span>(<span class="dv">2</span><span class="op">/</span>theta0_hat)<span class="sc">:.6f}</span><span class="ss">"</span>)</span>
-<span id="cb39-24"><a href="#cb39-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-25"><a href="#cb39-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">=== Joint probability inferens (P. cynocephalus) ==="</span>)</span>
-<span id="cb39-26"><a href="#cb39-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  θ̂ (joint) = </span><span class="sc">{</span>theta_jp_hat<span class="sc">:.5f}</span><span class="ss">  →  N_e ≈ </span><span class="sc">{</span><span class="dv">1</span><span class="op">/</span>theta_jp_hat<span class="sc">:.0f}</span><span class="ss">"</span>)</span>
-<span id="cb39-27"><a href="#cb39-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  θ̂ (TMRCA) = </span><span class="sc">{</span>svgd_results[<span class="st">'P. cynocephalus'</span>][<span class="st">'theta_mean'</span>]<span class="sc">:.5f}</span><span class="ss">  →  N_e ≈ </span><span class="sc">{</span><span class="dv">1</span><span class="op">/</span>svgd_results[<span class="st">'P. cynocephalus'</span>][<span class="st">'theta_mean'</span>]<span class="sc">:.0f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Samlet resultattabel</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>summary_rows <span class="op">=</span> []</span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name <span class="kw">in</span> populations:</span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> svgd_results[name]</span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>    Ne <span class="op">=</span> res[<span class="st">'Ne'</span>]</span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>    N_ref <span class="op">=</span> N_ref_dict[name]</span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>    pi_val <span class="op">=</span> nucleotide_diversity(populations[name])</span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>    D <span class="op">=</span> tajimas_d(populations[name])</span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>    summary_rows.append({</span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Population'</span>: name,</span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">'π̂'</span>: <span class="ss">f'</span><span class="sc">{</span>pi_val<span class="sc">:.6f}</span><span class="ss">'</span>,</span>
+<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a>        <span class="st">'N_e (π̂)'</span>: <span class="ss">f'</span><span class="sc">{</span>N_ref<span class="sc">:.0f}</span><span class="ss">'</span>,</span>
+<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a>        <span class="st">'N_e (SVGD)'</span>: <span class="ss">f'</span><span class="sc">{</span>Ne<span class="sc">:.0f}</span><span class="ss">'</span> <span class="cf">if</span> <span class="kw">not</span> np.isnan(Ne) <span class="cf">else</span> <span class="st">'N/A'</span>,</span>
+<span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a>        <span class="st">"Tajima's D"</span>: <span class="ss">f'</span><span class="sc">{</span>D<span class="sc">:.3f}</span><span class="ss">'</span> <span class="cf">if</span> <span class="kw">not</span> np.isnan(D) <span class="cf">else</span> <span class="st">'N/A'</span>,</span>
+<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb42-16"><a href="#cb42-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-17"><a href="#cb42-17" aria-hidden="true" tabindex="-1"></a>df_summary <span class="op">=</span> pd.DataFrame(summary_rows)</span>
+<span id="cb42-18"><a href="#cb42-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"=== Samlet opsummering ==="</span>)</span>
+<span id="cb42-19"><a href="#cb42-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_summary.to_string(index<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb42-20"><a href="#cb42-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-21"><a href="#cb42-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">=== Two-island model (P. cynocephalus + P. kindae) ==="</span>)</span>
+<span id="cb42-22"><a href="#cb42-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  θ₀ = </span><span class="sc">{</span>theta0_hat<span class="sc">:.5f}</span><span class="ss">  →  N_e ≈ </span><span class="sc">{</span><span class="dv">1</span><span class="op">/</span>theta0_hat<span class="sc">:.0f}</span><span class="ss">"</span>)</span>
+<span id="cb42-23"><a href="#cb42-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  θ₁ = </span><span class="sc">{</span>theta1_hat<span class="sc">:.4f}</span><span class="ss">  →  m per generation ≈ </span><span class="sc">{</span>theta1_hat<span class="op">/</span>(<span class="dv">2</span><span class="op">/</span>theta0_hat)<span class="sc">:.6f}</span><span class="ss">"</span>)</span>
+<span id="cb42-24"><a href="#cb42-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-25"><a href="#cb42-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">=== Joint probability inferens (P. cynocephalus) ==="</span>)</span>
+<span id="cb42-26"><a href="#cb42-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  θ̂ (joint) = </span><span class="sc">{</span>theta_jp_hat<span class="sc">:.5f}</span><span class="ss">  →  N_e ≈ </span><span class="sc">{</span><span class="dv">1</span><span class="op">/</span>theta_jp_hat<span class="sc">:.0f}</span><span class="ss">"</span>)</span>
+<span id="cb42-27"><a href="#cb42-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  θ̂ (TMRCA) = </span><span class="sc">{</span>svgd_results[<span class="st">'P. cynocephalus'</span>][<span class="st">'theta_mean'</span>]<span class="sc">:.5f}</span><span class="ss">  →  N_e ≈ </span><span class="sc">{</span><span class="dv">1</span><span class="op">/</span>svgd_results[<span class="st">'P. cynocephalus'</span>][<span class="st">'theta_mean'</span>]<span class="sc">:.0f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>=== Samlet opsummering ===
      Population       π̂ N_e (π̂) N_e (SVGD) Tajima's D

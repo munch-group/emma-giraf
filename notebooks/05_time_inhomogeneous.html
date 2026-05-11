@@ -311,6 +311,7 @@ window.Quarto = {
   <li><a href="#epoch-baserede-momenter-og-sammenligning-med-analytisk-resultat" id="toc-epoch-baserede-momenter-og-sammenligning-med-analytisk-resultat" class="nav-link" data-scroll-target="#epoch-baserede-momenter-og-sammenligning-med-analytisk-resultat">Epoch-baserede momenter og sammenligning med analytisk resultat</a></li>
   <li><a href="#laplace-transformation-prob.-for-ingen-rekombination" id="toc-laplace-transformation-prob.-for-ingen-rekombination" class="nav-link" data-scroll-target="#laplace-transformation-prob.-for-ingen-rekombination">Laplace-transformation: Prob. for ingen rekombination</a></li>
   <li><a href="#im-modellen-som-tidsinhomogen-koalescent" id="toc-im-modellen-som-tidsinhomogen-koalescent" class="nav-link" data-scroll-target="#im-modellen-som-tidsinhomogen-koalescent">IM-modellen som tidsinhomogen koalescent</a></li>
+  <li><a href="#epoch-model-med-storre-stikproeve-n10" id="toc-epoch-model-med-storre-stikproeve-n10" class="nav-link" data-scroll-target="#epoch-model-med-storre-stikproeve-n10">Epoch-model med storre stikproeve (n=10)</a></li>
   </ul>
 <div class="toc-actions"><ul class="collapse"><li><a href="https://github.dev/munch-group/emma-giraf/blob/main/notebooks/05_time_inhomogeneous.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/emma-giraf/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/emma-giraf/blob/main/notebooks/05_time_inhomogeneous.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
     </div>
@@ -988,9 +989,89 @@ Epoch-model er 1.1x hurtigere end numerisk approksimation</code></pre>
 <span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
 <span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-
-
 </section>
+</section>
+<section id="epoch-model-med-storre-stikproeve-n10" class="level2">
+<h2 class="anchored" data-anchor-id="epoch-model-med-storre-stikproeve-n10">Epoch-model med storre stikproeve (n=10)</h2>
+<p>Epoch-modellen skalerer med antallet af samples. Her bygger jeg en 3-epoch model med <span class="math inline">\(n=10\)</span> proever og beregner SFS under de tre epoker.</p>
+<div id="986a7a89" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> StateIndexer, Property</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> partial</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itertools <span class="im">import</span> combinations_with_replacement</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>all_pairs_ep <span class="op">=</span> partial(combinations_with_replacement, r<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>nr_samples_ep <span class="op">=</span> <span class="dv">10</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>epochs_ep     <span class="op">=</span> [<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">2</span>]</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>pop_sizes_ep  <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">5</span>, <span class="dv">10</span>]</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>indexer_ep <span class="op">=</span> StateIndexer(</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    lineages<span class="op">=</span>[Property(<span class="st">"ton"</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span>nr_samples_ep)],</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    slots<span class="op">=</span>[<span class="st">"epoch"</span>],</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>ipv_ep <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer_ep.state_length</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>ipv_ep[indexer_ep.props_to_index(ton<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> nr_samples_ep</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_epoch_large(state, epochs<span class="op">=</span><span class="va">None</span>, epoch_idx<span class="op">=</span><span class="va">None</span>, indexer<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>    epoch_idx <span class="op">=</span> <span class="bu">int</span>(epoch_idx)</span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state[indexer.epoch] <span class="op">!=</span> epoch_idx:</span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, j <span class="kw">in</span> all_pairs_ep(indexer.lineages):</span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>        pi <span class="op">=</span> indexer.lineages.index_to_props(i)</span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>        pj <span class="op">=</span> indexer.lineages.index_to_props(j)</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state.<span class="bu">sum</span>() <span class="op">&lt;=</span> <span class="dv">1</span>: <span class="cf">continue</span></span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>        same <span class="op">=</span> <span class="bu">int</span>(pi.ton <span class="op">==</span> pj.ton)</span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>        new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>        k <span class="op">=</span> indexer.lineages.props_to_index(ton<span class="op">=</span>pi.ton<span class="op">+</span>pj.ton)</span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> k <span class="op">&lt;</span> indexer.lineages.state_length:</span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>            new[k] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>        coeff <span class="op">=</span> [<span class="fl">0.0</span>] <span class="op">*</span> (<span class="bu">len</span>(pop_sizes_ep) <span class="op">+</span> <span class="dv">1</span>)</span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>        coeff[epoch_idx] <span class="op">=</span> state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)</span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>        transitions.append([new, coeff])</span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a>g_ep_large <span class="op">=</span> Graph(</span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a>    coalescent_epoch_large,</span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a>    ipv<span class="op">=</span>ipv_ep,</span>
+<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a>    epoch_idx<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a>    epochs<span class="op">=</span>epochs_ep,</span>
+<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a>    indexer<span class="op">=</span>indexer_ep,</span>
+<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-47"><a href="#cb15-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-48"><a href="#cb15-48" aria-hidden="true" tabindex="-1"></a>weights_ep <span class="op">=</span> [<span class="dv">1</span><span class="op">/</span>N <span class="cf">for</span> N <span class="kw">in</span> pop_sizes_ep] <span class="op">+</span> [<span class="fl">1.0</span>]</span>
+<span id="cb15-49"><a href="#cb15-49" aria-hidden="true" tabindex="-1"></a>g_ep_large.update_weights(weights_ep)</span>
+<span id="cb15-50"><a href="#cb15-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-51"><a href="#cb15-51" aria-hidden="true" tabindex="-1"></a>mine_ep <span class="op">=</span> <span class="bu">list</span>(g_ep_large.moments(<span class="dv">5</span>))</span>
+<span id="cb15-52"><a href="#cb15-52" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"n=</span><span class="sc">{</span>nr_samples_ep<span class="sc">}</span><span class="ss">, epoker=</span><span class="sc">{</span>epochs_ep<span class="sc">}</span><span class="ss">, N_e=</span><span class="sc">{</span>pop_sizes_ep<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb15-53"><a href="#cb15-53" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Første 5 momenter for E[TMRCA]:"</span>)</span>
+<span id="cb15-54"><a href="#cb15-54" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k, m <span class="kw">in</span> <span class="bu">enumerate</span>(mine_ep, <span class="dv">1</span>):</span>
+<span id="cb15-55"><a href="#cb15-55" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  Moment </span><span class="sc">{</span>k<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>m<span class="sc">:.4f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="e3b4eb14" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>state_mat_ep <span class="op">=</span> g_ep_large.states()</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>rewards_ep   <span class="op">=</span> state_mat_ep[:, :<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>sfs_ep <span class="op">=</span> []</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(nr_samples_ep <span class="op">-</span> <span class="dv">1</span>):</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    reward_vec <span class="op">=</span> rewards_ep[:, i]</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    transformed_ep <span class="op">=</span> g_ep_large.reward_transform(reward_vec)</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    sfs_ep.append(transformed_ep.moments(<span class="dv">1</span>)[<span class="dv">0</span>])</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>x_ep <span class="op">=</span> np.arange(<span class="dv">1</span>, nr_samples_ep)</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">4</span>))</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>sns.barplot(x<span class="op">=</span>x_ep, y<span class="op">=</span>sfs_ep, hue<span class="op">=</span>x_ep, width<span class="op">=</span><span class="fl">0.8</span>, palette<span class="op">=</span><span class="st">"viridis"</span>, legend<span class="op">=</span><span class="va">False</span>, ax<span class="op">=</span>ax)</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">"Allel-frekvensklasse (k-ton)"</span>)</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">"Forventet branch-laengde"</span>)</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="ss">f"SFS under 3-epoch model (n=</span><span class="sc">{</span>nr_samples_ep<span class="sc">}</span><span class="ss">)"</span>)</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+
+
 </section>
 
 </main> <!-- /main -->
