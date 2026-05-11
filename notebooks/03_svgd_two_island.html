@@ -411,8 +411,8 @@ table {
 </style>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  Removed 2 file(s), preserved directory structure
-  Removed 18 file(s), preserved directory structure</code></pre>
+<pre><code>  Removed 1 file(s), preserved directory structure
+  Removed 3 file(s), preserved directory structure</code></pre>
 </div>
 </div>
 <div id="057b875c" class="cell" data-execution_count="2">
@@ -1144,7 +1144,7 @@ SVGD-estimater fra msprime-data:
 <section id="mom-baserede-priors-og-halfcauchy-prior" class="level2">
 <h2 class="anchored" data-anchor-id="mom-baserede-priors-og-halfcauchy-prior">MoM-baserede priors og HalfCauchy prior</h2>
 <p>I stedet for at definere priors manuelt kan <em>method_of_moments()</em> automatisk generere informative priors baseret på data. <em>HalfCauchyPrior</em> er bedre egnet til skalaparametre som koalescensrate og migrationsrate, fordi den kun er defineret for positive værdier og har tunge haler der undgår at afskære sandsynlighed ved lave rater.</p>
-<div id="0886222f" class="cell">
+<div id="0886222f" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> HalfCauchyPrior</span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Genopbyg two-island model</span></span>
@@ -1218,62 +1218,104 @@ SVGD-estimater fra msprime-data:
 <span id="cb24-71"><a href="#cb24-71" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">'Automatisk genererede MoM-priors'</span>)</span>
 <span id="cb24-72"><a href="#cb24-72" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
 <span id="cb24-73"><a href="#cb24-73" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>=== Method of Moments ===
+Sand theta:    [0.7, 0.9]
+MoM estimat:   [np.float64(0.7207), np.float64(0.8283)]
+Residual:      1.68e-28
+Konvergeret:   True
+</code></pre>
 </div>
-<div id="d4d0251b" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Sammenlign GaussPrior, HalfCauchyPrior og MoM-prior i SVGD</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>prior_configs <span class="op">=</span> {</span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">'GaussPrior (bred)'</span>: [GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="dv">3</span>]), GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="dv">3</span>])],</span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">'HalfCauchy'</span>:        [HalfCauchyPrior(ci<span class="op">=</span><span class="fl">2.0</span>, prob<span class="op">=</span><span class="fl">0.9</span>),</span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>                          HalfCauchyPrior(ci<span class="op">=</span><span class="fl">1.0</span>, prob<span class="op">=</span><span class="fl">0.9</span>)],</span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">'MoM-prior (auto)'</span>:  mom_nb3.prior,</span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>rows_prior <span class="op">=</span> []</span>
-<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>step_nb3 <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.005</span>, tau<span class="op">=</span><span class="fl">30.0</span>)</span>
-<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, prior <span class="kw">in</span> prior_configs.items():</span>
-<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>    sv <span class="op">=</span> g_nb3.svgd(data_nb3, prior<span class="op">=</span>prior, learning_rate<span class="op">=</span>step_nb3, n_iterations<span class="op">=</span><span class="dv">250</span>)</span>
-<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> sv.get_results()</span>
-<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>    rows_prior.append({</span>
-<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Prior'</span>:     name,</span>
-<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a>        <span class="st">'θ₀ mean'</span>:   <span class="bu">round</span>(res[<span class="st">'theta_mean'</span>][<span class="dv">0</span>].item(), <span class="dv">4</span>),</span>
-<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a>        <span class="st">'θ₀ std'</span>:    <span class="bu">round</span>(res[<span class="st">'theta_std'</span>][<span class="dv">0</span>].item(), <span class="dv">5</span>),</span>
-<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a>        <span class="st">'θ₁ mean'</span>:   <span class="bu">round</span>(res[<span class="st">'theta_mean'</span>][<span class="dv">1</span>].item(), <span class="dv">4</span>),</span>
-<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a>        <span class="st">'θ₁ std'</span>:    <span class="bu">round</span>(res[<span class="st">'theta_std'</span>][<span class="dv">1</span>].item(), <span class="dv">5</span>),</span>
-<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a>    })</span>
-<span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-25"><a href="#cb25-25" aria-hidden="true" tabindex="-1"></a>df_prior <span class="op">=</span> pd.DataFrame(rows_prior)</span>
-<span id="cb25-26"><a href="#cb25-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Sand theta: θ₀=</span><span class="sc">{</span>true_theta_nb3[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">, θ₁=</span><span class="sc">{</span>true_theta_nb3[<span class="dv">1</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb25-27"><a href="#cb25-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_prior.to_string(index<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><a href="03_svgd_two_island_files/figure-html/cell-18-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-15"><img src="03_svgd_two_island_files/figure-html/cell-18-output-2.svg" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="d4d0251b" class="cell" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Sammenlign GaussPrior, HalfCauchyPrior og MoM-prior i SVGD</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>prior_configs <span class="op">=</span> {</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">'GaussPrior (bred)'</span>: [GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="dv">3</span>]), GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="dv">3</span>])],</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">'HalfCauchy'</span>:        [HalfCauchyPrior(ci<span class="op">=</span><span class="fl">2.0</span>, prob<span class="op">=</span><span class="fl">0.9</span>),</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>                          HalfCauchyPrior(ci<span class="op">=</span><span class="fl">1.0</span>, prob<span class="op">=</span><span class="fl">0.9</span>)],</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">'MoM-prior (auto)'</span>:  mom_nb3.prior,</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>rows_prior <span class="op">=</span> []</span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>step_nb3 <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.005</span>, tau<span class="op">=</span><span class="fl">30.0</span>)</span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, prior <span class="kw">in</span> prior_configs.items():</span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>    sv <span class="op">=</span> g_nb3.svgd(data_nb3, prior<span class="op">=</span>prior, learning_rate<span class="op">=</span>step_nb3, n_iterations<span class="op">=</span><span class="dv">250</span>)</span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> sv.get_results()</span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>    rows_prior.append({</span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Prior'</span>:     name,</span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a>        <span class="st">'θ₀ mean'</span>:   <span class="bu">round</span>(res[<span class="st">'theta_mean'</span>][<span class="dv">0</span>].item(), <span class="dv">4</span>),</span>
+<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>        <span class="st">'θ₀ std'</span>:    <span class="bu">round</span>(res[<span class="st">'theta_std'</span>][<span class="dv">0</span>].item(), <span class="dv">5</span>),</span>
+<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a>        <span class="st">'θ₁ mean'</span>:   <span class="bu">round</span>(res[<span class="st">'theta_mean'</span>][<span class="dv">1</span>].item(), <span class="dv">4</span>),</span>
+<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a>        <span class="st">'θ₁ std'</span>:    <span class="bu">round</span>(res[<span class="st">'theta_std'</span>][<span class="dv">1</span>].item(), <span class="dv">5</span>),</span>
+<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a>df_prior <span class="op">=</span> pd.DataFrame(rows_prior)</span>
+<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Sand theta: θ₀=</span><span class="sc">{</span>true_theta_nb3[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">, θ₁=</span><span class="sc">{</span>true_theta_nb3[<span class="dv">1</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_prior.to_string(index<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Sand theta: θ₀=0.7, θ₁=0.9
+            Prior  θ₀ mean  θ₀ std  θ₁ mean  θ₁ std
+GaussPrior (bred)   0.7216 0.00871   2.5051 1.51922
+       HalfCauchy   0.8019 0.56217   0.8629 0.28660
+ MoM-prior (auto)   0.4875 0.32741   0.5731 0.42021</code></pre>
+</div>
 </div>
 </section>
 <section id="joint-probability-graf-med-population-specifikke-rewards" class="level2">
 <h2 class="anchored" data-anchor-id="joint-probability-graf-med-population-specifikke-rewards">Joint probability graf med population-specifikke rewards</h2>
 <p><em>joint_prob_graph</em> med <em>reward_only=[‘pop1’, ‘pop2’]</em> tracker mutationer separat for de to populationer. Dette giver en rigere observationsstruktur end blot TMRCA.</p>
-<div id="ea5a8e8a" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Joint probability graf med population-rewards</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>mutation_rate_nb3 <span class="op">=</span> <span class="fl">1.2e-4</span></span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>joint_nb3 <span class="op">=</span> g_nb3.joint_prob_graph(</span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    indexer_nb3,</span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    reward_only<span class="op">=</span>[<span class="st">'pop1'</span>, <span class="st">'pop2'</span>],</span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    reward_limit<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>    tot_reward_limit<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>    mutation_rate<span class="op">=</span>mutation_rate_nb3,</span>
-<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Joint graf tilstande: </span><span class="sc">{</span>joint_nb3<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>joint_nb3.plot(rankdir<span class="op">=</span><span class="st">'LR'</span>, nodesep<span class="op">=</span><span class="fl">0.3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="ea5a8e8a" class="cell" data-execution_count="4">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Joint probability graf med population-rewards</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>mutation_rate_nb3 <span class="op">=</span> <span class="fl">1.2e-4</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>joint_nb3 <span class="op">=</span> g_nb3.joint_prob_graph(</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    indexer_nb3,</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    reward_only<span class="op">=</span>[<span class="st">'pop1'</span>, <span class="st">'pop2'</span>],</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>    reward_limit<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>    tot_reward_limit<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>    mutation_rate<span class="op">=</span>mutation_rate_nb3,</span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Joint graf tilstande: </span><span class="sc">{</span>joint_nb3<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>joint_nb3.plot(rankdir<span class="op">=</span><span class="st">'LR'</span>, nodesep<span class="op">=</span><span class="fl">0.3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Joint graf tilstande: 22</code></pre>
 </div>
-<div id="cbe60313" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Vis joint probability-tabellen</span></span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>g_nb3.update_weights(true_theta_nb3)</span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>joint_nb3.update_weights(true_theta_nb3 <span class="op">+</span> [mutation_rate_nb3])</span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>table_nb3 <span class="op">=</span> joint_nb3.joint_prob_table()</span>
-<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Joint probability-tabel:"</span>)</span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(table_nb3.<span class="bu">round</span>(<span class="dv">6</span>))</span>
-<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Deficit: </span><span class="sc">{</span><span class="dv">1</span> <span class="op">-</span> table_nb3[<span class="st">'prob'</span>]<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">:.4f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="4">
+<div>
+<figure class="figure">
+<p><a href="03_svgd_two_island_files/figure-html/cell-20-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-16"><img src="03_svgd_two_island_files/figure-html/cell-20-output-2.svg" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="cbe60313" class="cell" data-execution_count="5">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Vis joint probability-tabellen</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>g_nb3.update_weights(true_theta_nb3)</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>joint_nb3.update_weights(true_theta_nb3 <span class="op">+</span> [mutation_rate_nb3])</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>table_nb3 <span class="op">=</span> joint_nb3.joint_prob_table()</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Joint probability-tabel:"</span>)</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(table_nb3.<span class="bu">round</span>(<span class="dv">6</span>))</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Deficit: </span><span class="sc">{</span><span class="dv">1</span> <span class="op">-</span> table_nb3[<span class="st">'prob'</span>]<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">:.4f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Joint probability-tabel:
+                pop1_0  pop1_1  pop1_2  pop2_0  pop2_1  pop2_2  prob
+t_vertex_index                                                      
+18                   0       0       0       0       0       0   1.0
+19                   0       1       0       0       0       0   0.0
+20                   0       0       0       1       0       0   0.0
+
+Deficit: 0.0000</code></pre>
+</div>
 </div>
 
 
