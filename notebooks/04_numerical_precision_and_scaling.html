@@ -559,7 +559,8 @@ Device type:          cpu</code></pre>
 </div>
 </div>
 </div>
-<p>Standard 64-bit floating-point er tilstrækkelig for koalescensrater op til n=17 — den relative fejl i E[H] er aldrig over ~4×10⁻¹⁶, hvilket er tæt på maskin-epsilon (≈2.2×10⁻¹⁶). Hypotesen om at MPFR aktiveres ved n≥15 bekræftes <strong>ikke</strong>: phasic aktiverer ikke MPFR ved disse størrelser, og double-precision giver korrekte resultater i alle tilfælde.Højere momenter viser lidt større fejl (5. moment: ~10⁻¹³ ved n=16), fordi eliminationen akkumulerer afrundingsfejl over flere trin. Tilstandsrummet vokser sub-eksponentielt fra 3 tilstande (n=2) til 298 tilstande (n=17), hvilket er håndterbart for eksakt beregning. Konklusionen er at dobbelt-præcision er tilstrækkelig for standard koalescenten op til de prøvestørrelser der er relevante for specialets analyser.</p>
+<p>Standard 64-bit floating-point er tilstrækkelig for koalescensrater op til n=17 den relative fejl i E[H] er aldrig over omkring <span class="math inline">\(4×10^{-16}\)</span>, hvilket er tæt på epsilon (<span class="math inline">\(2.2×10^{-16}\)</span>). Hypotesen om at MPFR aktiveres ved n≥15 bekræftes ikke: phasic aktiverer ikke MPFR ved disse størrelser, og double-precision giver korrekte resultater i alle tilfælde.</p>
+<p>Højere momenter viser lidt større fejl (5. moment: omkring <span class="math inline">\(10^{-13}\)</span> ved n=16), fordi eliminationen akkumulerer afrundingsfejl over flere trin. Tilstandsrummet vokser sub-eksponentielt fra 3 tilstande (n=2) til 298 tilstande (n=17), hvilket er håndterbart for eksakt beregning. Konklusionen er at dobbelt-præcision er tilstrækkelig for standard koalescenten op til de prøvestørrelser der er relevante.</p>
 </section>
 <section id="hypotese-mpfrs-præcisionsbehov-er-modelbetinget-ikke-kun-n-betinget" class="level3">
 <h3 class="anchored" data-anchor-id="hypotese-mpfrs-præcisionsbehov-er-modelbetinget-ikke-kun-n-betinget">Hypotese: MPFR’s præcisionsbehov er modelbetinget, ikke kun <span class="math inline">\(n\)</span>-betinget</h3>
@@ -630,7 +631,8 @@ Device type:          cpu</code></pre>
 Konklusion: Ekstreme θ-værdier giver højere tilstandsnummer → større fejl.</code></pre>
 </div>
 </div>
-<p>Den relative fejl i E[H] er stabil på ~10⁻¹⁶ uanset θ-værdien — altså ingen systematisk forringelse ved ekstreme rater. Men fejlen i det 3. moment vokser markant ved lav θ: ved θ=0.001 er fejlen ~10⁻⁶ (absolut), mens den ved θ=1 er ~10⁻¹⁴. Dette skyldes at lave rater giver meget lange tider (E[H]=1750 ved θ=0.001), og momenter af høj orden bliver numerisk store tal, der er sværere at repræsentere præcist i 64-bit.Hypotesen bekræftes: præcisionsbehovet er <strong>parameterværdibetinget</strong>, ikke kun n-betinget. Modeller med meget lave rater (θ &lt; 0.01) bør bruge MPFR for højere momenter, selvom selve E[H] forbliver præcist. For de bavian-relevante parameterværdier (θ ∈ [0.3, 1.5]) er dette ikke et problem.</p>
+<p>Den relative fejl i E[H] er stabil på omkring <span class="math inline">\(10^{-16}\)</span> uanset θ-værdien, altså ingen systematisk forringelse ved ekstreme rater. Men fejlen i det 3. moment vokser markant ved lav θ: ved θ=0.001 er fejlen <span class="math inline">\(10^{-6}\)</span> (absolut), mens den ved θ=1 er <span class="math inline">\(10^{-14}\)</span>. Dette skyldes at lave rater giver meget lange tider (E[H]=1750 ved θ=0.001), og momenter af høj orden bliver numerisk store tal, der er sværere at repræsentere præcist i 64-bit.</p>
+<p>Hypotesen bekræftes: præcisionsbehovet er parameterværdibetinget, ikke kun <span class="math inline">\(n\)</span>-betinget. Modeller med meget lave rater (θ &lt; 0.01) bør bruge MPFR for højere momenter, selvom selve E[H] forbliver præcist. For de bavian-relevante parameterværdier (θ ∈ [0.3, 1.5]) er dette ikke et problem.</p>
 </section>
 <section id="hypotese-tidsomkostningen-ved-mpfr-er-acceptabel-for-normale-modeller" class="level3">
 <h3 class="anchored" data-anchor-id="hypotese-tidsomkostningen-ved-mpfr-er-acceptabel-for-normale-modeller">Hypotese: Tidsomkostningen ved MPFR er acceptabel for normale modeller</h3>
@@ -721,7 +723,6 @@ Konklusion: Ekstreme θ-værdier giver højere tilstandsnummer → større fejl.
 </div>
 </div>
 </div>
-<p>MPFR-overhead er langt større end forventet og <strong>ikke</strong> acceptabel ved moderate n.&nbsp;128-bit MPFR er 236× langsommere end dobbelt ved n=8, og 256-bit er 39× langsommere. Det er ikke den forventede 5-10× overhead fra hypotesen.Et uventet mønster opstår: ved n=6 er 128-bit (0.244ms) meget langsommere end 256-bit (0.086ms), og ved n=8 er 128-bit (1.287ms) igen langsommere end 256-bit (0.210ms). Dette er kontraintuitivt og tyder på at MPFR’s interne implementering er ustabil for 128-bit på denne hardware — muligvis fordi 128-bit ikke aligner med CPU’s native SIMD-bredde. I praksis: undgå MPFR medmindre dobbelt-præcision fejler, og foretrække 256-bit over 128-bit hvis MPFR er nødvendigt. For standard koalescent med n≤17 er MPFR unødvendigt.</p>
 </section>
 </section>
 <section id="tilstandsrumsvækst-og-beregningsgrænser" class="level2">
@@ -841,7 +842,6 @@ Konklusion: Ekstreme θ-værdier giver højere tilstandsnummer → større fejl.
 </div>
 </div>
 </div>
-<p>Profileringstabellen viser tre tydelige mønstre:<strong>Grafkonstruktion</strong> skalerer rimeligt (0.02s ved n=15), men er ikke monotont stigende — dette skyldes varierende JIT-kompileringstid i JAX.<strong>Moment-beregning</strong> skalerer sub-lineært: 10 momenter tager kun 0.057ms ved n=15 mod 0.015ms ved n=2, en blot 4× stigning selvom antallet af tilstande er 60× højere. Grafbaseret elimination er altså meget effektiv på sparse strukturer.<strong>PDF-beregning</strong> skalerer derimod kraftigere (0.46ms → 56ms, 120× stigning), fordi PDF kræver at løse et lineært system for hvert af de 100 tidspunkter.<strong>Hukommelse</strong> er minimal og lineær: kun 6.8 KB ved n=15. Hypotesen bekræftes delvist: hukommelse er ikke en bindende begrænsning, men PDF-tid vokser hurtigere end polynomialt og kan blive en flaskehals ved n &gt; 20 eller mange evalueringspunkter.</p>
 </section>
 </section>
 <section id="parallel-svgd-skalering-med-antal-cpu-kerner" class="level2">
@@ -1010,7 +1010,6 @@ none   |   32 partikler | 7.46s | θ̂=7.177</code></pre>
     none           32              32.0    7.457         74.57   7.177</code></pre>
 </div>
 </div>
-<p>Benchmark-resultaterne er overraskende: <code>none</code> (sekventiel) er konsekvent <strong>hurtigere</strong> end <code>vmap</code> (vektoriseret). Ved 32 partikler bruger none 7.5s mod vmap’s 13.6s. Dette er modsat forventningen om at vmap giver speedup via SIMD-parallelisme.Forklaringen er sandsynligvis at dette kørselsmiljø kun har 1 JAX-device tilgængeligt (CPU), og at vmap-overhead fra funktionskompilering og batching overskyger enhver paralleliseringsgevinst. <code>pmap</code> kunne ikke testes fordi kun 1 device er tilgængeligt. Begge strategier skalerer lineært med antal partikler (ingen tegn på superlineær speedup), og alle estimater er tæt på den sande θ=7. Konklusionen: på et single-device CPU-miljø er <code>none</code> den hurtigste strategi, og vmap tilføjer kun overhead.</p>
 </section>
 <section id="hypotese-posterior-kvalitet-er-uafhængig-af-parallelliseringsstrategi" class="level3">
 <h3 class="anchored" data-anchor-id="hypotese-posterior-kvalitet-er-uafhængig-af-parallelliseringsstrategi">Hypotese: Posterior-kvalitet er uafhængig af parallelliseringsstrategi</h3>
@@ -1062,7 +1061,6 @@ Max afvigelse i θ_mean: 7.57e-02
 Er alle identiske (&lt; 1e-4)?: False</code></pre>
 </div>
 </div>
-<p>Hypotesen om identiske posteriors under alle strategier <strong>bekræftes ikke</strong>: vmap giver θ=7.224 (std=0.186) og none giver θ=7.148 (std=0.081) — en afvigelse på 0.076 (&gt;10⁻⁴-grænsen). Afvigelsen skyldes ikke numerisk afrunding, men at SVGD’s particle-interaktion er ikke-deterministisk når strategien ændres — partikel-opdateringsrækkefølgen eller gradient-akkumulering er forskellig, og med kun 100 iterationer og 8 partikler er det tilfældige udfald tydeligt.Det er positivt at <code>none</code> har smallere std (0.081 vs.&nbsp;0.186), konsistent med benchmark-resultatet om at none er mere effektiv på dette miljø. Med flere iterationer (400+) vil begge strategier konvergere mod samme posterior, men den umiddelbare sammenlignelighed ved 100 iterationer er begrænset.</p>
 </section>
 </section>
 <section id="integreret-analyse-optimal-konfiguration-for-to-ø-model" class="level2">
@@ -1180,7 +1178,6 @@ Resultat:
   θ₁ (migration):  mean=0.851  std=0.3035  (sand: 1.0)</code></pre>
 </div>
 </div>
-<p>Med Adam-optimizer og 400 iterationer tager kørslen <strong>312 sekunder</strong> (781ms/iteration) for 40 partikler — langt over hypotesens 60 sekunder. Estimaterne er rimelige: θ₀=0.669 (sand 0.7) og θ₁=0.851 (sand 1.0), men 781ms per iteration er meget langsomt for en model med kun 6 tilstande.Den høje tid skyldes formentlig Adam-optimizerens overhead sammenlignet med en simpel gradient-step, samt at DataPrior-beregning er dyr ved hvert step. To-ø modellen er lille nok til at 312 sekunder for 400 iterationer er uacceptabelt — sammenlign med 50ms per iteration fra benchmark-sektionen for en 4-sample koalescent. Konfigurationen bør optimeres.</p>
 <div id="fdc6aa6f" class="cell" data-execution_count="17">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Optimal SVGD-konfiguration for to-ø model</span></span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> DataPrior</span>
@@ -1220,7 +1217,6 @@ Resultat:
   θ₁ (migration):  mean=0.000  std=0.0004  (sand: 1.0)</code></pre>
 </div>
 </div>
-<p>Med <code>ExpStepSize</code> i stedet for Adam kollapser SVGD fuldstændigt: θ₀=0.046 (sand 0.7) og θ₁≈0.000 (sand 1.0). Alle partikler er degenererede mod nul, og posterior’en er meningsløs. Dette er et klart tegn på <strong>step-size kollaps</strong>: den eksponentielt aftagende step-size krymper trin for hurtigt i starten, og partiklerne når ikke at forlade startpositionen.Adam-optimizer er her klart bedre end ExpStepSize for denne model. Selvom ExpStepSize fungerede i notebook 3, er den ikke robust over for alle modeller og prior-kombinationer. Konvergensplottet og den parvise posterior vil vise degenererede partikler koncentreret ved nul.</p>
 <div id="af98338e" class="cell" data-execution_count="18">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Konvergens og pairwise posterior</span></span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>sv_island.plot_convergence()</span>
@@ -1346,7 +1342,6 @@ n_partikler
 </div>
 </div>
 </div>
-<p>Grid-søgningen viser et komplekst billede der delvist modsiger hypotesen om diminishing returns ved mange partikler:<strong>Posterior std</strong> aftager generelt med flere partikler og iterationer, men ikke monotont — ved 10 partikler og 100 iterationer stiger std til 0.157 (højere end ved 50 iterationer, 0.031). Dette tyder på at SVGD med meget få partikler er ustabil: 10 partikler er ikke nok til at repræsentere posterior troværdigt, og tilfældig variation dominerer.<strong>Tid</strong> skalerer lineært med både partikler og iterationer, som forventet. 80 partikler + 400 iterationer (51s) giver std=0.55 — ikke bedre end 40 partikler + 400 iterationer (26s, std=0.12). Det antyder at <strong>antal iterationer er vigtigere end antal partikler</strong>, konsistent med hypotesen, men ved høje partikeltal konvergerer SVGD mod bredere posteriors, sandsynligvis fordi partikel-repulsion dominerer.<strong>Praktisk konklusion</strong>: 20–40 partikler + 200–400 iterationer er et godt kompromis. Bias er generelt lav (&lt;0.3) i alle konfigurationer.</p>
 </section>
 </section>
 <section id="præcisions--og-skaleringstest-specifikt-for-bavian-modeller" class="level2">
@@ -1456,7 +1451,6 @@ Praecisionstest pa two-island modellen:
  4    5.00    10.0   0.610040     0.207004  Nej     OK</code></pre>
 </div>
 </div>
-<p>Præcisionstesten på bavian-relevante to-ø parametre viser at <strong>dobbelt-præcision er tilstrækkelig i alle scenarier</strong> — ingen af de 10 kombinationer kræver MPFR. Dette gælder selv ved ekstremt lave rater (θ₀=0.01, θ₁=0.1), der giver E[H]=200 og Var[H]=41000.De store varians-værdier ved lave rater (41000 for n=2, 45760 for n=4) bekræfter det tidligere fund fra notebook 3: lav migration og lav koalescensrate giver ekstrem variation i koalescenstiden. For n=4 er E[H] ca. 50% højere end for n=2 ved samme parametre (4.39 vs.&nbsp;2.86 ved baseline), fordi der er flere linjer der skal vente på at koalescere.Konklusion for specialet: phasic kan håndtere hele det relevante parameterrum for bavian-analysen i dobbelt-præcision uden MPFR-overhead. To-ø modellen med n=2 har kun 6 tilstande og er beregningsmæssigt triviel.</p>
 
 
 </section>

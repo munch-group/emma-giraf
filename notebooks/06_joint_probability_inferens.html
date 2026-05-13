@@ -539,6 +539,14 @@ Setup færdig.</code></pre>
 </div>
 </div>
 </div>
+<p>Tabellen og plottet bekræfter hypotesen delvist. Deficitet falder hurtigt med tot_reward_limit ved lave mutationsrater, men meget langsomt ved høje:</p>
+<ul>
+<li><strong>μ=0.5:</strong> Deficitet er 0.006% allerede ved limit=3 tabellen dækker næsten al sandsynlighed.</li>
+<li><strong>μ=1.0:</strong> Deficitet på 0.66% ved limit=3 acceptabelt til inferens.</li>
+<li><strong>μ=2.0:</strong> Deficitet på 19.6% ved limit=3 for højt; modellen mister en væsentlig del af sandsynlighedsmassen.</li>
+<li><strong>μ=5.0:</strong> Deficitet &gt;90% uanset limit modellen er ubrugelig i dette regime, da næsten alle observationer havner i trash-tilstanden.</li>
+</ul>
+<p>Tabelstørrelsen vokser med limit (fra 4 til 120 poster ved limit=7), men gevinsten aftager hurtigt for lave μ-værdier. For høje μ hjælper flere tabelposter kun lidt, fordi problemet er fundamentalt: der er simpelthen for mange mulige mutationskombinationer til at dække dem alle.</p>
 </section>
 <section id="bavian-mu-og-theta-optimal-reward-limit" class="level3">
 <h3 class="anchored" data-anchor-id="bavian-mu-og-theta-optimal-reward-limit">Bavian mu og theta: optimal reward limit</h3>
@@ -587,6 +595,13 @@ Setup færdig.</code></pre>
 <span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Anbefaling til NB07B: mu=</span><span class="sc">{</span>best6[<span class="st">'mu'</span>]<span class="sc">}</span><span class="ss">, limit=</span><span class="sc">{</span><span class="bu">int</span>(best6[<span class="st">'limit'</span>])<span class="sc">}</span><span class="ss">"</span>)</span>
 <span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  Deficit=</span><span class="sc">{</span>best6[<span class="st">'Deficit'</span>]<span class="sc">:.5f}</span><span class="ss">, Tabelstorrelse=</span><span class="sc">{</span>best6[<span class="st">'Tabelstorrelse'</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<p>Heatmapsene viser deficit for bavian-realistiske parametre. For <strong>θ=3 og θ=7</strong> (bavian baseline) er billedet klart:</p>
+<ul>
+<li><strong>μ≤0.5 og limit≥2:</strong> Acceptabelt deficit (&lt;5%) — modellen er troværdig.</li>
+<li><strong>μ=1.0 og limit≥3:</strong> Stadig acceptabelt — dette er det anbefalede setup til bavian-analyse.</li>
+<li><strong>μ≥2.0:</strong> Deficitet stiger markant uanset limit — bør undgås.</li>
+</ul>
+<p>Anbefalingen <code>mu=0.5, limit=3</code> giver den mindste acceptable tabel (20 observationstyper) med tilstrækkeligt lav deficit. For θ=3 (lavere koalescensrate) er deficitet generelt lidt lavere end for θ=7, da færre lineager overlever længe nok til at akkumulere mange mutationer.</p>
 </section>
 </section>
 <section id="joint-sfs-vs.-marginal-sfs-informationsindhold" class="level2">
@@ -687,6 +702,8 @@ Setup færdig.</code></pre>
 </div>
 </div>
 </div>
+<p>Dette er et negativt resultat: joint-inferensen fejler numerisk. Joint-estimaterne er ekstremt upålidelige (posterior means på millioner, std på millioner), mens TMRCA-inferens giver præcise estimater tæt på den sande θ for alle testede værdier.</p>
+<p><strong>Hypotesen bekræftes ikke</strong> — joint SFS giver ikke en smallere posterior end TMRCA her. Problemet er sandsynligvis numerisk ustabilitet i SVGD, når joint-tabellen er lille (kun 20 poster ved <code>limit=3</code>), og mange observationer potentielt falder i kategorier med meget lav sandsynlighed under de forkerte parametre. TMRCA-inferens er robust og konvergerer stabilt til den sande θ.</p>
 </section>
 <section id="bavian-gevinst-analyse-joint-vs.-tmrca" class="level3">
 <h3 class="anchored" data-anchor-id="bavian-gevinst-analyse-joint-vs.-tmrca">Bavian gevinst-analyse: joint vs.&nbsp;TMRCA</h3>
@@ -738,6 +755,10 @@ Setup færdig.</code></pre>
 <span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_gain6.to_string(index<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
+<section id="hvad-viser-resultaterne" class="level3">
+<h3 class="anchored" data-anchor-id="hvad-viser-resultaterne">Hvad viser resultaterne?</h3>
+<p>Heatmappet over gevinst ved joint probability viser inkonsistente resultater på tværs af θ og n.&nbsp;Der er ingen klar tendens til at joint er bedre end TMRCA for bavian-realistiske parametre — gevinsten varierer fra negativ til positiv uden systematisk mønster. Dette skyldes formentlig den samme numeriske ustabilitet som observeret i den forrige sektion. Konklusionen er, at joint probability-inferens med det nuværende setup ikke giver pålidelig gevinst over TMRCA-inferens for bavian-data.</p>
+</section>
 </section>
 <section id="joint-sandsynlighedstabellens-struktur-og-det-2d-mønster" class="level2">
 <h2 class="anchored" data-anchor-id="joint-sandsynlighedstabellens-struktur-og-det-2d-mønster">Joint sandsynlighedstabellens struktur og det 2D-mønster</h2>
@@ -780,6 +801,16 @@ Setup færdig.</code></pre>
 </div>
 </div>
 </div>
+</section>
+<section id="hvad-viser-resultaterne-1" class="level3">
+<h3 class="anchored" data-anchor-id="hvad-viser-resultaterne-1">Hvad viser resultaterne?</h3>
+<p>De tre heatmaps bekræfter hypotesen om at tabellens <em>form</em> ændrer sig systematisk med θ:</p>
+<ul>
+<li><strong>Lav θ (=2):</strong> Sandsynlighed koncentreret i hjørnet ved få mutationer — de fleste observationer har nul eller én singleton og ingen doubletons. Fordelingen er stærkt skæv.</li>
+<li><strong>Middel θ (=7):</strong> Bredere fordeling. Sandsynlighed spredt over flere (1-ton, 2-ton)-kombinationer, med synlig masse ved 1-2 singletons og 0-1 doubletons.</li>
+<li><strong>Høj θ (=20):</strong> Fordelingen er endnu bredere og mere jævn — sandsynlighed fordelt over mange kombinationer, og rækker/kolonner med mange mutationer har nu ikke-negligibel masse.</li>
+</ul>
+<p>Denne form-ændring indeholder i princippet mere information om θ end summen af marginalerne, men som set i sektion 3 er det svært at udnytte det effektivt med den nuværende SVGD-implementation.</p>
 </section>
 </section>
 <section id="prøvestørrelse-effekt-på-joint-inferens" class="level2">
