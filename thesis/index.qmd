@@ -107,12 +107,15 @@ degree: Master of Science in Bioinformatics
 
 # Introduktion
 
-Forståelsen af, hvordan diversitet opstår og opretholdes, er et af evolutionsbiologiens centrale spørgsmål. Traditionelt har man antaget at artsdannelse følger et grenende mønster, hvor populationer adskilles og gradvist akkumulerer genetiske og morfologiske forskelle i isolation. Det stigende udbud af helgenomdata har imidlertid udfordret dette billede fundamentalt. Det viser sig at hybridisering og genudveksling mellem distinkte, morfologisk adskilte linjer er langt mere udbredt end hidtil antaget, hos pattedyr generelt og særligt hos primater [@rogers2019; @sorensen2023]. Genetiske bidrag flyder på tværs af artsgrænser, og evolutionær diversifikation er i mange tilfælde ikke et træ, men et net.
+I populationsgenetik vil man gerne forstå, hvordan genetisk variation opstår og ændrer sig over tid. Variation opstår på grund af processer som genetisk drift, mutation, rekombination og selektion [@hobolth2019] og de påvirker tilsammen, hvilke mønstre man ser i DNA-sekvenser. Når man analyserer DNA-sekvenser fra flere individer, indeholder dataene information om deres fælles evolutionære historie [@hobolth2019]. Denne historie beskrives typisk som et genealogisk træ, hvor grenene svarer til de observerede sekvenser og de indre knuder til fælles forfædre. 
+Traditionelt har man ofte beskrevet evolution som et grenende træ, hvor populationer adskilles og gradvist udvikler genetiske forskelle i isolation. Nyere studier har vist, at relationer mellem populationer ofte er mere komplekse end et simpelt træ kan beskrive. Processer som hybridisering og genflow kan for eksempel føre til komplekse strukturer frem for simple træer [@sorensen2023; @rogers2019; @vilgalys2022]. Evolutionære relationer kan derfor i mange tilfælde være mere komplekse strukturer end træformede. 
 
-Denne erkendelse stiller krav til de statistiske metoder man anvender til at rekonstruere demografisk historie. En troværdig inferens om effektive populationsstørrelser $N_e$, migrationsrater $m$ og historiske split-tidspunkter $t_s$ kræver modeller der eksplicit håndterer populationsstruktur og genflow, beregningsmetoder der er analytisk eksakte frem for simuleringsbaserede og en statistisk ramme der kvantificerer usikkerheden på estimaterne frem for blot at give et punktestimat. Dette speciale adresserer alle tre krav ved at kombinere fase-type fordelingsteori med Bayesiansk inferens via Stein Variational Gradient Descent (SVGD) og demonstrerer tilgangen på genomdata fra bavianpopulationer (*Papio* spp.) et af de mest veldokumenterede
-eksempler på kompleks evolutionær historie med genflow hos primater.
+Denne kompleksistet stiller større krav til de modeller og metoder der bruges til at rekonsturere populationshistorie. For at kunne undersøge størrelser som effektive populationsstørrelse $N_e$, migrationsratet $m$ og historiske split-tidspunkter $t_s$ krævles modeller, som kan håndtere populationsstruktur og genflow. Til dette formål anvendes fase-type fordelinger [@Hobolth2018; @Hobolth2024], som giver en fleksibel matematisk ramme til at beskrive coalescent-processer. Samtidig peger nyere forskning på, at grafbaserede repræsentationer kan være særligt effektive, når modellerne bliver store og komplekse [@Roikjer2022].
 
-## Bavianer som model for kompleks art-dannelse
+I dette speciale kombineres fase-type teori med Bayesiansk inferens via Stein Variational Gradient Descent (SVGD) for at analysere populationsstruktur og migrationshistorie i genomdata fra bavianpopulationer (Papio spp.) som er et af de mest veldokumenterede eksempler på kompleks evolutionær historie med genflow og admixture.
+
+
+## Bavianer som modelsystem 
 
 Bavianer (slægten *Papio*) er en gruppe af nært beslægtede primater, som lever i store dele af Afrika [@kopp2023]. Slægten består af seks nulevende arter:
  
@@ -123,27 +126,28 @@ Bavianer (slægten *Papio*) er en gruppe af nært beslægtede primater, som leve
  * Hamadryas baboon (*Papio hamadryas*)
  * Kinda baboon (*Papio kindae*). 
 
-Disse seks arter adskilles i to primære fylogenetiske klader: en nordlig kladde bestående af *P. hamadryas*, *P. anubis* og *P. papio*, og en sydlig kladde bestående af *P. kindae*, *P. cynocephalus* og *P. ursinus*, som divergerede fra en fælles afrikansk stamform for mere end 1 million år siden [@rogers2019; @vilgalys2022].
+Disse seks arter adskilles i to klader: en nordlig kladde bestående af *P. hamadryas*, *P. anubis* og *P. papio* og en sydlig kladde bestående af *P. kindae*, *P. cynocephalus* og *P. ursinus*, som divergerede fra en fælles stamfader for mere end 1 million år siden [@rogers2019; @vilgalys2022].
 
-::: {#fig-Kort}
+::: {#fig-Kort }
 ![](illustrations/Kort.png){width="50%"}
 *Papio* baboon arter. Nuværende udbredelse af hver bavianart samt placeringen af ​​tre veldokumenterede aktive hybridzoner er også vist. x1: hybridzone mellem P. hamadryas og P. anubis, x2: hybridzone mellem P. cynocephalus og P. anubis, x3: hybridzone mellem P. kindae og P. ursinus. Billede fra Rogers et al., 2019. 
 :::
 
-Det er veldokumenteret at bavianarter hybridiserer aktivt i naturen og udveksler gener på tværs af artsgrænser. @rogers2019 analyserede helgenomsekvenseringsdata for alle seks arter og dokumenterede multiple episoder af admixture og introgression, herunder genetisk bidrag fra en uidentificeret ancestral linje til *P. papio* og aktiv nuklear DNA-swamping ved hybridzonen mellem *P. anubis* og *P. cynocephalus* i det sydlige Kenya. Som det fremgår af @fig-Kort, overlapper arterne geografisk ved en række hybridzoner hvor aktiv genudveksling er dokumenteret [@sorensen2023]. @sorensen2023 udvidede denne analyse til 225 vilde bavianer fra 19 lokaliteter og afslørede en endnu mere kompleks historie: de vestlige gule bavianer fra Tanzania er de første ikke-menneskelige primater der er påvist at have modtaget genetiske bidrag fra tre separate linjer, og coancestry-analyser baseret på X-kromosom og autosomer afslørte udbredt male-biased genflow på tværs af artsgrænser. Disse resultater viser at et enkelt grenende fylogenetisk træ ikke tilstrækkeligt beskriver bavianernes evolutionære historie.
+På trods af disse geografiske adskillelser kan flere arter krydse sig i naturen og producere fertile hybrider [@sorensen2023; @jordan2018papio]. I flere kontaktzoner er der veldokumenterede hybridzoner med løbende genflow. @rogers2019 analyserede helgenomsekvenseringsdata for alle seks arter og dokumenterede multiple episoder af admixture og introgression, herunder genetisk bidrag fra en uidentificeret ancestral linje til *P. papio* og aktiv nuklear DNA-swamping ved hybridzonen mellem *P. anubis* og *P. cynocephalus*. Som det fremgår af @fig-Kort, overlapper arterne geografisk ved en række hybridzoner hvor aktiv genudveksling er dokumenteret [@sorensen2023]. @sorensen2023 udvidede denne analyse til 225 vilde bavianer fra 19 lokaliteter og dokumenterede admixture mellem *P. anubis* og *P. cynocephalus* i det sydlige Tanzania, en tæt genealogisk forbindelse mellem Kinda-bavianer og western yellow-populationerne, samt tegn på tre-vejs admixture i western yellow-populationerne ved Mahale og Katavi, et mønster som ikke tidligere er observeret i denne slægt. Studier af hybridzonerne viser desuden, at selektion mod introgresserede genetiske varianter kan være stærk, særligt på X-kromosomet, hvor der er observeret op til syv gange stærkere selektion sammenlignet med autosomer [@sorensen2023_selection].
 
-@vilgalys2022 undersøgte konsekvenserne af hybridisering på individniveau i hybridzonen mellem *P. anubis* og *P. cynocephalus* ved Amboseli i Kenya og viste at negativ selektion mod introgression er stærkest på kromosom X, i overensstemmelse med Haldane's regel og det generelle mønster for tidlige reproduktive barrierer. Disse fund understreger at bavianerne er et ideelt empirisk system til at afprøve og validere populationsgenetiske metoder under betingelser med aktiv og historisk genflow.
+Bavianernes evolutionære historie omkring samtidigt med menneskets evolution [@rogers2019]. I modsætning til mennesker, hvor kun en art eksisterer i dag, har bavianer bevaret flere linjer. Det gør dem særligt velegnede som modelsystem til at studere både divergens og hybridisering i naturlige populationer. I dette speciale anvendes estimater fra Sørensen et al. (2023), herunder en mutationsrate på $\mu = 0.9 \times 10^{-8}$ per site per generation og en generationstid på $g = 11$ år, til at omsætte modelparametre til absolutte størrelser.
+
 
 ## Markovprocesser og kontinuerte Markovkæder
 
-Et centralt matematisk redskab i populationsgenetik er Markovprocesser. En stokastisk proces $\{X_t\}_{t \geq 0}$ er en Markovproces hvis den fremtidige udvikling kun afhænger af den nuværende tilstand og ikke af processens historie:
+Et matematisk redskab i populationsgenetik er Markovprocesser. En stokastisk proces $\{X_t\}_{t \geq 0}$ er en Markovproces hvis den fremtidige udvikling kun afhænger af den nuværende tilstand og ikke af processens historie:
 $$
 P(X_{t+s} = j \mid X_u, u \leq t) = P(X_{t+s} = j \mid X_t).
 $$
 
 Denne egenskab kaldes Markov-egenskaben og er opfyldt af de fleste standardmodeller i populationsgenetik [@kemeny1976].
 
-En kontinuert Markovkæde (continuous-time Markov chain, CTMC) er en Markovproces med et diskret tilstandsrum og kontinuert tid. Processen befinder sig i en tilstand $i$ i en eksponentielt fordelt tid med rate $\lambda_i$ og springer derefter til tilstand $j \neq i$ med sandsynlighed $p_{ij}$. Overgangsdynamikken beskrives kompakt via intensitetsmatricen $\mathbf{Q}$, hvis indgange er
+En kontinuert Markovkæde (continuous-time Markov chain, CTMC) er en Markovproces med et diskret tilstandsrum og kontinuert tid. Processen befinder sig i en tilstand $i$ i en eksponentielt fordelt tid med rate $\lambda_i$ og springer derefter til tilstand $j \neq i$ med sandsynlighed $p_{ij}$. Overgangssandyligheden beskrives  via intensitetsmatricen $\mathbf{Q}$, hvis indgange er
 $$
 Q_{ij} = \lambda_i p_{ij} \quad (i \neq j), \qquad
 Q_{ii} = -\lambda_i = -\sum_{j \neq i} Q_{ij}.
@@ -164,6 +168,8 @@ $$
 hvor $\mathbf{S}$ er sub-intensitetsmatricen for de transiente tilstande og $\mathbf{s} = -\mathbf{S}\mathbf{e}$ er absorptionsraten. Tidspunktet for absorption er fase-type fordelt den klasse af fordelinger som dette speciale udnytter til koalescentinferens [@Hobolth2024].
 
 ## Koalescentteorien: Wright-Fisher, Moran og Kingman
+
+Koalescent teorien bygger på at man følger genetiske linjer bagud i tid og ser på, hvornår de mødes i fælles forfædre. Hvis to genkopier kan spores tilbage til den samme forfader, siger man, at de coalescerer [@wakeley2009coalescent].
 
 ### Wright-Fisher modellen
 
@@ -193,16 +199,75 @@ og den forventede opholdstid (sojourn time) i tilstanden med $k$ linjer er $2/(k
 
 ## Populationsstruktur og struktureret koalescent
 
-Standardkoalescenten antager en enkelt panmiktisk population. I virkeligheden er de fleste naturlige populationer strukturerede: individer er fordelt i delgrupper med begrænset genudveksling imellem dem. Det biologiske spørgsmål er ikke blot *hvornår* linjer koalescerede, men *hvor* i hvilken population fandt koalescensen sted.
+I den klassiske koalescent antager man, at populationen er homogen. I virkeligheden er populationer dog ofte opdelt i mindre subpopulationer med begrænset migration og derfor er denne antagelse ikke altid realistisk [@wakeley2009coalescent]. I den strukturerede koalescent følger man stadig linjer bagud i tid, men nu kan de også skifte mellem subpopulation via migration. Man skelner typisk mellem koalescenstiden for to sekvenser, der er samplet fra samme subpopulation (*within*, $T_w$) og fra forskellige subpopulationer (*between*, $T_b$). I en symmetrisk model med $D$ subpopulationer og migrationsrate $M$ kan man udlede [@wakeley2009coalescent]:
+$$
+\mathbb{E}[T_w] = D, \qquad \mathbb{E}[T_b] = D\left(1 + \frac{D-1}{MD}\right).
+$$
+
+Her ses det, at $T_w$ ikke afhænger af migrationsraten, mens $T_b$ i høj grad gør. Hvis migrationen er lav, bliver koalescenstiden mellem subpopulationer markant længere. Det samme gør sig gældende for variansen, som også vokser kraftigt for små værdier af $M$:
+$$
+\mathrm{Var}[T_w] = D^2 + \frac{2(D-1)^2}{M}, \qquad \mathrm{Var}[T_b] = D^2 + \frac{2(D-1)^2}{M} + \frac{(D-1)^2}{M^2}.
+$$
+
+I grænsen $M \to \infty$ forsvinder populationsstrukturen og modellen reduceres til den klassiske koalescent med $N_e = DN$. Omvendt vil $\mathbb{E}[T_b]$ vokse uden grænse, når $M \to 0$ [@wakeley2009coalescent].
+I mere generelle modeller hvor populationer er geografisk strukturerede, beskrives migration ved en backward migration matrix $m_{ij}$, som angiver sandsynligheden for, at en linje i subpopulationen $i$ stammer fra $j$ i forrige generation [@wakeley2009coalescent]. Den samlede migrationsrate ud af subpopulation $i$ er givet ved:
+$$
+m_i = \sum_{j \neq i} m_{ij}.
+$$
+
+og dermed er sandsynligheden for, at en linje forbliver i samme subpopulation bagud i tid: $1-m_i$.
+En ofte anvendt antagelse er *conservativ migration*, hvor det gennemsnitlige antal individer, der forlader en subpopulation svarer til antallet der ankommer [@wakeley2009coalescent]. Dette kan udtrykkes som
+$$
+N_i \sum_{j \neq i} q_{ij} = \sum_{j \neq i} N_j q_{ji},
+$$
+
+hvilket sikrer, at populationsstørrelserne forbliver konstante over tid. For en stikprøve af størrelse $2$ kan genalogien beskrives som en Markovprocess med tre tilstande: 
+
+ 1. Begge linjer i samme subpopulation
+ 2. Linjer i forskellige subpopulationer
+ 3. Linjer har koalesceret
+
+Overgangene mellem disse tilstande bestemmes af både migration og koalescens. Den diskrete transitionsmatrix kan skrives som
+$$
+P =
+\begin{pmatrix}
+(g_{1,0} + g^{(s)}_{1,2})(1 - \tfrac{1}{N}) & g_{1,1} + g^{(d)}_{1,2} & (g_{1,0} + g^{(s)}_{1,2}) \tfrac{1}{N} \\
+(g^{(s)}_{2,1} + g^{(s)}_{2,2})(1 - \tfrac{1}{N}) & g_{2,0} + g^{(d)}_{2,1} + g^{(d)}_{2,2} & (g^{(s)}_{2,1} + g^{(s)}_{2,2}) \tfrac{1}{N} \\
+0 & 0 & 1
+\end{pmatrix}.
+$$
+
+Her beskriver $g_{i,j}$ sandsynligheder for migrationsbegivenheder, mens indekserne $(s)$ og $(d)$ angiver om linjer ender i samme (*same*) eller forskellige (*different*) subpopulationer efter migration [@wakeley2009coalescent]. Matrixen inkluderer både simple hændelser og situationer hvor migration og koalescens sker i samme generation.
+Ved at tage grænsen $N \to \infty$, og skalere tiden passende opnås en kontinuert Markov proces med generator [@wakeley2009coalescent]
+$$
+Q = \lim_{N \to \infty} N(P - I).
+$$
+
+I den symmetriske model for prøvestørrelse $2$ reduceres dette til en generator af formen
+$$
+Q =
+\begin{pmatrix}
+- M - 1 & M & 1 \\
+\frac{M}{D-1} & - \frac{M}{D-1} & 0 \\
+0 & 0 & 0
+\end{pmatrix},
+$$
+
+som svarer til de tre tilstande. Denne formulering viser tydeligt, at processen styres af to typer hændelser:
+
+ * koalescens (rate $1$ når linjer er i samme subpopulation)
+ * migration (med rate proportional med $M$)
+
+[@wakeley2009coalescent].
 
 ### To-ø modellen
 
-Den simpleste model for populationsstruktur er **to-ø modellen** [@wakeley2009coalescent]. To populationer af størrelse $N_1$ og $N_2$ udveksler migranter med rate $m$ per generation. En linje i population 1 migrerer til population 2 med rate $m$, og omvendt. Koalescens kan kun ske inden for samme population. Modellen har to frie parametre i koalescentenheder: koalescensraten $\theta_0 = 1/N$ og migrationsraten $\theta_1 = 2Nm$.
+Den simpleste model for populationsstruktur er to-ø modellen [@wakeley2009coalescent]. To populationer af størrelse $N_1$ og $N_2$ udveksler migranter med rate $m$ per generation. En linje i population 1 migrerer til population 2 med rate $m$, og omvendt. Koalescens kan kun ske inden for samme population. Modellen har to frie parametre i koalescentenheder: koalescensraten $\theta_0 = 1/N$ og migrationsraten $\theta_1 = 2Nm$.
 
 Den forventede TMRCA i to-ø modellen afhænger ikke monotont af
 migrationsraten. Ved meget lav migration ($\theta_1 \to 0$) befinder linjerne sig i isolation og venter på det sjældne migrationshændelse. Ved meget høj migration ($\theta_1 \to \infty$) opfører systemet sig som en enkelt panmiktisk population. Den maksimale varians i TMRCA optræder ved lav til moderat migration, hvor strukturen er tilstrækkelig til at skabe lang ventetid men ikke tilstrækkelig til at harmonisere lineagernes distribution over populationerne [@Hobolth2024].
 
-En central udfordring ved to-ø modellen er **parameter-konfundering**: høj migration reducerer TMRCA på samme måde som en lavere koalescensrate, og de to parametre er ikke altid identificerbare simultant. Identifikabiliteten forbedres ved at inkludere flere observationstyper eksempelvis joint SFS frem for blot TMRCA-tider.
+En central udfordring ved to-ø modellen er parameter-konfundering: høj migration reducerer TMRCA på samme måde som en lavere koalescensrate, og de to parametre er ikke altid identificerbare simultant. Identifikabiliteten forbedres ved at inkludere flere observationstyper eksempelvis joint SFS frem for blot TMRCA-tider.
 
 ### Isolation with Migration (IM)-modellen
 
@@ -219,17 +284,17 @@ En central identifikabilitetsudfordring i IM-modellen er at split-tidspunktet $t
 
 ## Tidsinhomogenitet og demografisk rekonstruktion
 
-Koalescensraten $\lambda(t) = \binom{k}{2}/N(t)$ varierer med tid, når populationsstørrelsen $N(t)$ ikke er konstant. En **tidsinhomogen koalescent** modellerer denne variation ved at opdele demografihistorien i epoker med stykvist konstant $N_e$. Inden for hver epoke er koalescenten tidshomogen, men raten ændres ved epokeskiftet.
+Koalescensraten $\lambda(t) = \binom{k}{2}/N(t)$ varierer med tid, når populationsstørrelsen $N(t)$ ikke er konstant. En tidsinhomogen koalescent modellerer denne variation ved at opdele demografihistorien i epoker med stykvist konstant $N_e$. Inden for hver epoke er koalescenten tidshomogen, men raten ændres ved epokeskiftet.
 
-En **populationsflaskehals** er en periode med kraftigt reduceret $N_e$ efterfulgt af recovery. Flaskehalse manifesterer sig i TMRCA-fordelingen som en hump ved det tidspunkt flaskehalsen opstod, fordi mange linjer koalescerer simultant under flaskehalsen. I SFS ses flaskehalse typisk som et overskud af singletons, fordi flaskehalsen accelererer koalescens og reducerer den tid der akkumuleres på interne grene [@rogers2019].
+En populationsflaskehals er en periode med kraftigt reduceret $N_e$ efterfulgt af recovery. Flaskehalse manifesterer sig i TMRCA-fordelingen som en hump ved det tidspunkt flaskehalsen opstod, fordi mange linjer koalescerer parrallet under flaskehalsen. I SFS ses flaskehalse typisk som et overskud af singletons, fordi flaskehalsen accelererer koalescens og reducerer den tid der akkumuleres på interne grene [@rogers2019].
 
-Tidsinhomogenitet er direkte biologisk relevant for bavianerne: @rogers2019 identificerede via PSMC population-specifikke flaskehalse og ekspansioner for alle seks arter, og @sorensen2023 viste at demografisk historie varierer markant på tværs af populationer inden for samme art. En tidsinhomogen fase-type model giver direkte adgang til disse demografiske mønstre via eksakt analytisk beregning.
+Tidsinhomogenitet er direkte biologisk relevant for bavianerne: @rogers2019 identificerede via PSMC population-specifikke flaskehalse og ekspansioner for alle seks arter og @sorensen2023 viste at demografisk historie varierer markant på tværs af populationer inden for samme art. En tidsinhomogen fase-type model giver direkte adgang til disse demografiske mønstre via eksakt analytisk beregning.
 
 ## Fase-type fordelinger, SFS og reward-transformationer
 
 ### Fase-type fordelinger
 
-En **fase-type fordeling** er absorptionstiden $\tau$ i en absorptionsmarkovkæde med sub-intensitetsmatrix $\mathbf{S}$ og initial sandsynlighedsvektor $\alpha$ [@BladtNielsen2017]:
+En fase-type fordeling er absorptionstiden $\tau$ i en absorptionsmarkovkæde med sub-intensitetsmatrix $\mathbf{S}$ og initial sandsynlighedsvektor $\alpha$ [@BladtNielsen2017]:
 $$
 \tau \sim \text{PH}(\alpha, \mathbf{S}).
 $$
@@ -250,7 +315,7 @@ Kingmans koalescent er eksakt en fase-type fordeling: absorptionstilstanden er M
 
 ### Site Frequency Spectrum via reward-transformationer
 
-**Reward-transformationer** er det tekniske redskab der forbinder koalescentmodellen med observerede genetiske data [@hobolth2021]. En reward-funktion $r: \mathcal{T} \to \mathbb{R}_+$ tildeler en vægt til hvert transient tilstand, og den akkumulerede reward frem til absorption er
+Reward-transformationer er det redskab der forbinder koalescentmodellen med observerede genetiske data [@hobolth2021; @munchphasic]. En reward-funktion $r: \mathcal{T} \to \mathbb{R}_+$ tildeler en vægt til hvert transient tilstand, og den akkumulerede reward frem til absorption er
 $$
 Y = \int_0^\tau r(X_t)\, dt.
 $$
@@ -279,12 +344,34 @@ hvor $\Delta(\mathbf{r})$ er diagonalmatricen med reward-vektoren på diagonalen
 
 ### Diskret fase-type og joint SFS
 
-En **diskret fase-type fordeling** beskriver absorptionstiden i en diskret Markovkæde og anvendes til at modellere det diskrete antal mutationer $S$ i en stikprøve. Under infinite-sites modellen er $S$ Poisson-fordelt med parameter $\theta L$, hvor $L$ er total grenlængde. Den marginale fordeling for $S$ er negativ-binomial, og joint-sandsynligheden for specifikke SFS-mønstre $(z_1, z_2, \ldots)$ — det observerede antal 1-ton, 2-ton, ... mutationer er eksakt beregneligt via diskrete fase-type metoder [@hobolth2021; @Hobolth2024].
+En diskret fase-type fordeling beskriver absorptionstiden i en diskret Markovkæde og anvendes til at modellere det diskrete antal mutationer $S$ i en stikprøve. Under infinite-sites modellen er $S$ Poisson-fordelt med parameter $\theta L$, hvor $L$ er total grenlængde. Den marginale fordeling for $S$ er negativ-binomial, og joint-sandsynligheden for specifikke SFS-mønstre $(z_1, z_2, \ldots)$ — det observerede antal 1-ton, 2-ton, ... mutationer er eksakt beregneligt via diskrete fase-type metoder [@hobolth2021; @Hobolth2024; @Neuts1981].
+
 
 ### Phasic-biblioteket
 
 @Roikjer2022 implementerede fase-type teorien i *phasic*-biblioteket, et grafbaseret beregningssystem i C med Python-binding. Tilstandsrummet konstrueres automatisk via en iterativ callback-funktion, og alle beregninger momenter, PDF, CDF, SFS og joint-sandsynligheder udføres via Gaussisk elimination med automatisk MPFR-præcisionsstyring. Biblioteket er størrelsesordener hurtigere end matrixbaserede tilgange for store, sparsomme tilstandsrum og demonstrerede direkte anvendelighed på IM-modellen, hvor en beregning der tidligere krævede 15 minutter på 12 kerner nu tager 35 sekunder på en kerne [@Roikjer2022].
 
+## Ancestral Recombination Graph (ARG)
+Den klassiske coalescent antager, at hele genomet deler samme genealogiske træ. I virkeligheden medfører rekombination dog, at forskellige dele af genomet kan have forskellige genealogier. Den samlede ancestrale struktur beskrives derfor ved *Ancestral Recombination Graph* (ARG), som inkluderer både koalescens- og rekombinationsbegivenheder i en samlet model [@kelleher2019].
+Ligesom koalescenten kan ARG-processen beskrives som en kontinuert Markovproces, men tilstandsrummet er mere kompleks, da det også skal indeholde information om hvilke loci de enkelte linjer er ancestrale til. I den simpleste to-locus model beskrives en tilstand som $(i, j, k)$, hvor $i$ er antallet af linjer ancestrale til begge loci, $j$ til kun locus 1 og $k$ til kun locus 2 [@wakeley2009coalescent].
+For linjer der er ancestrale til begge loci kan der ske to typer begivenheder:
+
+ - **Koalescens**: $(i, j, k) \to (i-1, j, k)$ med rate $\binom{i}{2}$
+ - **Rekombination**: $(i, j, k) \to (i-1, j+1, k+1)$ med rate $i\rho$
+
+Den samlede rate for den næste begivenhed er derfor $\lambda_i + i\rho$, og sandsynligheden for, at det er en koalescensbegivenhed, er givet ved
+$$
+\frac{\lambda_i}{(\lambda_i + i\rho)}
+$$
+
+Ligesom i standard koalescenten er absorptionstiden fase-type fordelt over et udvidet
+tilstandsrum. Laplace-transformationen for en fase-type fordeling,
+$$
+\mathbb{E}[e^{-\theta\tau}] = \boldsymbol{\alpha}(\theta\mathbf{I} - \mathbf{S})^{-1}\mathbf{t},
+$$
+
+giver sandsynligheden for at ingen Poisson-hændelse med rate $\theta$ er sket inden absorption [@Hobolth2018; @Hobolth2024]. I rekombinationskontekst er dette $P(\text{ingen rekombination på grenene})$ sandsynligheden for at to loci deler den samme
+genealogi og dermed er i *linkage disequilibrium* (LD).
 
 ## Eksisterende metoder og begrænsninger
 
@@ -303,21 +390,20 @@ Statistisk inferens om demografiske parametre kræver en metode til at approksim
 
 ## Formål, problemformulering og specialets opbygning
 
-Formålet med dette speciale er at undersøge, hvordan Kingmans koalescent og dens udvidelser til strukturerede populationer med migration og tidsinhomogen demografi kan formuleres eksakt som fase-type fordelinger, og hvordan Bayesiansk inferens via SVGD kan anvendes til at estimere demografiske parametre fra genomdata. Som empirisk case anvendes helgenomsekvenseringsdata fra seks bavianpopulationer, der er karakteriseret ved dokumenteret genflow og kompleks demografisk historie [@sorensen2023]. Alle modeller antager neutral evolution.
+Formålet med dette speciale er at undersøge, hvordan koalescentteorien og dens udvidelser til strukturerede populationer med migration og tidsinhomogen processer kan formuleres eksakt som fase-type fordelinger og hvordan Bayesiansk inferens via SVGD kan anvendes til at estimere parametre fra genomdata. Som konkret case anvendes helgenomsekvenseringsdata fra seks bavianpopulationer (*P. Papio*), der er karakteriseret ved dokumenteret genflow og admixture mellem arterne [@sorensen2023].
 
 De fire spørgsmål der undersøges er:
 
 1. Kan koalescentens analytiske egenskaber $E[H]$, sojourn times, SFS og kovariansstruktur reproduceres eksakt via phasic, og hvad afslører de om
 den genealogiske proces?
 
-2. Hvad er de optimale SVGD-indstillinger under bavian-realistiske betingelser og hvad er beregningsgrænserne for numerisk præcision og skalering?
+2. Hvordan påvirker valget af prior, læringsrate-schedule og regularisering SVGD's posteriorestimater, og hvad er de praktiske grænser for prøvestørrelse, numerisk præcision og parallelisering for de modeller der undersøges?
 
-3. Er $\theta_0$ og $\theta_1$ identificerbare simultant i two-island og IM-modellen under bavian-realistiske parametre?
+3. Er $\theta_0$ og $\theta_1$ identificerbare i two-island og IM-modellen og hvad er effekten af asymmetrisk migration, ghost-populationer og split-tidspunkt på TMRCA-fordelingen?
 
-4. Indeholder diskrete joint SFS-observationer mere information end kontinuerte TMRCA-tider og hvad afgør hvornår joint-inferens er at foretrække?
+4. Indeholder diskrete joint SFS-observationer mere information om parametre end kontinuerte TMRCA-tider, og hvad er den kritiske prøvestørrelse og mutationsrate der afgør, hvornår joint-inferens er at foretrække?
 
-Specialet er struktureret i otte analytiske notebooks. Notebooks 01–06 udgør den metodiske fase på simulerede data. Notebook 07A behandler deskriptiv analyse af bavian-genomdata og Notebook 07B anvender de modellerne til demografisk inferens. Alle analyser er implementeret i Python med *phasic* og er fuldt reproducerbare.
-
+Specialet er opdelt i otte analytiske notebooks. Notebooks 01–06 fokuserer på metodeudvikling og analyser simulerede date, hvor modellerne først undersøges og testes under kontrollerede forhold. Notebook 07A indeholder analyse af genomdata fra bavian, mens notebook 07B anvender modellerne til inferens af populationshistorie. Alle analyser er implementeret i Python ved hjælp af phasic og er uadarbejdet, så resultaterne kan reproducerbare.
 
 
 # Metode
