@@ -1,0 +1,254 @@
+---
+title: "Tanker, hvad hvert afsnit skal indeholde"
+format: html
+---
+
+# Introduktion
+
+## Motivation
+
+- Bavianer (*P. Papio*) som modelsystem for kompleks evolutionær historie
+- Seks arter: *P. ursinus, P. kindae, P. cynocephalus, P. anubis, P. hamadryas, P. papio*
+- Nord/syd-split som primær fylogenetisk struktur
+- Dokumenteret hybridisering og genflow på tværs af artsgrænser
+- Sørensen et al. (2023): admixture fra tre linjer
+- Spørgsmål: $N_e$, migrationsrater og split-tidspunkter
+
+## Populationsgenetisk baggrund
+
+- Wright-Fisher- og Moran-modellen som fundament
+- Kingmans koalescent: baglæns i tid, MRCA, koalescensrate
+- Effektiv populationsstørrelse $N_e$ og dens biologiske fortolkning
+- Site Frequency Spectrum: hvad det måler og hvorfor det er informativt
+- Wattersons estimator og nukleotiddiversitet $\pi$
+- Tajima's $D$ som test for neutral evolution
+- Struktureret koalescent: migration og populationsopdeling
+- Two-island modellen og IM-modellen som modeller
+- Neutral evolution som modelantagelse og dens begrænsninger
+
+## Eksisterende metoder og begrænsninger
+
+- PSMC og SMC++: styrker og begrænsninger ved enkelt-populations rekonstruktion
+- STRUCTURE og ADMIXTURE: populationsstruktur uden koalescentbasis
+- fastsimcoal2 og momi2: SFS-baseret inferens via simulering
+- Fælles begrænsning: ingen eksakt analytisk beregning uden Monte Carlo
+- Manglende fuld Bayesiansk usikkerhedskvantificering i eksisterende metoder
+
+## Fase-type fordelinger 
+
+- Koalescenten som absorptionsmarkovkæde
+- Fase-type fordelinger: eksakt beskrivelse af absorptionstider
+- Phasic-biblioteket: grafbaseret beregning uden simulering
+- Fordele: analytisk præcision, hurtig beregning, direkte adgang til SFS
+- Hobolth et al. (2019, 2024): multivariate fase-type og reward-transformationer
+
+## SVGD som inferensmetode
+
+- Bayesiansk inferens: posterior frem for punktestimat
+- SVGD: partikler, kernelbaseret opdatering, repulsionskraft
+- Fordele over MCMC: hurtigere konvergens, naturlig parallelisering
+- Fordele over optimering: fuld posterior og usikkerhedskvantificering
+
+## Problemformulering
+
+- Fire forskningsspørgsmål klart formuleret
+- Rigtige data: bavian-genomdata fra Sørensen et al. (2023)
+
+## Specialets struktur
+
+- NB01-06 som metoder.
+- NB07A-07B resultater med ritig data. 
+
+
+# Metode
+
+## Koalescentmodellen
+
+- Kingmans koalescent som kontinuert Markovkæde med tilstandsrum og koalescensrater
+- Fase-type formulering: IPV, sub-intensitetsmatrix og absorption
+- Reward-transformationer til beregning af SFS og total grenlængde
+- Verifikation mod analytiske formler: E[H], sojourn times, Wattersons formel
+- Kovariansstruktur for SFS-komponenter
+- Skalering med populationsstørrelse N
+- Diskrete mutationer via Poisson-model og discretize
+- Valg af n=4 og begrundelse
+
+## Bayesiansk inferens med SVGD
+
+- SVGD-metoden: partikler, kernelbaseret opdateringsregel, repulsionskraft
+- Prior-valg: GaussPrior, HalfCauchyPrior, DataPrior via MoM
+- Valg af learning rate: Adam(0.25) baseret på systematisk kalibrering
+- Valg af n_particles og n_iterations baseret på grid-søgning
+- Posterior predictive check som valideringsværktøj
+- Method of Moments som punktestimator og prior-generator
+
+## To-ø modellen
+
+- Tilstandsrum med populationslabel in_pop
+- Symmetrisk og asymmetrisk migration
+- Identifikabilitet: hvornår er $\theta_0$ og $\theta_1$ adskillelige
+- Minimum N_OBS for pålidelig identifikation af høj migration
+- Likelihood-overflade og konfunderings-ridges
+- Valg af N_OBS $\leq 5000$ og begrundelse
+
+## Numerisk præcision
+
+- MPFR-aritmetik og hvornår den aktiveres
+- Beregningstid og tilstandsrumsvækst som funktion af $n$
+- Verificering at bavian-parametre ikke kræver MPFR
+
+## Tidsinhomogen koalescent
+
+- distribution_context og stykvist konstant $N_e$
+- Epoch-baseret implementering og epoch_switch_rate
+- IM-modellen som tidsinhomogen to-ø model med split-tidspunkt
+
+## Joint probability-inferens
+
+- joint_prob_graph og absorptionstilstande for mutations-kombinationer
+- Deficit og valg af tot_reward_limit=3 og $\mu=1.0$
+- Manuel GaussPrior frem for DataPrior ved joint-graf
+- Multi-feature SVGD: hvornår det er bedre end TMRCA
+- ARG to-locus implementering
+
+
+# Resultater
+
+## Deskriptiv analyse af bavian-data (NB07A)
+
+- Antal SNP'er og prøver per population
+- Foldet og ufoldet SFS for alle seks populationer
+- Nukleotiddiversitet $\hat{\pi}$ per population
+- Wattersons $\hat{\theta}_W$ per population
+- $N_{ref} = \hat{\pi}/4\mu$ per population
+- Tajima's $D$ per population og fortolkning
+- Sammenligning af observeret SFS med analytisk forventet neutral SFS
+
+## SVGD-inferens af $\theta$ per population (NB07A)
+
+- Posterior-mean og posterior-std for $\theta$ per population $N_e = 1/\theta$ omregnet til individer
+- Sammenligning af $N_e$ estimeret via $\hat{\pi}$ og via SVGD Konvergensplots og posterior predictive check
+
+## To-ø model: P. cynocephalus + P. kindae (NB07B)
+
+- Estimeret $\theta_0$ og $\theta_1$ med usikkerhed
+- $N_e$ og migrationsrate $m$ per generation
+- E[TMRCA] som funktion af migrationsrate ved estimerede parametre
+- Pairwise posterior: grad af konfundering
+- Sammenligning med MoM-estimater
+
+## IM-model: P. anubis + P. cynocephalus (NB07B)
+
+- Estimeret $\theta_0$, $\theta_1$ og split-tidspunkt $t_s$
+- $t_s$ omregnet til år ved $g=11$ år/generation
+- Sammenligning med kendte bavian fylogenier
+- E[TMRCA] som funktion af $t_s$
+- Sammenligning af two-island vs. IM-model
+
+## Tidsinhomogen model (NB07B)
+
+- Estimeret $N_e$ per epoke for *P. cynocephalus, P. kindae og P. anubis*
+- $N_e$ over tid som stepplot
+- Sammenligning med PSMC fra Sørensen et al. (2023)
+- Demografisk fortolkning: flaskehalse og ekspansioner
+
+## Joint probability-inferens (NB07B)
+
+- Sammenligning af joint vs. TMRCA posterior-bredde på bavian-data
+- Gevinst i procent
+- Sensitivitetsanalyse over $\mu \in {0.7, 1.0, 1.5}$
+
+
+# Diskussion
+
+## Fase-type tilgangen — hvad virker og hvad virker ikke?
+
+- Sammenligne verificerede resultater (E[H], SFS, kovarians) med litteraturen: stemmer de overens med Hobolth et al. (2024)
+- Diskuter problemerne i NB03 hvad betyder det at $\theta_1 < 0.5$ er svær at estimere?
+- IM-modellens epoch-switch problem er det et generelt problem eller modelspecifikt?
+- Hvornår er joint probability bedre end TMRCA, og hvornår er det ikke det værd?
+- SVGD's styrker og svagheder sammenlignet med MCMC: hvad mister man ved at bruge partikler frem for kæder?
+- Hvorfor n=4? Hvad mister man ved ikke at bruge alle 60 samples?
+- MPFR-behovet: hvornår er det kritisk, og hvornår er double tilstrækkeligt?
+
+
+## Populationsstørrelser
+
+- Sammenlignw $N_e$​-estimater med litteraturen (Sørensen et al. 2023, Rogers et al. 2019)
+- Er der forskel på $N_e$ estimeret via $\hat{\pi}$ og via SVGD og hvad forklarer den?
+- Hvad siger Tajima's D om neutral evolution: er antagelsen om neutralitet rimelig?
+
+
+## Populationsstruktur og migration
+
+- Hvad siger de estimerede migrationsrater biologisk? Er genflow stadig aktiv eller historisk?
+- Sammenligninf af two-island og IM-modellen: er migration løbende eller tidsbegrænset?
+- Hvad er det biologiske split-tidspunkt $t_s$​ i IM-modellen, og stemmer det med kendte bavian-data?
+- Diskuter asymmetrisk migration er det rimeligt at antage symmetri?
+
+## Demografisk rekonstruktion
+
+- Hvad viser den tidsinhomogene model om demografisk historie?
+- Sammenligning med PSMC fra Sørensen et al. er mønstrene de samme?
+- Hvad kan forklare flaskehalse eller ekspansioner i bestemte epoker?
+
+## Modelantagelser
+
+- Neutral evolution: ingen selektion, ingen rekombination i modellen
+- Konstant $N_e$ inden for epoker, virkeligheden er mere gradvis
+- Symmetrisk migration i two-island modellen, muligvis ikke biologisk korrekt
+- n=4 subsampling mister information fra de resterende individer
+
+
+## Datamæssige begrænsninger
+
+- Neutral evolutio, ingen selektion inkluderet, men Tajima's D antyder mulig afvigelse
+- $n=4$ subsampling: mister information fra de resterende individer
+- Kun kromosom 20: er det repræsentativt for hele genomet
+- Hypergeometrisk subsampling introducerer stikprøveusikkerhed
+- Mutationsraten $\mu=0.9 \times 10^{-8}$ er et estimat med usikkerhed på $\pm 30 \%$
+- SVGD approksimerer posterioren ikke eksakt som MCMC
+- Epoch-switch som Markov-overgang er en approksimation til deterministisk split
+- Symmetrisk migration i to-ø modellen muligvis ikke biologisk korrekt
+- Konstant $N_e$ inden for epoker virkeligheden er mere gradvis
+
+### Metodologiske begrænsninger
+
+- SVGD approksimerer posterioren ikke eksakt som MCMC
+- Variance collapse ved for høj learning rate
+- Epoch-switch i IM-modellen er svær at estimere (identifikabilitetsproblem)
+
+## Hvad kunne man gøre bedre eller anderledes?
+
+- Bruge alle samples via en mere kompleks tilstandsrepræsentation
+- Udvide til multi-locus ARG for at udnytte rekombinationsinformation
+- Inkludere selektion via en udvidet koalescentmodel
+- Anvende metoden på andre primatsystemer eller andre taxa med kompleks demografisk historie
+- Inkludere asymmetrisk migration på bavian-data
+- Sammenligne systematisk med fastsimcoal2 eller momi2 på de samme data
+
+
+# Konklusion
+
+## Metodisk 
+
+- Koalescentens fase-type formulering i phasic reproducerer alle analytiske resultater eksakt
+- SVGD med Adam(0.25) og DataPrior/HalfCauchyPrior giver pålidelige estimater under bavian-realistiske betingelser
+- To-ø modellen er identificerbar for $\theta_1 >0.5$  og N_OBS $\leq 5000$
+- IM-modellens split-tidspunkt estimeres med epoch_switch_rate $>$ 10
+- Joint probability-inferens forbedrer estimering ved lavt N_OBS og lav $\theta$
+- Multi-feature SFS giver gevinst ved $\theta > 8$ og N_OBS $> 3000$
+
+## Empirisk konklusion
+
+- N_e per population med usikkerhed
+- Migrationsrate mellem P. cynocephalus og P. kindae
+- Split-tidspunkt $t_s$ fra IM-modellen i år
+- Demografisk rekonstruktion: N_e over tid for tre populationer
+- Sammenfatning af biologisk fortolkning
+
+## Perspektiv
+
+- Fase-type fordelinger kombineret med SVGD udgør en effektiv og præcis ramme for demografisk inferens
+- Metoden er direkte anvendelig på andre systemer med kompleks populationsstruktur
+- Fremtidigt arbejde: asymmetrisk migration, multi-locus ARG, selektion
