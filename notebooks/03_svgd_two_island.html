@@ -979,67 +979,6 @@ Sand θ = 7.0</code></pre>
 </div>
 </div>
 </div>
-<div id="611f1ede" class="cell" data-execution_count="11">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Sammenlign TMRCA vs. SFS på to-ø modellen</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>true_2p_info <span class="op">=</span> [<span class="fl">0.7</span>, <span class="fl">1.0</span>]</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>g_4ti.update_weights(true_2p_info)</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>N_INFO <span class="op">=</span> <span class="dv">3000</span></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="co"># TMRCA</span></span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>data_tmrca_2p <span class="op">=</span> g_4ti.sample(N_INFO)</span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>pr_tmrca_2p <span class="op">=</span> DataPrior(g_4ti, data_tmrca_2p)</span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>sv_tmrca_2p <span class="op">=</span> g_4ti.svgd(data_tmrca_2p, prior<span class="op">=</span>pr_tmrca_2p,</span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>                          optimizer<span class="op">=</span>Adam(<span class="fl">0.25</span>), n_iterations<span class="op">=</span><span class="dv">300</span>)</span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>res_tmrca_2p <span class="op">=</span> sv_tmrca_2p.get_results()</span>
-<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a><span class="co"># SFS-features (reward-transformation)</span></span>
-<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>reward_mat_2p <span class="op">=</span> g_4ti.states().T[:<span class="op">-</span><span class="dv">1</span>]  <span class="co"># singleton, doubleton, tripleton</span></span>
-<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>obs_sfs_mat <span class="op">=</span> np.full((N_INFO <span class="op">*</span> <span class="bu">len</span>(reward_mat_2p), <span class="bu">len</span>(reward_mat_2p)), np.nan)</span>
-<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(reward_mat_2p)):</span>
-<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>    obs_sfs_mat[k<span class="op">*</span>N_INFO:(k<span class="op">+</span><span class="dv">1</span>)<span class="op">*</span>N_INFO, k] <span class="op">=</span> g_4ti.sample(N_INFO, rewards<span class="op">=</span>reward_mat_2p[k])</span>
-<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>sparse_2p <span class="op">=</span> dense_to_sparse(obs_sfs_mat)</span>
-<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>sv_sfs_2p <span class="op">=</span> g_4ti.svgd(sparse_2p, rewards<span class="op">=</span>reward_mat_2p,</span>
-<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>                         prior<span class="op">=</span>pr_tmrca_2p,</span>
-<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>                         optimizer<span class="op">=</span>Adam(<span class="fl">0.25</span>), n_iterations<span class="op">=</span><span class="dv">300</span>)</span>
-<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>res_sfs_2p <span class="op">=</span> sv_sfs_2p.get_results()</span>
-<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Sand θ = </span><span class="sc">{</span>true_2p_info<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"TMRCA:  θ₀=</span><span class="sc">{</span>res_tmrca_2p[<span class="st">'theta_mean'</span>][<span class="dv">0</span>]<span class="sc">.</span>item()<span class="sc">:.3f}</span><span class="ss">±</span><span class="sc">{</span>res_tmrca_2p[<span class="st">'theta_std'</span>][<span class="dv">0</span>]<span class="sc">.</span>item()<span class="sc">:.4f}</span><span class="ss">  "</span></span>
-<span id="cb23-26"><a href="#cb23-26" aria-hidden="true" tabindex="-1"></a>      <span class="ss">f"θ₁=</span><span class="sc">{</span>res_tmrca_2p[<span class="st">'theta_mean'</span>][<span class="dv">1</span>]<span class="sc">.</span>item()<span class="sc">:.3f}</span><span class="ss">±</span><span class="sc">{</span>res_tmrca_2p[<span class="st">'theta_std'</span>][<span class="dv">1</span>]<span class="sc">.</span>item()<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
-<span id="cb23-27"><a href="#cb23-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"SFS:    θ₀=</span><span class="sc">{</span>res_sfs_2p[<span class="st">'theta_mean'</span>][<span class="dv">0</span>]<span class="sc">.</span>item()<span class="sc">:.3f}</span><span class="ss">±</span><span class="sc">{</span>res_sfs_2p[<span class="st">'theta_std'</span>][<span class="dv">0</span>]<span class="sc">.</span>item()<span class="sc">:.4f}</span><span class="ss">  "</span></span>
-<span id="cb23-28"><a href="#cb23-28" aria-hidden="true" tabindex="-1"></a>      <span class="ss">f"θ₁=</span><span class="sc">{</span>res_sfs_2p[<span class="st">'theta_mean'</span>][<span class="dv">1</span>]<span class="sc">.</span>item()<span class="sc">:.3f}</span><span class="ss">±</span><span class="sc">{</span>res_sfs_2p[<span class="st">'theta_std'</span>][<span class="dv">1</span>]<span class="sc">.</span>item()<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
-<span id="cb23-29"><a href="#cb23-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-30"><a href="#cb23-30" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">5</span>))</span>
-<span id="cb23-31"><a href="#cb23-31" aria-hidden="true" tabindex="-1"></a>sv_tmrca_2p.plot_pairwise(true_theta<span class="op">=</span>true_2p_info, ax<span class="op">=</span>axes[<span class="dv">0</span>])</span>
-<span id="cb23-32"><a href="#cb23-32" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'TMRCA-inferens'</span>)</span>
-<span id="cb23-33"><a href="#cb23-33" aria-hidden="true" tabindex="-1"></a>sv_sfs_2p.plot_pairwise(true_theta<span class="op">=</span>true_2p_info, ax<span class="op">=</span>axes[<span class="dv">1</span>])</span>
-<span id="cb23-34"><a href="#cb23-34" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'SFS-features inferens'</span>)</span>
-<span id="cb23-35"><a href="#cb23-35" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">'TMRCA vs. SFS-features på to-ø model'</span>, fontsize<span class="op">=</span><span class="dv">11</span>)</span>
-<span id="cb23-36"><a href="#cb23-36" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-
-        <div style="font-family: monospace; font-size: 10px; padding: 0px 10px 5px 10px; display: flex; align-items: center; gap: 1ch;">
-            <div style="white-space: nowrap; flex-shrink: 0;">
-                 20% | 37.0 m
-            </div>
-            <div style="flex: 1; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;">
-                <div style="width: 19.666666666666664%; height: 100%; background: #666666; transition: width 0.3s;"></div>
-            </div>
-        </div>
-        
-</div>
-<div class="cell-output cell-output-error">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-red-fg ansi-bold">The Kernel crashed while executing code in the current cell or a previous cell. 
-
-</span><span class="ansi-red-fg ansi-bold">Please review the code in the cell(s) to identify a possible cause of the failure. 
-
-</span><span class="ansi-red-fg ansi-bold">Click &lt;a href='https://aka.ms/vscodeJupyterKernelCrash'&gt;here&lt;/a&gt; for more info. 
-
-</span><span class="ansi-red-fg ansi-bold">View Jupyter &lt;a href='command:jupyter.viewOutput'&gt;log&lt;/a&gt; for further details.</span></pre>
-</div>
-</div>
-</div>
 </section>
 </section>
 <section id="asymmetrisk-migration-er-m_12-m_21-en-god-antagelse" class="level2">
@@ -1049,74 +988,74 @@ Sand θ = 7.0</code></pre>
 <h3 class="anchored" data-anchor-id="spørgsmål">Spørgsmål</h3>
 <p>Giver en asymmetrisk migrationsmodel bedre parameterestimater end den symmetriske, og er de to migrationsrater identificerbare hver for sig?</p>
 <div id="7c18667e" class="cell" data-execution_count="14">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">2</span></span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>indexer_asym <span class="op">=</span> StateIndexer(</span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    descendants<span class="op">=</span>[</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'pop1'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_samples),</span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'pop2'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_samples),</span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'in_pop'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span><span class="dv">2</span>),</span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    ]</span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>initial_asym <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer_asym.state_length</span>
-<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>initial_asym[indexer_asym.descendants.props_to_index(pop1<span class="op">=</span><span class="dv">1</span>, pop2<span class="op">=</span><span class="dv">0</span>, in_pop<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> nr_samples</span>
-<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>(initial_asym)</span>
-<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> two_island_asym(state):</span>
-<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Asymmetrisk two-island: [theta0, m12, m21]</span></span>
-<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a><span class="co">    m12 = migration fra pop1 til pop2, m21 = migration fra pop2 til pop1"""</span></span>
-<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state[indexer_asym.descendants.indices()].<span class="bu">sum</span>() <span class="op">&lt;=</span> <span class="dv">1</span>:</span>
-<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
-<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(indexer_asym.descendants.state_length):</span>
-<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[i] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
-<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a>        props_i <span class="op">=</span> indexer_asym.descendants.index_to_props(i)</span>
-<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, indexer_asym.descendants.state_length):</span>
-<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> state[j] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
-<span id="cb24-26"><a href="#cb24-26" aria-hidden="true" tabindex="-1"></a>            props_j <span class="op">=</span> indexer_asym.descendants.index_to_props(j)</span>
-<span id="cb24-27"><a href="#cb24-27" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> props_j.in_pop <span class="op">!=</span> props_i.in_pop: <span class="cf">continue</span></span>
-<span id="cb24-28"><a href="#cb24-28" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb24-29"><a href="#cb24-29" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
-<span id="cb24-30"><a href="#cb24-30" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
-<span id="cb24-31"><a href="#cb24-31" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
-<span id="cb24-32"><a href="#cb24-32" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb24-33"><a href="#cb24-33" aria-hidden="true" tabindex="-1"></a>            new[indexer_asym.descendants.props_to_index(</span>
-<span id="cb24-34"><a href="#cb24-34" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>props_i.pop1<span class="op">+</span>props_j.pop1,</span>
-<span id="cb24-35"><a href="#cb24-35" aria-hidden="true" tabindex="-1"></a>                pop2<span class="op">=</span>props_i.pop2<span class="op">+</span>props_j.pop2,</span>
-<span id="cb24-36"><a href="#cb24-36" aria-hidden="true" tabindex="-1"></a>                in_pop<span class="op">=</span>props_i.in_pop)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb24-37"><a href="#cb24-37" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same), <span class="dv">0</span>, <span class="dv">0</span>]])</span>
-<span id="cb24-38"><a href="#cb24-38" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Migration: pop1→pop2 bruger theta[1], pop2→pop1 bruger theta[2]</span></span>
-<span id="cb24-39"><a href="#cb24-39" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> props_i.in_pop <span class="op">==</span> <span class="dv">1</span>:</span>
-<span id="cb24-40"><a href="#cb24-40" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb24-41"><a href="#cb24-41" aria-hidden="true" tabindex="-1"></a>            new[indexer_asym.descendants.props_to_index(</span>
-<span id="cb24-42"><a href="#cb24-42" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>props_i.pop1, pop2<span class="op">=</span>props_i.pop2, in_pop<span class="op">=</span><span class="dv">2</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb24-43"><a href="#cb24-43" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [<span class="dv">0</span>, state[i], <span class="dv">0</span>]])  <span class="co"># m12</span></span>
-<span id="cb24-44"><a href="#cb24-44" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
-<span id="cb24-45"><a href="#cb24-45" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb24-46"><a href="#cb24-46" aria-hidden="true" tabindex="-1"></a>            new[indexer_asym.descendants.props_to_index(</span>
-<span id="cb24-47"><a href="#cb24-47" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>props_i.pop1, pop2<span class="op">=</span>props_i.pop2, in_pop<span class="op">=</span><span class="dv">1</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb24-48"><a href="#cb24-48" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [<span class="dv">0</span>, <span class="dv">0</span>, state[i]]])  <span class="co"># m21</span></span>
-<span id="cb24-49"><a href="#cb24-49" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb24-50"><a href="#cb24-50" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-51"><a href="#cb24-51" aria-hidden="true" tabindex="-1"></a>g_asym <span class="op">=</span> Graph(two_island_asym)</span>
-<span id="cb24-52"><a href="#cb24-52" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Asymmetrisk two-island: </span><span class="sc">{</span>g_asym<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss"> tilstande"</span>)</span>
-<span id="cb24-53"><a href="#cb24-53" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-54"><a href="#cb24-54" aria-hidden="true" tabindex="-1"></a><span class="co"># Sande parametre: koalescens=0.7, m12=2.0 (høj), m21=0.3 (lav)</span></span>
-<span id="cb24-55"><a href="#cb24-55" aria-hidden="true" tabindex="-1"></a>true_asym <span class="op">=</span> [<span class="fl">0.7</span>, <span class="fl">2.0</span>, <span class="fl">0.3</span>]</span>
-<span id="cb24-56"><a href="#cb24-56" aria-hidden="true" tabindex="-1"></a>g_asym.update_weights(true_asym)</span>
-<span id="cb24-57"><a href="#cb24-57" aria-hidden="true" tabindex="-1"></a>data_asym <span class="op">=</span> g_asym.sample(<span class="dv">3000</span>)</span>
-<span id="cb24-58"><a href="#cb24-58" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-59"><a href="#cb24-59" aria-hidden="true" tabindex="-1"></a>prior_asym <span class="op">=</span> DataPrior(g_asym, data_asym)</span>
-<span id="cb24-60"><a href="#cb24-60" aria-hidden="true" tabindex="-1"></a>sv_asym <span class="op">=</span> g_asym.svgd(</span>
-<span id="cb24-61"><a href="#cb24-61" aria-hidden="true" tabindex="-1"></a>    data_asym, prior<span class="op">=</span>prior_asym,</span>
-<span id="cb24-62"><a href="#cb24-62" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adam(<span class="fl">0.25</span>),</span>
-<span id="cb24-63"><a href="#cb24-63" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">300</span>, n_particles<span class="op">=</span><span class="dv">60</span>,</span>
-<span id="cb24-64"><a href="#cb24-64" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb24-65"><a href="#cb24-65" aria-hidden="true" tabindex="-1"></a>res_asym <span class="op">=</span> sv_asym.get_results()</span>
-<span id="cb24-66"><a href="#cb24-66" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Sande: θ₀=</span><span class="sc">{</span>true_asym[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">, m₁₂=</span><span class="sc">{</span>true_asym[<span class="dv">1</span>]<span class="sc">}</span><span class="ss">, m₂₁=</span><span class="sc">{</span>true_asym[<span class="dv">2</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb24-67"><a href="#cb24-67" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, (name, true) <span class="kw">in</span> <span class="bu">enumerate</span>(<span class="bu">zip</span>([<span class="st">'θ₀ (koalescens)'</span>, <span class="st">'m₁₂ (pop1→pop2)'</span>, <span class="st">'m₂₁ (pop2→pop1)'</span>], true_asym)):</span>
-<span id="cb24-68"><a href="#cb24-68" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>res_asym[<span class="st">'theta_mean'</span>][i]<span class="sc">.</span>item()<span class="sc">:.3f}</span><span class="ss"> ± </span><span class="sc">{</span>res_asym[<span class="st">'theta_std'</span>][i]<span class="sc">.</span>item()<span class="sc">:.4f}</span><span class="ss">  (sand: </span><span class="sc">{</span>true<span class="sc">}</span><span class="ss">)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>indexer_asym <span class="op">=</span> StateIndexer(</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    descendants<span class="op">=</span>[</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'pop1'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_samples),</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'pop2'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_samples),</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'in_pop'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span><span class="dv">2</span>),</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>initial_asym <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer_asym.state_length</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>initial_asym[indexer_asym.descendants.props_to_index(pop1<span class="op">=</span><span class="dv">1</span>, pop2<span class="op">=</span><span class="dv">0</span>, in_pop<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> nr_samples</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>(initial_asym)</span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> two_island_asym(state):</span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Asymmetrisk two-island: [theta0, m12, m21]</span></span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a><span class="co">    m12 = migration fra pop1 til pop2, m21 = migration fra pop2 til pop1"""</span></span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state[indexer_asym.descendants.indices()].<span class="bu">sum</span>() <span class="op">&lt;=</span> <span class="dv">1</span>:</span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(indexer_asym.descendants.state_length):</span>
+<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[i] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
+<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a>        props_i <span class="op">=</span> indexer_asym.descendants.index_to_props(i)</span>
+<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, indexer_asym.descendants.state_length):</span>
+<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> state[j] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
+<span id="cb23-26"><a href="#cb23-26" aria-hidden="true" tabindex="-1"></a>            props_j <span class="op">=</span> indexer_asym.descendants.index_to_props(j)</span>
+<span id="cb23-27"><a href="#cb23-27" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> props_j.in_pop <span class="op">!=</span> props_i.in_pop: <span class="cf">continue</span></span>
+<span id="cb23-28"><a href="#cb23-28" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb23-29"><a href="#cb23-29" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb23-30"><a href="#cb23-30" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb23-31"><a href="#cb23-31" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
+<span id="cb23-32"><a href="#cb23-32" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb23-33"><a href="#cb23-33" aria-hidden="true" tabindex="-1"></a>            new[indexer_asym.descendants.props_to_index(</span>
+<span id="cb23-34"><a href="#cb23-34" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>props_i.pop1<span class="op">+</span>props_j.pop1,</span>
+<span id="cb23-35"><a href="#cb23-35" aria-hidden="true" tabindex="-1"></a>                pop2<span class="op">=</span>props_i.pop2<span class="op">+</span>props_j.pop2,</span>
+<span id="cb23-36"><a href="#cb23-36" aria-hidden="true" tabindex="-1"></a>                in_pop<span class="op">=</span>props_i.in_pop)] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb23-37"><a href="#cb23-37" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same), <span class="dv">0</span>, <span class="dv">0</span>]])</span>
+<span id="cb23-38"><a href="#cb23-38" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Migration: pop1→pop2 bruger theta[1], pop2→pop1 bruger theta[2]</span></span>
+<span id="cb23-39"><a href="#cb23-39" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> props_i.in_pop <span class="op">==</span> <span class="dv">1</span>:</span>
+<span id="cb23-40"><a href="#cb23-40" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb23-41"><a href="#cb23-41" aria-hidden="true" tabindex="-1"></a>            new[indexer_asym.descendants.props_to_index(</span>
+<span id="cb23-42"><a href="#cb23-42" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>props_i.pop1, pop2<span class="op">=</span>props_i.pop2, in_pop<span class="op">=</span><span class="dv">2</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb23-43"><a href="#cb23-43" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [<span class="dv">0</span>, state[i], <span class="dv">0</span>]])  <span class="co"># m12</span></span>
+<span id="cb23-44"><a href="#cb23-44" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb23-45"><a href="#cb23-45" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb23-46"><a href="#cb23-46" aria-hidden="true" tabindex="-1"></a>            new[indexer_asym.descendants.props_to_index(</span>
+<span id="cb23-47"><a href="#cb23-47" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>props_i.pop1, pop2<span class="op">=</span>props_i.pop2, in_pop<span class="op">=</span><span class="dv">1</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb23-48"><a href="#cb23-48" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [<span class="dv">0</span>, <span class="dv">0</span>, state[i]]])  <span class="co"># m21</span></span>
+<span id="cb23-49"><a href="#cb23-49" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb23-50"><a href="#cb23-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-51"><a href="#cb23-51" aria-hidden="true" tabindex="-1"></a>g_asym <span class="op">=</span> Graph(two_island_asym)</span>
+<span id="cb23-52"><a href="#cb23-52" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Asymmetrisk two-island: </span><span class="sc">{</span>g_asym<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss"> tilstande"</span>)</span>
+<span id="cb23-53"><a href="#cb23-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-54"><a href="#cb23-54" aria-hidden="true" tabindex="-1"></a><span class="co"># Sande parametre: koalescens=0.7, m12=2.0 (høj), m21=0.3 (lav)</span></span>
+<span id="cb23-55"><a href="#cb23-55" aria-hidden="true" tabindex="-1"></a>true_asym <span class="op">=</span> [<span class="fl">0.7</span>, <span class="fl">2.0</span>, <span class="fl">0.3</span>]</span>
+<span id="cb23-56"><a href="#cb23-56" aria-hidden="true" tabindex="-1"></a>g_asym.update_weights(true_asym)</span>
+<span id="cb23-57"><a href="#cb23-57" aria-hidden="true" tabindex="-1"></a>data_asym <span class="op">=</span> g_asym.sample(<span class="dv">3000</span>)</span>
+<span id="cb23-58"><a href="#cb23-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-59"><a href="#cb23-59" aria-hidden="true" tabindex="-1"></a>prior_asym <span class="op">=</span> DataPrior(g_asym, data_asym)</span>
+<span id="cb23-60"><a href="#cb23-60" aria-hidden="true" tabindex="-1"></a>sv_asym <span class="op">=</span> g_asym.svgd(</span>
+<span id="cb23-61"><a href="#cb23-61" aria-hidden="true" tabindex="-1"></a>    data_asym, prior<span class="op">=</span>prior_asym,</span>
+<span id="cb23-62"><a href="#cb23-62" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adam(<span class="fl">0.25</span>),</span>
+<span id="cb23-63"><a href="#cb23-63" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">300</span>, n_particles<span class="op">=</span><span class="dv">60</span>,</span>
+<span id="cb23-64"><a href="#cb23-64" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb23-65"><a href="#cb23-65" aria-hidden="true" tabindex="-1"></a>res_asym <span class="op">=</span> sv_asym.get_results()</span>
+<span id="cb23-66"><a href="#cb23-66" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Sande: θ₀=</span><span class="sc">{</span>true_asym[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">, m₁₂=</span><span class="sc">{</span>true_asym[<span class="dv">1</span>]<span class="sc">}</span><span class="ss">, m₂₁=</span><span class="sc">{</span>true_asym[<span class="dv">2</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb23-67"><a href="#cb23-67" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, (name, true) <span class="kw">in</span> <span class="bu">enumerate</span>(<span class="bu">zip</span>([<span class="st">'θ₀ (koalescens)'</span>, <span class="st">'m₁₂ (pop1→pop2)'</span>, <span class="st">'m₂₁ (pop2→pop1)'</span>], true_asym)):</span>
+<span id="cb23-68"><a href="#cb23-68" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>res_asym[<span class="st">'theta_mean'</span>][i]<span class="sc">.</span>item()<span class="sc">:.3f}</span><span class="ss"> ± </span><span class="sc">{</span>res_asym[<span class="st">'theta_std'</span>][i]<span class="sc">.</span>item()<span class="sc">:.4f}</span><span class="ss">  (sand: </span><span class="sc">{</span>true<span class="sc">}</span><span class="ss">)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
 Sande: θ₀=0.7, m₁₂=2.0, m₂₁=0.3
@@ -1126,20 +1065,20 @@ Sande: θ₀=0.7, m₁₂=2.0, m₂₁=0.3
 </div>
 </div>
 <div id="b6c0dac9" class="cell" data-execution_count="6">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Pairwise posterior for asymmetrisk model</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>sv_asym.plot_pairwise(true_theta<span class="op">=</span>true_asym)</span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>sv_asym.plot_convergence()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Pairwise posterior for asymmetrisk model</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>sv_asym.plot_pairwise(true_theta<span class="op">=</span>true_asym)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>sv_asym.plot_convergence()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="03_svgd_two_island_files/figure-html/cell-17-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-10"><img src="03_svgd_two_island_files/figure-html/cell-17-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="03_svgd_two_island_files/figure-html/cell-16-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-10"><img src="03_svgd_two_island_files/figure-html/cell-16-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="03_svgd_two_island_files/figure-html/cell-17-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-11"><img src="03_svgd_two_island_files/figure-html/cell-17-output-2.svg" class="img-fluid figure-img"></a></p>
+<p><a href="03_svgd_two_island_files/figure-html/cell-16-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-11"><img src="03_svgd_two_island_files/figure-html/cell-16-output-2.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -1152,66 +1091,66 @@ Sande: θ₀=0.7, m₁₂=2.0, m₂₁=0.3
 <p>Den store standardafvigelse på <span class="math inline">\(m_{12}\)</span> og den systematiske fejl på <span class="math inline">\(m_{21}\)</span> tyder på, at de to rater ikke er individuelt identificerbare med n=2 og 3000 observationer. SVGD kan tilnærme summen af migrationsraterne, men ikke skelne retningerne fra hinanden. Den parvise posterior forventes at vise stærk negativ korrelation mellem <span class="math inline">\(m_{12}\)</span> og <span class="math inline">\(m_{21}\)</span>, konsistent med at det er deres samlede effekt der driver koalescensprocessen.</p>
 <p>Jeg tester med <span class="math inline">\(n=4\)</span> og større N_OBS for at forbedre identifikationen.</p>
 <div id="b217ba21" class="cell" data-execution_count="15">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Asymmetrisk migration med n=4 og større N_OBS</span></span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>nr_asym4 <span class="op">=</span> <span class="dv">4</span></span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>indexer_asym4 <span class="op">=</span> StateIndexer(</span>
-<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    descendants<span class="op">=</span>[</span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'pop1'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_asym4),</span>
-<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'pop2'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_asym4),</span>
-<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'in_pop'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span><span class="dv">2</span>),</span>
-<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>    ]</span>
-<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>initial_asym4 <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer_asym4.state_length</span>
-<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>initial_asym4[indexer_asym4.descendants.props_to_index(pop1<span class="op">=</span><span class="dv">1</span>, pop2<span class="op">=</span><span class="dv">0</span>, in_pop<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> nr_asym4</span>
-<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>(initial_asym4)</span>
-<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> two_island_asym4(state):</span>
-<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state[indexer_asym4.descendants.indices()].<span class="bu">sum</span>() <span class="op">&lt;=</span> <span class="dv">1</span>: <span class="cf">return</span> transitions</span>
-<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(indexer_asym4.descendants.state_length):</span>
-<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[i] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
-<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a>        pi <span class="op">=</span> indexer_asym4.descendants.index_to_props(i)</span>
-<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, indexer_asym4.descendants.state_length):</span>
-<span id="cb27-22"><a href="#cb27-22" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> state[j] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
-<span id="cb27-23"><a href="#cb27-23" aria-hidden="true" tabindex="-1"></a>            pj <span class="op">=</span> indexer_asym4.descendants.index_to_props(j)</span>
-<span id="cb27-24"><a href="#cb27-24" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> pj.in_pop <span class="op">!=</span> pi.in_pop: <span class="cf">continue</span></span>
-<span id="cb27-25"><a href="#cb27-25" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb27-26"><a href="#cb27-26" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
-<span id="cb27-27"><a href="#cb27-27" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
-<span id="cb27-28"><a href="#cb27-28" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb27-29"><a href="#cb27-29" aria-hidden="true" tabindex="-1"></a>            new[indexer_asym4.descendants.props_to_index(</span>
-<span id="cb27-30"><a href="#cb27-30" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>pi.pop1<span class="op">+</span>pj.pop1, pop2<span class="op">=</span>pi.pop2<span class="op">+</span>pj.pop2, in_pop<span class="op">=</span>pi.in_pop)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb27-31"><a href="#cb27-31" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same), <span class="dv">0</span>, <span class="dv">0</span>]])</span>
-<span id="cb27-32"><a href="#cb27-32" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> pi.in_pop <span class="op">==</span> <span class="dv">1</span>:</span>
-<span id="cb27-33"><a href="#cb27-33" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb27-34"><a href="#cb27-34" aria-hidden="true" tabindex="-1"></a>            new[indexer_asym4.descendants.props_to_index(</span>
-<span id="cb27-35"><a href="#cb27-35" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>pi.pop1, pop2<span class="op">=</span>pi.pop2, in_pop<span class="op">=</span><span class="dv">2</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb27-36"><a href="#cb27-36" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [<span class="dv">0</span>, state[i], <span class="dv">0</span>]])</span>
-<span id="cb27-37"><a href="#cb27-37" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
-<span id="cb27-38"><a href="#cb27-38" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb27-39"><a href="#cb27-39" aria-hidden="true" tabindex="-1"></a>            new[indexer_asym4.descendants.props_to_index(</span>
-<span id="cb27-40"><a href="#cb27-40" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>pi.pop1, pop2<span class="op">=</span>pi.pop2, in_pop<span class="op">=</span><span class="dv">1</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb27-41"><a href="#cb27-41" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [<span class="dv">0</span>, <span class="dv">0</span>, state[i]]])</span>
-<span id="cb27-42"><a href="#cb27-42" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb27-43"><a href="#cb27-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-44"><a href="#cb27-44" aria-hidden="true" tabindex="-1"></a>g_asym4 <span class="op">=</span> Graph(two_island_asym4)</span>
-<span id="cb27-45"><a href="#cb27-45" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Asymmetrisk to-ø (n=4): </span><span class="sc">{</span>g_asym4<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss"> tilstande"</span>)</span>
-<span id="cb27-46"><a href="#cb27-46" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-47"><a href="#cb27-47" aria-hidden="true" tabindex="-1"></a>true_asym4 <span class="op">=</span> [<span class="fl">0.7</span>, <span class="fl">2.0</span>, <span class="fl">0.3</span>]</span>
-<span id="cb27-48"><a href="#cb27-48" aria-hidden="true" tabindex="-1"></a>g_asym4.update_weights(true_asym4)</span>
-<span id="cb27-49"><a href="#cb27-49" aria-hidden="true" tabindex="-1"></a>data_asym4 <span class="op">=</span> g_asym4.sample(<span class="dv">5000</span>)</span>
-<span id="cb27-50"><a href="#cb27-50" aria-hidden="true" tabindex="-1"></a>prior_asym4 <span class="op">=</span> DataPrior(g_asym4, data_asym4)</span>
-<span id="cb27-51"><a href="#cb27-51" aria-hidden="true" tabindex="-1"></a>sv_asym4 <span class="op">=</span> g_asym4.svgd(data_asym4, prior<span class="op">=</span>prior_asym4,</span>
-<span id="cb27-52"><a href="#cb27-52" aria-hidden="true" tabindex="-1"></a>                          optimizer<span class="op">=</span>Adam(<span class="fl">0.25</span>), n_iterations<span class="op">=</span><span class="dv">400</span>)</span>
-<span id="cb27-53"><a href="#cb27-53" aria-hidden="true" tabindex="-1"></a>res_asym4 <span class="op">=</span> sv_asym4.get_results()</span>
-<span id="cb27-54"><a href="#cb27-54" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-55"><a href="#cb27-55" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Sande: θ₀=</span><span class="sc">{</span>true_asym4[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">, m₁₂=</span><span class="sc">{</span>true_asym4[<span class="dv">1</span>]<span class="sc">}</span><span class="ss">, m₂₁=</span><span class="sc">{</span>true_asym4[<span class="dv">2</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb27-56"><a href="#cb27-56" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, (name, true) <span class="kw">in</span> <span class="bu">enumerate</span>(</span>
-<span id="cb27-57"><a href="#cb27-57" aria-hidden="true" tabindex="-1"></a>    <span class="bu">zip</span>([<span class="st">'θ₀ (koalescens)'</span>,<span class="st">'m₁₂ (pop1→pop2)'</span>,<span class="st">'m₂₁ (pop2→pop1)'</span>], true_asym4)):</span>
-<span id="cb27-58"><a href="#cb27-58" aria-hidden="true" tabindex="-1"></a>    m <span class="op">=</span> res_asym4[<span class="st">'theta_mean'</span>][i].item()</span>
-<span id="cb27-59"><a href="#cb27-59" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> res_asym4[<span class="st">'theta_std'</span>][i].item()</span>
-<span id="cb27-60"><a href="#cb27-60" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>m<span class="sc">:.3f}</span><span class="ss"> ± </span><span class="sc">{</span>s<span class="sc">:.4f}</span><span class="ss">  (sand: </span><span class="sc">{</span>true<span class="sc">}</span><span class="ss">)  bias=</span><span class="sc">{</span><span class="bu">abs</span>(m<span class="op">-</span>true)<span class="sc">:.3f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Asymmetrisk migration med n=4 og større N_OBS</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>nr_asym4 <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>indexer_asym4 <span class="op">=</span> StateIndexer(</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    descendants<span class="op">=</span>[</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'pop1'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_asym4),</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'pop2'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_asym4),</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'in_pop'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span><span class="dv">2</span>),</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>initial_asym4 <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer_asym4.state_length</span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>initial_asym4[indexer_asym4.descendants.props_to_index(pop1<span class="op">=</span><span class="dv">1</span>, pop2<span class="op">=</span><span class="dv">0</span>, in_pop<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> nr_asym4</span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>(initial_asym4)</span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> two_island_asym4(state):</span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state[indexer_asym4.descendants.indices()].<span class="bu">sum</span>() <span class="op">&lt;=</span> <span class="dv">1</span>: <span class="cf">return</span> transitions</span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(indexer_asym4.descendants.state_length):</span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[i] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
+<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>        pi <span class="op">=</span> indexer_asym4.descendants.index_to_props(i)</span>
+<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, indexer_asym4.descendants.state_length):</span>
+<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> state[j] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
+<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>            pj <span class="op">=</span> indexer_asym4.descendants.index_to_props(j)</span>
+<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> pj.in_pop <span class="op">!=</span> pi.in_pop: <span class="cf">continue</span></span>
+<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb26-28"><a href="#cb26-28" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb26-29"><a href="#cb26-29" aria-hidden="true" tabindex="-1"></a>            new[indexer_asym4.descendants.props_to_index(</span>
+<span id="cb26-30"><a href="#cb26-30" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>pi.pop1<span class="op">+</span>pj.pop1, pop2<span class="op">=</span>pi.pop2<span class="op">+</span>pj.pop2, in_pop<span class="op">=</span>pi.in_pop)] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb26-31"><a href="#cb26-31" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same), <span class="dv">0</span>, <span class="dv">0</span>]])</span>
+<span id="cb26-32"><a href="#cb26-32" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> pi.in_pop <span class="op">==</span> <span class="dv">1</span>:</span>
+<span id="cb26-33"><a href="#cb26-33" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb26-34"><a href="#cb26-34" aria-hidden="true" tabindex="-1"></a>            new[indexer_asym4.descendants.props_to_index(</span>
+<span id="cb26-35"><a href="#cb26-35" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>pi.pop1, pop2<span class="op">=</span>pi.pop2, in_pop<span class="op">=</span><span class="dv">2</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb26-36"><a href="#cb26-36" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [<span class="dv">0</span>, state[i], <span class="dv">0</span>]])</span>
+<span id="cb26-37"><a href="#cb26-37" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb26-38"><a href="#cb26-38" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb26-39"><a href="#cb26-39" aria-hidden="true" tabindex="-1"></a>            new[indexer_asym4.descendants.props_to_index(</span>
+<span id="cb26-40"><a href="#cb26-40" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>pi.pop1, pop2<span class="op">=</span>pi.pop2, in_pop<span class="op">=</span><span class="dv">1</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb26-41"><a href="#cb26-41" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [<span class="dv">0</span>, <span class="dv">0</span>, state[i]]])</span>
+<span id="cb26-42"><a href="#cb26-42" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb26-43"><a href="#cb26-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-44"><a href="#cb26-44" aria-hidden="true" tabindex="-1"></a>g_asym4 <span class="op">=</span> Graph(two_island_asym4)</span>
+<span id="cb26-45"><a href="#cb26-45" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Asymmetrisk to-ø (n=4): </span><span class="sc">{</span>g_asym4<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss"> tilstande"</span>)</span>
+<span id="cb26-46"><a href="#cb26-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-47"><a href="#cb26-47" aria-hidden="true" tabindex="-1"></a>true_asym4 <span class="op">=</span> [<span class="fl">0.7</span>, <span class="fl">2.0</span>, <span class="fl">0.3</span>]</span>
+<span id="cb26-48"><a href="#cb26-48" aria-hidden="true" tabindex="-1"></a>g_asym4.update_weights(true_asym4)</span>
+<span id="cb26-49"><a href="#cb26-49" aria-hidden="true" tabindex="-1"></a>data_asym4 <span class="op">=</span> g_asym4.sample(<span class="dv">5000</span>)</span>
+<span id="cb26-50"><a href="#cb26-50" aria-hidden="true" tabindex="-1"></a>prior_asym4 <span class="op">=</span> DataPrior(g_asym4, data_asym4)</span>
+<span id="cb26-51"><a href="#cb26-51" aria-hidden="true" tabindex="-1"></a>sv_asym4 <span class="op">=</span> g_asym4.svgd(data_asym4, prior<span class="op">=</span>prior_asym4,</span>
+<span id="cb26-52"><a href="#cb26-52" aria-hidden="true" tabindex="-1"></a>                          optimizer<span class="op">=</span>Adam(<span class="fl">0.25</span>), n_iterations<span class="op">=</span><span class="dv">400</span>)</span>
+<span id="cb26-53"><a href="#cb26-53" aria-hidden="true" tabindex="-1"></a>res_asym4 <span class="op">=</span> sv_asym4.get_results()</span>
+<span id="cb26-54"><a href="#cb26-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-55"><a href="#cb26-55" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Sande: θ₀=</span><span class="sc">{</span>true_asym4[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">, m₁₂=</span><span class="sc">{</span>true_asym4[<span class="dv">1</span>]<span class="sc">}</span><span class="ss">, m₂₁=</span><span class="sc">{</span>true_asym4[<span class="dv">2</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb26-56"><a href="#cb26-56" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, (name, true) <span class="kw">in</span> <span class="bu">enumerate</span>(</span>
+<span id="cb26-57"><a href="#cb26-57" aria-hidden="true" tabindex="-1"></a>    <span class="bu">zip</span>([<span class="st">'θ₀ (koalescens)'</span>,<span class="st">'m₁₂ (pop1→pop2)'</span>,<span class="st">'m₂₁ (pop2→pop1)'</span>], true_asym4)):</span>
+<span id="cb26-58"><a href="#cb26-58" aria-hidden="true" tabindex="-1"></a>    m <span class="op">=</span> res_asym4[<span class="st">'theta_mean'</span>][i].item()</span>
+<span id="cb26-59"><a href="#cb26-59" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> res_asym4[<span class="st">'theta_std'</span>][i].item()</span>
+<span id="cb26-60"><a href="#cb26-60" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>m<span class="sc">:.3f}</span><span class="ss"> ± </span><span class="sc">{</span>s<span class="sc">:.4f}</span><span class="ss">  (sand: </span><span class="sc">{</span>true<span class="sc">}</span><span class="ss">)  bias=</span><span class="sc">{</span><span class="bu">abs</span>(m<span class="op">-</span>true)<span class="sc">:.3f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
 Sande: θ₀=0.7, m₁₂=2.0, m₂₁=0.3
@@ -1221,21 +1160,21 @@ Sande: θ₀=0.7, m₁₂=2.0, m₂₁=0.3
 </div>
 </div>
 <div id="d82fb387" class="cell" data-execution_count="16">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>sv_asym4.plot_pairwise(true_theta<span class="op">=</span>true_asym4)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>sv_asym4.plot_pairwise(true_theta<span class="op">=</span>true_asym4)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="03_svgd_two_island_files/figure-html/cell-19-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-12"><img src="03_svgd_two_island_files/figure-html/cell-19-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="03_svgd_two_island_files/figure-html/cell-18-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-12"><img src="03_svgd_two_island_files/figure-html/cell-18-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
 <div id="5fedd81d" class="cell" data-execution_count="22">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>sv_asym4.plot_convergence()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>sv_asym4.plot_convergence()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="03_svgd_two_island_files/figure-html/cell-20-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-13"><img src="03_svgd_two_island_files/figure-html/cell-20-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="03_svgd_two_island_files/figure-html/cell-19-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-13"><img src="03_svgd_two_island_files/figure-html/cell-19-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -1246,79 +1185,79 @@ Sande: θ₀=0.7, m₁₂=2.0, m₂₁=0.3
 <h2 class="anchored" data-anchor-id="mom-baserede-priors-og-halfcauchy-prior">MoM-baserede priors og HalfCauchy prior</h2>
 <p>I stedet for at definere priors manuelt kan <em>method_of_moments()</em> automatisk generere informative priors baseret på data. <em>HalfCauchyPrior</em> er bedre egnet til skalaparametre som koalescensrate og migrationsrate, fordi den kun er defineret for positive værdier og har tunge haler der undgår at afskære sandsynlighed ved lave rater.</p>
 <div id="0886222f" class="cell" data-execution_count="18">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> HalfCauchyPrior</span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Genopbyg two-island model</span></span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv, StateIndexer, Property</span>
-<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> partial</span>
-<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itertools <span class="im">import</span> combinations_with_replacement</span>
-<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>all_pairs_nb3 <span class="op">=</span> partial(combinations_with_replacement, r<span class="op">=</span><span class="dv">2</span>)</span>
-<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>nr_samples_nb3 <span class="op">=</span> <span class="dv">2</span></span>
-<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>indexer_nb3 <span class="op">=</span> StateIndexer(</span>
-<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>    descendants<span class="op">=</span>[</span>
-<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'pop1'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_samples_nb3),</span>
-<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'pop2'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_samples_nb3),</span>
-<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'in_pop'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span><span class="dv">2</span>),</span>
-<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a>    ]</span>
-<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a>initial_nb3 <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer_nb3.state_length</span>
-<span id="cb31-18"><a href="#cb31-18" aria-hidden="true" tabindex="-1"></a>initial_nb3[indexer_nb3.descendants.props_to_index(pop1<span class="op">=</span><span class="dv">1</span>, pop2<span class="op">=</span><span class="dv">0</span>, in_pop<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> nr_samples_nb3</span>
-<span id="cb31-19"><a href="#cb31-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-20"><a href="#cb31-20" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>(initial_nb3)</span>
-<span id="cb31-21"><a href="#cb31-21" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> two_island_nb3(state):</span>
-<span id="cb31-22"><a href="#cb31-22" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb31-23"><a href="#cb31-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state[indexer_nb3.descendants.indices()].<span class="bu">sum</span>() <span class="op">&lt;=</span> <span class="dv">1</span>:</span>
-<span id="cb31-24"><a href="#cb31-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
-<span id="cb31-25"><a href="#cb31-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(indexer_nb3.descendants.state_length):</span>
-<span id="cb31-26"><a href="#cb31-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[i] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
-<span id="cb31-27"><a href="#cb31-27" aria-hidden="true" tabindex="-1"></a>        pi <span class="op">=</span> indexer_nb3.descendants.index_to_props(i)</span>
-<span id="cb31-28"><a href="#cb31-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, indexer_nb3.descendants.state_length):</span>
-<span id="cb31-29"><a href="#cb31-29" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> state[j] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
-<span id="cb31-30"><a href="#cb31-30" aria-hidden="true" tabindex="-1"></a>            pj <span class="op">=</span> indexer_nb3.descendants.index_to_props(j)</span>
-<span id="cb31-31"><a href="#cb31-31" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> pj.in_pop <span class="op">!=</span> pi.in_pop: <span class="cf">continue</span></span>
-<span id="cb31-32"><a href="#cb31-32" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb31-33"><a href="#cb31-33" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
-<span id="cb31-34"><a href="#cb31-34" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
-<span id="cb31-35"><a href="#cb31-35" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
-<span id="cb31-36"><a href="#cb31-36" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb31-37"><a href="#cb31-37" aria-hidden="true" tabindex="-1"></a>            new[indexer_nb3.descendants.props_to_index(</span>
-<span id="cb31-38"><a href="#cb31-38" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>pi.pop1<span class="op">+</span>pj.pop1, pop2<span class="op">=</span>pi.pop2<span class="op">+</span>pj.pop2, in_pop<span class="op">=</span>pi.in_pop)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb31-39"><a href="#cb31-39" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same), <span class="dv">0</span>]])</span>
-<span id="cb31-40"><a href="#cb31-40" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> pi.in_pop <span class="op">==</span> <span class="dv">1</span>:</span>
-<span id="cb31-41"><a href="#cb31-41" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb31-42"><a href="#cb31-42" aria-hidden="true" tabindex="-1"></a>            new[indexer_nb3.descendants.props_to_index(</span>
-<span id="cb31-43"><a href="#cb31-43" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>pi.pop1, pop2<span class="op">=</span>pi.pop2, in_pop<span class="op">=</span><span class="dv">2</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb31-44"><a href="#cb31-44" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [<span class="dv">0</span>, state[i]]])</span>
-<span id="cb31-45"><a href="#cb31-45" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
-<span id="cb31-46"><a href="#cb31-46" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb31-47"><a href="#cb31-47" aria-hidden="true" tabindex="-1"></a>            new[indexer_nb3.descendants.props_to_index(</span>
-<span id="cb31-48"><a href="#cb31-48" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>pi.pop1, pop2<span class="op">=</span>pi.pop2, in_pop<span class="op">=</span><span class="dv">1</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb31-49"><a href="#cb31-49" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [<span class="dv">0</span>, state[i]]])</span>
-<span id="cb31-50"><a href="#cb31-50" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb31-51"><a href="#cb31-51" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-52"><a href="#cb31-52" aria-hidden="true" tabindex="-1"></a>g_nb3 <span class="op">=</span> Graph(two_island_nb3)</span>
-<span id="cb31-53"><a href="#cb31-53" aria-hidden="true" tabindex="-1"></a>true_theta_nb3 <span class="op">=</span> [<span class="fl">0.7</span>, <span class="fl">0.9</span>]</span>
-<span id="cb31-54"><a href="#cb31-54" aria-hidden="true" tabindex="-1"></a>g_nb3.update_weights(true_theta_nb3)</span>
-<span id="cb31-55"><a href="#cb31-55" aria-hidden="true" tabindex="-1"></a>data_nb3 <span class="op">=</span> g_nb3.sample(<span class="dv">2000</span>)</span>
-<span id="cb31-56"><a href="#cb31-56" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-57"><a href="#cb31-57" aria-hidden="true" tabindex="-1"></a><span class="co"># MoM estimat og automatisk prior</span></span>
-<span id="cb31-58"><a href="#cb31-58" aria-hidden="true" tabindex="-1"></a>mom_nb3 <span class="op">=</span> g_nb3.method_of_moments(data_nb3)</span>
-<span id="cb31-59"><a href="#cb31-59" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"=== Method of Moments ==="</span>)</span>
-<span id="cb31-60"><a href="#cb31-60" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Sand theta:    </span><span class="sc">{</span>true_theta_nb3<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb31-61"><a href="#cb31-61" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"MoM estimat:   </span><span class="sc">{</span>[<span class="bu">round</span>(t, <span class="dv">4</span>) <span class="cf">for</span> t <span class="kw">in</span> mom_nb3.theta]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb31-62"><a href="#cb31-62" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Residual:      </span><span class="sc">{</span>mom_nb3<span class="sc">.</span>residual<span class="sc">:.2e}</span><span class="ss">"</span>)</span>
-<span id="cb31-63"><a href="#cb31-63" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Konvergeret:   </span><span class="sc">{</span>mom_nb3<span class="sc">.</span>success<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb31-64"><a href="#cb31-64" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
-<span id="cb31-65"><a href="#cb31-65" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-66"><a href="#cb31-66" aria-hidden="true" tabindex="-1"></a><span class="co"># Vis MoM-priors</span></span>
-<span id="cb31-67"><a href="#cb31-67" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="fl">3.5</span>))</span>
-<span id="cb31-68"><a href="#cb31-68" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, prior <span class="kw">in</span> <span class="bu">enumerate</span>(mom_nb3.prior):</span>
-<span id="cb31-69"><a href="#cb31-69" aria-hidden="true" tabindex="-1"></a>    prior.plot(return_ax<span class="op">=</span><span class="va">True</span>, ax<span class="op">=</span>axes[i])</span>
-<span id="cb31-70"><a href="#cb31-70" aria-hidden="true" tabindex="-1"></a>    axes[i].set_title(<span class="ss">f'MoM-prior for θ_</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">'</span>)</span>
-<span id="cb31-71"><a href="#cb31-71" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">'Automatisk genererede MoM-priors'</span>)</span>
-<span id="cb31-72"><a href="#cb31-72" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb31-73"><a href="#cb31-73" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> HalfCauchyPrior</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Genopbyg two-island model</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv, StateIndexer, Property</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> partial</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itertools <span class="im">import</span> combinations_with_replacement</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>all_pairs_nb3 <span class="op">=</span> partial(combinations_with_replacement, r<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>nr_samples_nb3 <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>indexer_nb3 <span class="op">=</span> StateIndexer(</span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>    descendants<span class="op">=</span>[</span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'pop1'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_samples_nb3),</span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'pop2'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_samples_nb3),</span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'in_pop'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span><span class="dv">2</span>),</span>
+<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a>initial_nb3 <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer_nb3.state_length</span>
+<span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a>initial_nb3[indexer_nb3.descendants.props_to_index(pop1<span class="op">=</span><span class="dv">1</span>, pop2<span class="op">=</span><span class="dv">0</span>, in_pop<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> nr_samples_nb3</span>
+<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-20"><a href="#cb30-20" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>(initial_nb3)</span>
+<span id="cb30-21"><a href="#cb30-21" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> two_island_nb3(state):</span>
+<span id="cb30-22"><a href="#cb30-22" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb30-23"><a href="#cb30-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state[indexer_nb3.descendants.indices()].<span class="bu">sum</span>() <span class="op">&lt;=</span> <span class="dv">1</span>:</span>
+<span id="cb30-24"><a href="#cb30-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
+<span id="cb30-25"><a href="#cb30-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(indexer_nb3.descendants.state_length):</span>
+<span id="cb30-26"><a href="#cb30-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[i] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
+<span id="cb30-27"><a href="#cb30-27" aria-hidden="true" tabindex="-1"></a>        pi <span class="op">=</span> indexer_nb3.descendants.index_to_props(i)</span>
+<span id="cb30-28"><a href="#cb30-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, indexer_nb3.descendants.state_length):</span>
+<span id="cb30-29"><a href="#cb30-29" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> state[j] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
+<span id="cb30-30"><a href="#cb30-30" aria-hidden="true" tabindex="-1"></a>            pj <span class="op">=</span> indexer_nb3.descendants.index_to_props(j)</span>
+<span id="cb30-31"><a href="#cb30-31" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> pj.in_pop <span class="op">!=</span> pi.in_pop: <span class="cf">continue</span></span>
+<span id="cb30-32"><a href="#cb30-32" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb30-33"><a href="#cb30-33" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb30-34"><a href="#cb30-34" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb30-35"><a href="#cb30-35" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
+<span id="cb30-36"><a href="#cb30-36" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb30-37"><a href="#cb30-37" aria-hidden="true" tabindex="-1"></a>            new[indexer_nb3.descendants.props_to_index(</span>
+<span id="cb30-38"><a href="#cb30-38" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>pi.pop1<span class="op">+</span>pj.pop1, pop2<span class="op">=</span>pi.pop2<span class="op">+</span>pj.pop2, in_pop<span class="op">=</span>pi.in_pop)] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb30-39"><a href="#cb30-39" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same), <span class="dv">0</span>]])</span>
+<span id="cb30-40"><a href="#cb30-40" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> pi.in_pop <span class="op">==</span> <span class="dv">1</span>:</span>
+<span id="cb30-41"><a href="#cb30-41" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb30-42"><a href="#cb30-42" aria-hidden="true" tabindex="-1"></a>            new[indexer_nb3.descendants.props_to_index(</span>
+<span id="cb30-43"><a href="#cb30-43" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>pi.pop1, pop2<span class="op">=</span>pi.pop2, in_pop<span class="op">=</span><span class="dv">2</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb30-44"><a href="#cb30-44" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [<span class="dv">0</span>, state[i]]])</span>
+<span id="cb30-45"><a href="#cb30-45" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb30-46"><a href="#cb30-46" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb30-47"><a href="#cb30-47" aria-hidden="true" tabindex="-1"></a>            new[indexer_nb3.descendants.props_to_index(</span>
+<span id="cb30-48"><a href="#cb30-48" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>pi.pop1, pop2<span class="op">=</span>pi.pop2, in_pop<span class="op">=</span><span class="dv">1</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb30-49"><a href="#cb30-49" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [<span class="dv">0</span>, state[i]]])</span>
+<span id="cb30-50"><a href="#cb30-50" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb30-51"><a href="#cb30-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-52"><a href="#cb30-52" aria-hidden="true" tabindex="-1"></a>g_nb3 <span class="op">=</span> Graph(two_island_nb3)</span>
+<span id="cb30-53"><a href="#cb30-53" aria-hidden="true" tabindex="-1"></a>true_theta_nb3 <span class="op">=</span> [<span class="fl">0.7</span>, <span class="fl">0.9</span>]</span>
+<span id="cb30-54"><a href="#cb30-54" aria-hidden="true" tabindex="-1"></a>g_nb3.update_weights(true_theta_nb3)</span>
+<span id="cb30-55"><a href="#cb30-55" aria-hidden="true" tabindex="-1"></a>data_nb3 <span class="op">=</span> g_nb3.sample(<span class="dv">2000</span>)</span>
+<span id="cb30-56"><a href="#cb30-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-57"><a href="#cb30-57" aria-hidden="true" tabindex="-1"></a><span class="co"># MoM estimat og automatisk prior</span></span>
+<span id="cb30-58"><a href="#cb30-58" aria-hidden="true" tabindex="-1"></a>mom_nb3 <span class="op">=</span> g_nb3.method_of_moments(data_nb3)</span>
+<span id="cb30-59"><a href="#cb30-59" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"=== Method of Moments ==="</span>)</span>
+<span id="cb30-60"><a href="#cb30-60" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Sand theta:    </span><span class="sc">{</span>true_theta_nb3<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb30-61"><a href="#cb30-61" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"MoM estimat:   </span><span class="sc">{</span>[<span class="bu">round</span>(t, <span class="dv">4</span>) <span class="cf">for</span> t <span class="kw">in</span> mom_nb3.theta]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb30-62"><a href="#cb30-62" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Residual:      </span><span class="sc">{</span>mom_nb3<span class="sc">.</span>residual<span class="sc">:.2e}</span><span class="ss">"</span>)</span>
+<span id="cb30-63"><a href="#cb30-63" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Konvergeret:   </span><span class="sc">{</span>mom_nb3<span class="sc">.</span>success<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb30-64"><a href="#cb30-64" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb30-65"><a href="#cb30-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-66"><a href="#cb30-66" aria-hidden="true" tabindex="-1"></a><span class="co"># Vis MoM-priors</span></span>
+<span id="cb30-67"><a href="#cb30-67" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="fl">3.5</span>))</span>
+<span id="cb30-68"><a href="#cb30-68" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, prior <span class="kw">in</span> <span class="bu">enumerate</span>(mom_nb3.prior):</span>
+<span id="cb30-69"><a href="#cb30-69" aria-hidden="true" tabindex="-1"></a>    prior.plot(return_ax<span class="op">=</span><span class="va">True</span>, ax<span class="op">=</span>axes[i])</span>
+<span id="cb30-70"><a href="#cb30-70" aria-hidden="true" tabindex="-1"></a>    axes[i].set_title(<span class="ss">f'MoM-prior for θ_</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb30-71"><a href="#cb30-71" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">'Automatisk genererede MoM-priors'</span>)</span>
+<span id="cb30-72"><a href="#cb30-72" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb30-73"><a href="#cb30-73" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>=== Method of Moments ===
 Sand theta:    [0.7, 0.9]
@@ -1330,39 +1269,39 @@ Konvergeret:   True
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="03_svgd_two_island_files/figure-html/cell-21-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-14"><img src="03_svgd_two_island_files/figure-html/cell-21-output-2.svg" class="img-fluid figure-img"></a></p>
+<p><a href="03_svgd_two_island_files/figure-html/cell-20-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-14"><img src="03_svgd_two_island_files/figure-html/cell-20-output-2.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
 <div id="d4d0251b" class="cell" data-execution_count="3">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Sammenlign GaussPrior, HalfCauchyPrior og MoM-prior i SVGD</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>prior_configs <span class="op">=</span> {</span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">'GaussPrior (bred)'</span>: [GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="dv">3</span>]), GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="dv">3</span>])],</span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">'HalfCauchy'</span>:        [HalfCauchyPrior(ci<span class="op">=</span><span class="fl">2.0</span>, prob<span class="op">=</span><span class="fl">0.9</span>),</span>
-<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>                          HalfCauchyPrior(ci<span class="op">=</span><span class="fl">1.0</span>, prob<span class="op">=</span><span class="fl">0.9</span>)],</span>
-<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">'MoM-prior (auto)'</span>:  mom_nb3.prior,</span>
-<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>rows_prior <span class="op">=</span> []</span>
-<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>step_nb3 <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.005</span>, tau<span class="op">=</span><span class="fl">30.0</span>)</span>
-<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, prior <span class="kw">in</span> prior_configs.items():</span>
-<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>    sv <span class="op">=</span> g_nb3.svgd(data_nb3, prior<span class="op">=</span>prior, learning_rate<span class="op">=</span>step_nb3, n_iterations<span class="op">=</span><span class="dv">250</span>)</span>
-<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> sv.get_results()</span>
-<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>    rows_prior.append({</span>
-<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Prior'</span>:     name,</span>
-<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>        <span class="st">'θ₀ mean'</span>:   <span class="bu">round</span>(res[<span class="st">'theta_mean'</span>][<span class="dv">0</span>].item(), <span class="dv">4</span>),</span>
-<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>        <span class="st">'θ₀ std'</span>:    <span class="bu">round</span>(res[<span class="st">'theta_std'</span>][<span class="dv">0</span>].item(), <span class="dv">5</span>),</span>
-<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>        <span class="st">'θ₁ mean'</span>:   <span class="bu">round</span>(res[<span class="st">'theta_mean'</span>][<span class="dv">1</span>].item(), <span class="dv">4</span>),</span>
-<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>        <span class="st">'θ₁ std'</span>:    <span class="bu">round</span>(res[<span class="st">'theta_std'</span>][<span class="dv">1</span>].item(), <span class="dv">5</span>),</span>
-<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>    })</span>
-<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a>df_prior <span class="op">=</span> pd.DataFrame(rows_prior)</span>
-<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Sand theta: θ₀=</span><span class="sc">{</span>true_theta_nb3[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">, θ₁=</span><span class="sc">{</span>true_theta_nb3[<span class="dv">1</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_prior.to_string(index<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Sammenlign GaussPrior, HalfCauchyPrior og MoM-prior i SVGD</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>prior_configs <span class="op">=</span> {</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">'GaussPrior (bred)'</span>: [GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="dv">3</span>]), GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="dv">3</span>])],</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">'HalfCauchy'</span>:        [HalfCauchyPrior(ci<span class="op">=</span><span class="fl">2.0</span>, prob<span class="op">=</span><span class="fl">0.9</span>),</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>                          HalfCauchyPrior(ci<span class="op">=</span><span class="fl">1.0</span>, prob<span class="op">=</span><span class="fl">0.9</span>)],</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">'MoM-prior (auto)'</span>:  mom_nb3.prior,</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>rows_prior <span class="op">=</span> []</span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>step_nb3 <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.005</span>, tau<span class="op">=</span><span class="fl">30.0</span>)</span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, prior <span class="kw">in</span> prior_configs.items():</span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a>    sv <span class="op">=</span> g_nb3.svgd(data_nb3, prior<span class="op">=</span>prior, learning_rate<span class="op">=</span>step_nb3, n_iterations<span class="op">=</span><span class="dv">250</span>)</span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> sv.get_results()</span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a>    rows_prior.append({</span>
+<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Prior'</span>:     name,</span>
+<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a>        <span class="st">'θ₀ mean'</span>:   <span class="bu">round</span>(res[<span class="st">'theta_mean'</span>][<span class="dv">0</span>].item(), <span class="dv">4</span>),</span>
+<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a>        <span class="st">'θ₀ std'</span>:    <span class="bu">round</span>(res[<span class="st">'theta_std'</span>][<span class="dv">0</span>].item(), <span class="dv">5</span>),</span>
+<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a>        <span class="st">'θ₁ mean'</span>:   <span class="bu">round</span>(res[<span class="st">'theta_mean'</span>][<span class="dv">1</span>].item(), <span class="dv">4</span>),</span>
+<span id="cb32-22"><a href="#cb32-22" aria-hidden="true" tabindex="-1"></a>        <span class="st">'θ₁ std'</span>:    <span class="bu">round</span>(res[<span class="st">'theta_std'</span>][<span class="dv">1</span>].item(), <span class="dv">5</span>),</span>
+<span id="cb32-23"><a href="#cb32-23" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb32-24"><a href="#cb32-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-25"><a href="#cb32-25" aria-hidden="true" tabindex="-1"></a>df_prior <span class="op">=</span> pd.DataFrame(rows_prior)</span>
+<span id="cb32-26"><a href="#cb32-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Sand theta: θ₀=</span><span class="sc">{</span>true_theta_nb3[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">, θ₁=</span><span class="sc">{</span>true_theta_nb3[<span class="dv">1</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb32-27"><a href="#cb32-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_prior.to_string(index<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Sand theta: θ₀=0.7, θ₁=0.9
             Prior  θ₀ mean  θ₀ std  θ₁ mean  θ₁ std
@@ -1378,38 +1317,38 @@ GaussPrior (bred)   0.7216 0.00871   2.5051 1.51922
 <h2 class="anchored" data-anchor-id="joint-probability-graf-med-population-specifikke-rewards">Joint probability graf med population-specifikke rewards</h2>
 <p><em>joint_prob_graph</em> med <em>reward_only=[‘pop1’, ‘pop2’]</em> tracker mutationer separat for de to populationer. Dette giver en rigere observationsstruktur end blot TMRCA.</p>
 <div id="ea5a8e8a" class="cell" data-execution_count="19">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Joint probability graf med population-rewards</span></span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>mutation_rate_nb3 <span class="op">=</span> <span class="dv">1</span></span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>joint_nb3 <span class="op">=</span> g_nb3.joint_prob_graph(</span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>    indexer_nb3,</span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>    reward_only<span class="op">=</span>[<span class="st">'pop1'</span>, <span class="st">'pop2'</span>],</span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>    reward_limit<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>    tot_reward_limit<span class="op">=</span><span class="dv">2</span>,</span>
-<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>    mutation_rate<span class="op">=</span>mutation_rate_nb3,</span>
-<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Joint graf tilstande: </span><span class="sc">{</span>joint_nb3<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>joint_nb3.plot(rankdir<span class="op">=</span><span class="st">'LR'</span>, nodesep<span class="op">=</span><span class="fl">0.3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Joint probability graf med population-rewards</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>mutation_rate_nb3 <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>joint_nb3 <span class="op">=</span> g_nb3.joint_prob_graph(</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>    indexer_nb3,</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>    reward_only<span class="op">=</span>[<span class="st">'pop1'</span>, <span class="st">'pop2'</span>],</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>    reward_limit<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>    tot_reward_limit<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>    mutation_rate<span class="op">=</span>mutation_rate_nb3,</span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Joint graf tilstande: </span><span class="sc">{</span>joint_nb3<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>joint_nb3.plot(rankdir<span class="op">=</span><span class="st">'LR'</span>, nodesep<span class="op">=</span><span class="fl">0.3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Joint graf tilstande: 28</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="19">
 <div>
 <figure class="figure">
-<p><a href="03_svgd_two_island_files/figure-html/cell-23-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-15"><img src="03_svgd_two_island_files/figure-html/cell-23-output-2.svg" class="img-fluid figure-img"></a></p>
+<p><a href="03_svgd_two_island_files/figure-html/cell-22-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-15"><img src="03_svgd_two_island_files/figure-html/cell-22-output-2.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
 <div id="cbe60313" class="cell" data-execution_count="20">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Vis joint probability-tabellen</span></span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>true_joint_nb3 <span class="op">=</span> [<span class="fl">0.7</span>, <span class="fl">0.9</span>]</span>
-<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>g_nb3.update_weights(true_joint_nb3)</span>
-<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>joint_nb3.update_weights(true_joint_nb3 <span class="op">+</span> [mutation_rate_nb3])</span>
-<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>table_nb3 <span class="op">=</span> joint_nb3.joint_prob_table()</span>
-<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Joint probability-tabel:"</span>)</span>
-<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(table_nb3.<span class="bu">round</span>(<span class="dv">6</span>))</span>
-<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Deficit: </span><span class="sc">{</span><span class="dv">1</span> <span class="op">-</span> table_nb3[<span class="st">'prob'</span>]<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">:.4f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Vis joint probability-tabellen</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>true_joint_nb3 <span class="op">=</span> [<span class="fl">0.7</span>, <span class="fl">0.9</span>]</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>g_nb3.update_weights(true_joint_nb3)</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>joint_nb3.update_weights(true_joint_nb3 <span class="op">+</span> [mutation_rate_nb3])</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>table_nb3 <span class="op">=</span> joint_nb3.joint_prob_table()</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Joint probability-tabel:"</span>)</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(table_nb3.<span class="bu">round</span>(<span class="dv">6</span>))</span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Deficit: </span><span class="sc">{</span><span class="dv">1</span> <span class="op">-</span> table_nb3[<span class="st">'prob'</span>]<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">:.4f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Joint probability-tabel:
                 pop1_0  pop1_1  pop1_2  pop2_0  pop2_1  pop2_2      prob
@@ -1423,39 +1362,39 @@ Deficit: 0.8054</code></pre>
 </div>
 </div>
 <div id="1523a33d" class="cell" data-execution_count="21">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co"># SVGD-inferens via joint probability på to-ø modellen</span></span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> GaussPrior, Adam</span>
-<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Simuler observationer fra joint-tabellen</span></span>
-<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>table_j <span class="op">=</span> joint_nb3.joint_prob_table()</span>
-<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>p_j <span class="op">=</span> (table_j[<span class="st">'prob'</span>] <span class="op">/</span> table_j[<span class="st">'prob'</span>].<span class="bu">sum</span>()).to_numpy()</span>
-<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>rng_j <span class="op">=</span> np.random.default_rng(<span class="dv">42</span>)</span>
-<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>idx_j <span class="op">=</span> rng_j.choice(<span class="bu">len</span>(table_j), size<span class="op">=</span><span class="dv">1000</span>, p<span class="op">=</span>p_j)</span>
-<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>obs_j <span class="op">=</span> table_j.iloc[idx_j][table_j.columns[:<span class="op">-</span><span class="dv">1</span>]].to_numpy().tolist()</span>
-<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Samplet </span><span class="sc">{</span><span class="bu">len</span>(obs_j)<span class="sc">}</span><span class="ss"> observationer"</span>)</span>
-<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Første 3: </span><span class="sc">{</span>obs_j[:<span class="dv">3</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a><span class="co"># SVGD med fixed mu</span></span>
-<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>prior_j2 <span class="op">=</span> [GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="fl">3.0</span>]),</span>
-<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a>             GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="fl">5.0</span>]),</span>
-<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a>             <span class="va">None</span>]  <span class="co"># mu fixed</span></span>
-<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a>sv_j2 <span class="op">=</span> joint_nb3.svgd(</span>
-<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a>    obs_j,</span>
-<span id="cb39-21"><a href="#cb39-21" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">2</span>, mutation_rate_nb3)],</span>
-<span id="cb39-22"><a href="#cb39-22" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>prior_j2,</span>
-<span id="cb39-23"><a href="#cb39-23" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adam(<span class="fl">0.25</span>),</span>
-<span id="cb39-24"><a href="#cb39-24" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">250</span>,</span>
-<span id="cb39-25"><a href="#cb39-25" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb39-26"><a href="#cb39-26" aria-hidden="true" tabindex="-1"></a>res_j2 <span class="op">=</span> sv_j2.get_results()</span>
-<span id="cb39-27"><a href="#cb39-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Sande θ = </span><span class="sc">{</span>true_joint_nb3<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb39-28"><a href="#cb39-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Joint SVGD: θ₀=</span><span class="sc">{</span>res_j2[<span class="st">'theta_mean'</span>][<span class="dv">0</span>]<span class="sc">.</span>item()<span class="sc">:.3f}</span><span class="ss">±</span><span class="sc">{</span>res_j2[<span class="st">'theta_std'</span>][<span class="dv">0</span>]<span class="sc">.</span>item()<span class="sc">:.4f}</span><span class="ss">  "</span></span>
-<span id="cb39-29"><a href="#cb39-29" aria-hidden="true" tabindex="-1"></a>      <span class="ss">f"θ₁=</span><span class="sc">{</span>res_j2[<span class="st">'theta_mean'</span>][<span class="dv">1</span>]<span class="sc">.</span>item()<span class="sc">:.3f}</span><span class="ss">±</span><span class="sc">{</span>res_j2[<span class="st">'theta_std'</span>][<span class="dv">1</span>]<span class="sc">.</span>item()<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
-<span id="cb39-30"><a href="#cb39-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-31"><a href="#cb39-31" aria-hidden="true" tabindex="-1"></a>sv_j2.plot_pairwise(true_theta<span class="op">=</span>true_joint_nb3)</span>
-<span id="cb39-32"><a href="#cb39-32" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="ss">f'Joint probability inferens (mu=</span><span class="sc">{</span>mutation_rate_nb3<span class="sc">}</span><span class="ss">)'</span>, fontsize<span class="op">=</span><span class="dv">11</span>)</span>
-<span id="cb39-33"><a href="#cb39-33" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># SVGD-inferens via joint probability på to-ø modellen</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> GaussPrior, Adam</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Simuler observationer fra joint-tabellen</span></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>table_j <span class="op">=</span> joint_nb3.joint_prob_table()</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>p_j <span class="op">=</span> (table_j[<span class="st">'prob'</span>] <span class="op">/</span> table_j[<span class="st">'prob'</span>].<span class="bu">sum</span>()).to_numpy()</span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>rng_j <span class="op">=</span> np.random.default_rng(<span class="dv">42</span>)</span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>idx_j <span class="op">=</span> rng_j.choice(<span class="bu">len</span>(table_j), size<span class="op">=</span><span class="dv">1000</span>, p<span class="op">=</span>p_j)</span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>obs_j <span class="op">=</span> table_j.iloc[idx_j][table_j.columns[:<span class="op">-</span><span class="dv">1</span>]].to_numpy().tolist()</span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Samplet </span><span class="sc">{</span><span class="bu">len</span>(obs_j)<span class="sc">}</span><span class="ss"> observationer"</span>)</span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Første 3: </span><span class="sc">{</span>obs_j[:<span class="dv">3</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a><span class="co"># SVGD med fixed mu</span></span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>prior_j2 <span class="op">=</span> [GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="fl">3.0</span>]),</span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>             GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="fl">5.0</span>]),</span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>             <span class="va">None</span>]  <span class="co"># mu fixed</span></span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a>sv_j2 <span class="op">=</span> joint_nb3.svgd(</span>
+<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a>    obs_j,</span>
+<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">2</span>, mutation_rate_nb3)],</span>
+<span id="cb38-22"><a href="#cb38-22" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>prior_j2,</span>
+<span id="cb38-23"><a href="#cb38-23" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adam(<span class="fl">0.25</span>),</span>
+<span id="cb38-24"><a href="#cb38-24" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">250</span>,</span>
+<span id="cb38-25"><a href="#cb38-25" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb38-26"><a href="#cb38-26" aria-hidden="true" tabindex="-1"></a>res_j2 <span class="op">=</span> sv_j2.get_results()</span>
+<span id="cb38-27"><a href="#cb38-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Sande θ = </span><span class="sc">{</span>true_joint_nb3<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb38-28"><a href="#cb38-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Joint SVGD: θ₀=</span><span class="sc">{</span>res_j2[<span class="st">'theta_mean'</span>][<span class="dv">0</span>]<span class="sc">.</span>item()<span class="sc">:.3f}</span><span class="ss">±</span><span class="sc">{</span>res_j2[<span class="st">'theta_std'</span>][<span class="dv">0</span>]<span class="sc">.</span>item()<span class="sc">:.4f}</span><span class="ss">  "</span></span>
+<span id="cb38-29"><a href="#cb38-29" aria-hidden="true" tabindex="-1"></a>      <span class="ss">f"θ₁=</span><span class="sc">{</span>res_j2[<span class="st">'theta_mean'</span>][<span class="dv">1</span>]<span class="sc">.</span>item()<span class="sc">:.3f}</span><span class="ss">±</span><span class="sc">{</span>res_j2[<span class="st">'theta_std'</span>][<span class="dv">1</span>]<span class="sc">.</span>item()<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb38-30"><a href="#cb38-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-31"><a href="#cb38-31" aria-hidden="true" tabindex="-1"></a>sv_j2.plot_pairwise(true_theta<span class="op">=</span>true_joint_nb3)</span>
+<span id="cb38-32"><a href="#cb38-32" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="ss">f'Joint probability inferens (mu=</span><span class="sc">{</span>mutation_rate_nb3<span class="sc">}</span><span class="ss">)'</span>, fontsize<span class="op">=</span><span class="dv">11</span>)</span>
+<span id="cb38-33"><a href="#cb38-33" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
 Sande θ = [0.7, 0.9]
@@ -1464,7 +1403,7 @@ Joint SVGD: θ₀=1.269±0.2466  θ₁=2.882±0.5655</code></pre>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="03_svgd_two_island_files/figure-html/cell-25-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-16"><img src="03_svgd_two_island_files/figure-html/cell-25-output-2.svg" class="img-fluid figure-img"></a></p>
+<p><a href="03_svgd_two_island_files/figure-html/cell-24-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-16"><img src="03_svgd_two_island_files/figure-html/cell-24-output-2.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
