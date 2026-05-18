@@ -347,7 +347,26 @@ Specialet er opdelt i otte analytiske notebooks. Notebooks 01–06 fokuserer på
 
 # Metode
 
-## Koalescentmodellen som fase-type fordeling
+Analyserne er i seks Jupyter notebooks, der tilsammen går fra de grundlæggende matematiske egenskaber ved koalescenten som fase-type fordeling over Bayesiansk inferens med SVGD til mere komplekse populationsmodeller og diskrete observationsstrukturer. Hvert notebookafsnit indeholder en præcis beskrivelse af metoderne, de undersøgte spørgsmål og de opstillede hypoteser og knytter dem til relevante resultater og figurer.
+
+::: {#tbl-notebooks .striped}
+
+| Notebook | Fokus | Tilgang |
+|---|---|---|
+| 01 | Kingmans koalescent som fase-type fordeling | Analytisk verificering, reward-transformation, SFS |
+| 02 | Bayesiansk inferens med SVGD: grundlæggende egenskaber | Prior-sensitivitet, læringsrate, posterior validering |
+| 03 | Identifikation og inferens i two-island modellen | SVGD på to-parameter model, MoM-sammenligning |
+| 04 | Numerisk præcision, parallel skalering og beregningsgrænser | MPFR, JAX-parallelisering, tilstandsrumsudvækst |
+| 05 | Tidsinhomogen koalescent og demografisk inferens | Flaskehalse, multi-epoch modeller, IM-modellen |
+| 06 | Inferens via joint sandsynligheder og diskrete SFS-observationer | *joint_prob_graph*, deficit, to-locus ARG |
+
+: Oversigt over de seks notebooks og deres formål.
+:::
+
+Alle analyser er implementeret i Python med *phasic*-pakken, der repræsenterer fase-type fordelinger som vægtede rettede grafer og understøtter eksakt beregning af momenter, PDF, CDF og SVGD-inferens.
+
+
+## Notebook 01 - Koalescentmodellen som fase-type fordeling
 
 ### Tilstandsrum og koalescensrater
 
@@ -357,6 +376,9 @@ $$
 $$
 
 hvor $\delta_{ij}$ er Kroneckers delta [@Hobolth2024]. Absorptionstilstanden er $(0, \ldots, 0, 1)$ svarende til MRCA. Den grafbaserede implementering i phasic konstruerer automatisk tilstandsrummet via en callback-funktion, hvilket giver fleksibilitet til at modellere vilkårlige koalescentprocesser uden manuelt at specificere overgangsmatricen. Modellen er implementeret med koalescensraten $\binom{k}{2}$ for $k$ aktive linjer, i overensstemmelse med standardkoalescenten under neutral evolution og Wright-Fisher [@wakeley2009coalescent].
+
+{{< embed 01_koalescent_basics.ipynb#fig-kingman-graph >}}
+
 
 
 ### Verifikation mod analytiske formler
@@ -381,6 +403,7 @@ $$
 
 Sojourn times er informative fordi de fortæller, i hvilken fase af koalescenten mutationer primært akkumuleres. For $n = 4$ er sojourn times $(k=4, 3, 2)$: $0{,}167$, $0{,}333$ og $1{,}000$ koalescentenheder (NB01). Summen giver $\mathbb{E}[H] = 1{,}5$, i overensstemmelse med den analytiske formel. Det fremgår at den største del af TMRCA akkumuleres i de sene stadier med få linjer, særligt den fase med $k = 2$ der udgør $1{,}000/1{,}500 = 67\%$ af den forventede TMRCA. Dette har direkte implikationer for SFS-formen: mutationer på de to interne grene (doubletons) og MRCA-grenen udgør langt størstedelen af den samlede grenlængde. I biologiske enheder er sojourn times for bavian-populationer med $N_e \approx 50{,}000$ og generationstid $g = 11$ år henholdsvis $3{,}300$, $6{,}600$ og $19{,}800$ år for $k = 4, 3, 2$.
 
+
 ### Reward-transformationer og Site Frequency Spectrum
 
 Site Frequency Spectrum (SFS) beregnes analytisk via reward-transformationer [@hobolth2021; @Hobolth2024]. Reward-vektoren $\mathbf{r}_k$ tildeler vægt $1$ til tilstande med præcis $k$ linjer der har en efterkommer (singletons) og den forventede $k$-ton grenlængde er
@@ -395,6 +418,7 @@ $$
 $$
 
 Den samlede grenlængde $\mathbb{E}[L] = 3{,}667$ stemmer præcist med Wattersons analytiske formel $2a_n = 2\sum_{k=1}^{n-1}1/k = 3{,}667$. Singletons dominerer SFS'en og udgør $54{,}5\%$ af den totale grenlængde for $n = 4$; singleton-andelen falder monotont med stigende $n$ fordi der med flere prøver er relativt mere grenlængde der deles af mange individer.
+
 
 ### Kovariansstruktur
 
@@ -433,7 +457,7 @@ I skaleret koalescent-tid er $\mathbb{E}[H] \propto N$ og $\text{Var}[H] \propto
 Fra den systematiske sammenligning af $n \in \{2, 4, 6, 8, 10\}$ (NB01) er $n = 4$ valgt som udgangspunkt for enkelt-populations koalescent-inferens.
 Med $n = 4$ har tilstandsrummet $35$ tilstande og modellen beregnes på under et sekund, mens $n = 10$ giver $1001$ tilstande og beregningstider på adskillige timer. Singleton-andelen for $n = 4$ er $54{,}5\%$ mod $40{,}0\%$ for $n = 10$, hvilket viser at informationsindholdet per observation stiger moderat med $n$ mens beregningstiden vokser eksponentielt. Til to-ø modellen og IM-modellen bruges $n = 6$ som kompromis med $140$ tilstande og beregningstider på 5-15 minutter. Enkelt-populations analyser bruger $n = 4$ med beregningstid på 1-3 minutter per population. Den fulde populationsstørrelse ($n \approx 50{-}124$ haplotyper) bruges til beregning af $\hat{\pi}$, $\hat{\theta}_W$ og Tajima's $D$, men ikke til SVGD-inferens.
 
-## Bayesiansk inferens med SVGD
+## Notebook 02 - Bayesiansk inferens med SVGD
 
 ### Metoden
 
@@ -492,7 +516,7 @@ Overgangen fra $40$ til $60$ partikler reducerer posterior-std med $\approx 15\%
 Konvergens overvåges via *sv.analyze_trace()* og *sv.plot_trace()* (NB02). Trace-analysen detekterer variance kollaps abrupt fald i partikeldiversitet inden konvergens og rapporterer stabiliseringstidspunktet for posterior-mean.
 Coverage-analysen (NB02) viser at $95\%$-CI dækker sand parameter i $94\%$ af tilfældene ved $n = 100$ og korrekt prior, men falder til $66\%$ ved $n = 2000$ som følge af variationel inferens' tendens til at undervurdere posterior-bredde ved store datamængder. Modelfit valideres via sammenligning af model-CDF med empirisk ECDF (NB02). Et godt match bekræfter at den neutrale koalescentmodel er et passende udgangspunkt.
 
-## To-ø modellen og identifikation
+## Notebook 3 - Identifikation og inferens i two-island modellen
 
 ### Modelspecifikation
 
@@ -522,7 +546,7 @@ HalfCauchyPrior er valgt til migrationsraten fordi GaussPrior giver systematisk 
 
 Iso-linjerne for $\mathbb{E}[TMRCA]$ (NB03) viser at parametre langs samme kurve er konfunderede: eksempelvis giver $(\theta_0, \theta_1) = (0{,}5, 3{,}0)$ og $(\theta_0, \theta_1) = (1{,}5, 0{,}3)$ identisk $\mathbb{E}[TMRCA]$. Konfunderingen reduceres ved at inkludere SFS-features frem for blot TMRCA-observationer.
 
-## Numerisk præcision og beregningsskalering
+## Notebook 04 - Numerisk præcision, parallel skalering og beregningsgrænser
 
 ### MPFR-præcision
 
@@ -551,7 +575,7 @@ $$
 
 Disse er de optimale kombinationer i balancen mellem posterior-std og beregningstid.
 
-## Tidsinhomogen koalescent og demografisk rekonstruktion
+## Notebook 05 - Tidsinhomogen koalescent og demografisk inferens
 
 ### Populationsflaskehals og multi-epoch demografi
 
@@ -568,7 +592,7 @@ Fra PSMC-profilet i Sørensen et al. (2023) og Rogers et al. (2019) er tre epoke
 
 IM-modellen implementeres som en tidsinhomogen to-ø model med split-tidspunkt $t_s$ (NB05). For $t < t_s$ tillades symmetrisk migration; for $t > t_s$ er der en ancestral population. Epoch-skiftet implementeres med $r_{\text{switch}} = 15/t_{s,\text{coal}}$. Modellen har tre frie parametre: $\theta_0$, $\theta_1$ og epoch-switch-raten. E[TMRCA] som funktion af $t_s$ i biologiske enheder viser at kendte bavian split-tider ($\approx 1{,}0$ Mya for *P. anubis*/*P. cynocephalus*) er i det identificerbare interval (NB05).
 
-## Joint probability-inferens
+## Notebook 6 - Inferens via joint sandsynligheder og diskrete SFS-observationer
 
 ### Joint probability-grafen og deficit
 
