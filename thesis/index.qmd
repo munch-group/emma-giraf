@@ -122,12 +122,10 @@ hvert tidsskridt et individ til at reproducere og et til at dø, med uniform san
 ### Kingmans koalescent
 
 I grænsen for stor populationsstørrelse $N \to \infty$ med
-tidsakseleringen $t \to t/(2N)$ (for diploide organismer) konvergerer diskrete slægtsskabsprocesser til Kingmans koalescent [@Kingman1982; @wakeley2009coalescent]. Kingmans koalescent er en kontinuert Markovkæde baglæns i tid, der beskriver, hvordan $n$ samtidige genetiske linjer gradvist smelter sammen til en fælles forfader. Med $k$ aktive linjer sker den næste koalescens med rate $\binom{k}{2}$, og processen stopper ved absorption i MRCA-tilstanden med en linje @fig-coalescent_plot.
+tidsakseleringen $t \to t/(2N)$ (for diploide organismer) konvergerer diskrete slægtsskabsprocesser til Kingmans koalescent [@Kingman1982; @wakeley2009coalescent]. Kingmans koalescent er en kontinuert Markovkæde baglæns i tid, der beskriver, hvordan $n$ samtidige genetiske linjer gradvist smelter sammen til en fælles forfader. Med $k$ aktive linjer sker den næste koalescens med rate $\binom{k}{2}$, og processen stopper ved absorption i MRCA-tilstanden med en linje @fig-graf.
 
-::: {#fig-coalescent_plot}
-![](illustrations/coalescent_plot.png){width="65%"}
-Grafrepræsentation af koalescent-modellen for $n=4$. Noder repræsenterer tilstand og pile repræsenterer mulige koalescenstransitioner med tilhørende rater. Starttilstanden $(4,0,0,0)$ er øverst til venstre, og den absorberende tilstand nås, når alle fire linjer er forenet. 
-:::
+{{< embed ../notebooks/01_koalescent_basics.ipynb#fig-graf >}}
+
 
 Den forventede tid til MRCA er
 $$
@@ -347,7 +345,7 @@ Specialet er opdelt i otte analytiske notebooks. Notebooks 01–06 fokuserer på
 
 # Metode
 
-Analyserne er i seks Jupyter notebooks, der tilsammen går fra de grundlæggende matematiske egenskaber ved koalescenten som fase-type fordeling over Bayesiansk inferens med SVGD til mere komplekse populationsmodeller og diskrete observationsstrukturer. Hvert notebookafsnit indeholder en præcis beskrivelse af metoderne, de undersøgte spørgsmål og de opstillede hypoteser og knytter dem til relevante resultater og figurer.
+Analyserne er i seks Jupyter notebooks, der tilsammen går fra de grundlæggende matematiske egenskaber ved koalescenten som fase-type fordeling over Bayesiansk inferens med SVGD til mere komplekse populationsmodeller og diskrete observationsstrukturer.
 
 ::: {#tbl-notebooks .striped}
 
@@ -375,22 +373,28 @@ $$
 \lambda_{ij} = \frac{s_i(s_j - \delta_{ij})}{1 + \delta_{ij}},
 $$
 
-hvor $\delta_{ij}$ er Kroneckers delta [@Hobolth2024]. Absorptionstilstanden er $(0, \ldots, 0, 1)$ svarende til MRCA. Den grafbaserede implementering i phasic konstruerer automatisk tilstandsrummet via en callback-funktion, hvilket giver fleksibilitet til at modellere vilkårlige koalescentprocesser uden manuelt at specificere overgangsmatricen. Modellen er implementeret med koalescensraten $\binom{k}{2}$ for $k$ aktive linjer, i overensstemmelse med standardkoalescenten under neutral evolution og Wright-Fisher [@wakeley2009coalescent].
+hvor $\delta_{ij}$ er Kroneckers delta [@Hobolth2024]. Absorptionstilstanden er $(0, \ldots, 0, 1)$ svarende til MRCA. Den grafbaserede implementering i phasic konstruerer automatisk tilstandsrummet via en callback-funktion, hvilket giver fleksibilitet til at modellere vilkårlige koalescentprocesser uden manuelt at specificere overgangsmatricen. Fordi processen har en absorberende tilstand, er absorptionstidspunktet $\tau$ (TMRCA) fase-type fordelt:
+$$
+\tau \sim \text{PH}(\alpha, \mathbf{T}),
+$$
+
+hvor $\alpha = (1, 0 \ldots, 0)$ er startvektoren og $\mathbf{T}$ er sub-intensitetsmatricen med negative diagonalelementer. 
 
 {{< embed ../notebooks/01_koalescent_basics.ipynb#fig-graf >}}
 
 ### Verifikation mod analytiske formler
 
-For at verificere korrekthed af implementeringen sammenlignes numeriske resultater fra phasic med kendte analytiske udtryk fra koalescentteorien. Den forventede MRCA-tid og varians er verificeret mod kendte analytiske udtryk (NB01). For $n = 4$ haplotyper giver phasic:
+For at verificere korrekthed af implementeringen sammenlignes numeriske resultater fra phasic med kendte analytiske udtryk fra koalescentteorien. Den forventede MRCA-tid og varians er: 
 $$
-\mathbb{E}[H] = 2\left(1 - \frac{1}{n}\right) = 1{,}5000 \quad \text{(afvigelse} < 10^{-6}\text{)},
-$$
-
-$$
-\text{Var}[H] = 1{,}1389.
+\mathbb{E}[H] = 2\!\left(1 - \frac{1}{n}\right), \qquad
+\text{Var}[H] = 4\sum_{k=2}^{n} \frac{1}{k^2(k-1)^2/4}.
 $$
 
-Verifikationen er udført for $n = 2, \ldots, 8$ med relativ afvigelse under $10^{-6}$ i alle tilfælde, hvilket bekræfter at implementeringen er korrekt. Variansen $\text{Var}[H] \propto N^2$ er konsekvent større end $\mathbb{E}[H] \propto N$, hvilket afspejler at store populationer ikke blot giver langsommere koalescens men også væsentligt mere variabel koalescens fra locus til locus. Dette er relevant fordi det betyder at estimater af $N_e$ baseret på et enkelt locus er behæftet med stor stokastisk usikkerhed, og at mange uafhængige loci er nødvendige for præcis inferens.
+For $n = 4$ giver phasic $\mathbb{E}[H] = 1{,}5000$ og $\text{Var}[H] = 1{,}1389$ med
+relativ afvigelse under $10^{-6}$, og verifikationen holder for $n = 2, \ldots, 8$ i alle tilfælde. Variansen $\text{Var}[H] \propto N^2$ er konsekvent større end $\mathbb{E}[H] \propto N$, hvilket afspejler at store populationer ikke blot giver langsommere koalescens men også væsentligt mere variabel koalescens fra locus til locus. Dette er relevant fordi det indebærer at estimater af $N_e$ baseret på et enkelt locus er behæftet med stor stokastisk usikkerhed.
+
+{{< embed 01_koalescent_basics.ipynb#tbl-verificering >}}
+
 
 ### Forventet sojourn time
 
@@ -399,7 +403,9 @@ $$
 \mathbb{E}[\tau_k] = \frac{2}{k(k-1)}.
 $$
 
-Sojourn times er informative fordi de fortæller, i hvilken fase af koalescenten mutationer primært akkumuleres. For $n = 4$ er sojourn times $(k=4, 3, 2)$: $0{,}167$, $0{,}333$ og $1{,}000$ koalescentenheder (NB01). Summen giver $\mathbb{E}[H] = 1{,}5$, i overensstemmelse med den analytiske formel. Det fremgår at den største del af TMRCA akkumuleres i de sene stadier med få linjer, særligt den fase med $k = 2$ der udgør $1{,}000/1{,}500 = 67\%$ af den forventede TMRCA. Dette har direkte implikationer for SFS-formen: mutationer på de to interne grene (doubletons) og MRCA-grenen udgør langt størstedelen af den samlede grenlængde. I biologiske enheder er sojourn times for bavian-populationer med $N_e \approx 50{,}000$ og generationstid $g = 11$ år henholdsvis $3{,}300$, $6{,}600$ og $19{,}800$ år for $k = 4, 3, 2$.
+Sojourn-tiderne er informative fordi de angiver i hvilken fase af koalescenten mutationer primært akkumuleres. For $n = 4$ er sojourn-tiderne $(k=4, 3, 2)$: $0{,}167$, $0{,}333$ og $1{,}000$ koalescentenheder. Summen giver $\mathbb{E}[H] = 1{,}5$, i overensstemmelse med den analytiske formel. Det fremgår at den største del af TMRCA akkumuleres i de sene stadier med få linjer, særligt den fase med $k = 2$ der udgør $1{,}000/1{,}500 = 67\%$ af den forventede TMRCA. Dette har direkte implikationer for SFS-formen: mutationer på de to interne grene (doubletons) og MRCA-grenen udgør langt størstedelen af den samlede grenlængde. I biologiske enheder er sojourn-tiderne for bavian-populationer med $N_e \approx 50{,}000$ og generationstid $g = 11$ år henholdsvis $3{,}300$, $6{,}600$ og $19{,}800$ år for $k = 4, 3, 2$.
+
+{{< embed 01_koalescent_basics.ipynb#tbl-sojourn >}}
 
 
 ### Reward-transformationer og Site Frequency Spectrum
@@ -409,16 +415,17 @@ $$
 \mathbb{E}[B_k] = \alpha(-\mathbf{S})^{-1}\mathbf{r}_k,
 $$
 
-hvor $\alpha$ er den initiale sandsynlighedsvektor og $\mathbf{S}$ er sub-intensitetsmatricen (NB01). Det forventede antal $k$-ton mutationer under infinite-sites modellen er $\mathbb{E}[\xi_k] = \theta \cdot \mathbb{E}[B_k]$, og SFS'en udgør dermed et direkte analytisk komprimat af genealogien. Reward transformationerne giver adgang til de fulde marginale fordelinger for individuelle SFS-komponenter via den univariate fase-type fordeling for $B_k$ ikke blot forventningerne. 
+hvor $\alpha$ er den initiale sandsynlighedsvektor og $\mathbf{S}$ er sub-intensitetsmatricen. Det forventede antal $k$-ton mutationer under infinite-sites modellen er $\mathbb{E}[\xi_k] = \theta \cdot \mathbb{E}[B_k]$, og SFS udgør dermed et direkte analytisk komprimat af genealogien. Reward transformationerne giver adgang til de fulde marginale fordelinger for individuelle SFS-komponenter via den univariate fase-type fordeling for $B_k$ ikke blot forventningerne. 
 For $n = 4$ giver dette SFS-komponenterne:
 $$
 (\mathbb{E}[B_1], \mathbb{E}[B_2], \mathbb{E}[B_3]) = (2{,}000, 1{,}000, 0{,}667).
 $$
 
-Den samlede grenlængde $\mathbb{E}[L] = 3{,}667$ stemmer præcist med Wattersons analytiske formel $2a_n = 2\sum_{k=1}^{n-1}1/k = 3{,}667$. Singletons dominerer SFS'en og udgør $54{,}5\%$ af den totale grenlængde for $n = 4$; singleton-andelen falder monotont med stigende $n$ fordi der med flere prøver er relativt mere grenlængde der deles af mange individer.
+Den samlede grenlængde $\mathbb{E}[L] = 3{,}667$ stemmer præcist med Wattersons analytiske formel $2a_n = 2\sum_{k=1}^{n-1}1/k = 3{,}667$. Singletons dominerer SFS og udgør $54{,}5\%$ af den totale grenlængde for $n = 4$; singleton-andelen falder monotont med stigende $n$ fordi der med flere prøver er relativt mere grenlængde der deles af mange individer.
 
+{{< embed 01_koalescent_basics.ipynb#fig-sfs >}}
 
-### Kovariansstruktur
+### Kovariansstruktur i SFS
 
 Den multivariate fase-type ramme giver direkte adgang til kovariansmatricen for SFS-komponenterne via reward-transformationer [@hobolth2021]. 
 Kovariansen beregnes analytisk via:
@@ -431,7 +438,7 @@ $$
 $$
 
 hvor $\Delta(\mathbf{r})$ er diagonalmatricen med reward-vektoren på diagonalen.
-For $n = 4$ giver dette (NB01):
+For $n = 4$ er kovarianserne:
 $$
 \text{Cov}(B_1, B_2) = -0{,}222, \quad
 \text{Cov}(B_1, B_3) = +0{,}889, \quad
@@ -442,24 +449,42 @@ Den negative kovarians mellem singletons ($B_1$) og doubletons ($B_2$) afspejler
 
 ### Matrixrepræsentation og tilstandsdynamik
 
-Phasic repræsenterer modellen som tre matricer: Initial Probability Vector (IPV) $\alpha$, sub-intensitetsmatrix $\mathbf{S}$ og absortionsratevektor $\mathbf{s} = -\mathbf{S}\mathbf{e}$ (NB01). Diagonalen af $\mathbf{S}$ indeholder de negative koalescensrater $-\binom{k}{2}$ for hver tilstand, mens off-diagonalen indeholder overgangsraterne til tilstande med færre linjer. For $n = 4$ er diagonal: $(-6, -3, -1, -1)$ 
+Phasic repræsenterer modellen som tre matricer: Initial Probability Vector (IPV) $\alpha$, sub-intensitetsmatrix $\mathbf{S}$ og absortionsratevektor $\mathbf{s} = -\mathbf{S}\mathbf{e}$. Diagonalen af $\mathbf{S}$ indeholder de negative koalescensrater $-\binom{k}{2}$ for hver tilstand, mens off-diagonalen indeholder overgangsraterne til tilstande med færre linjer. For $n = 4$ er diagonal: $(-6, -3, -1, -1)$ 
 
 Tilstandsdynamikken $\mathbf{P}(t) = e^{\mathbf{S}t}$ (NB01) viser at processen ved $t = 0{,}2$ primært befinder sig i tilstanden $(2,1,0,0)$ med $49{,}7\%$ sandsynlighed, mens starttilstanden $(4,0,0,0)$ stadig har $30{,}0\%$ sandsynlighed. Til $t = 1{,}0$ dominerer tilstanden $(1,0,1,0)$ med $34{,}4\%$ sandsynlighed en singleton og en tripleton, det næstsidste trin inden absorption. Denne tilstandsdynamik illustrerer at selv for $t = 1{,}0 \approx \mathbb{E}[H]$ er der en sandsynlighed for at processen endnu ikke er absorberet, hvilket afspejler den store varians i TMRCA.
 
 ### Skalering med populationsstørrelse
 
-I skaleret koalescent-tid er $\mathbb{E}[H] \propto N$ og $\text{Var}[H] \propto N^2$ (NBO1). Fordobling af $N_e$ fordobler den forventede TMRCA men firedobler variansen. For bavian-realistiske $N_e \in \{5\text{k}, \ldots, 200\text{k}\}$ og generationstid $g = 11$ år med $\mu = 0{,}9 \times 10^{-8}$ per site giver dette forventede TMRCA-værdier på $36{,}000{-}2{,}890{,}000$ år med standardafvigelser på $20{,}000{-}2{,}180{,}000$ år(NB01).
+I skaleret koalescenttid er $\mathbb{E}[H] \propto N$ og $\text{Var}[H] \propto N^2$:
+$$
+\mathbb{E}[H] = N \cdot \mathbb{E}[H]_{N=1}, \qquad
+\text{Var}[H] = N^2 \cdot \text{Var}[H]_{N=1}.
+$$
+
+Fordobling af $N_e$ fordobler den forventede TMRCA men firedobler variansen. For bavian-realistiske $N_e \in \{5\text{k}, \ldots, 200\text{k}\}$ og generationstid $g = 11$ år med $\mu = 0{,}9 \times 10^{-8}$ per site giver dette forventede TMRCA-værdier på $36{,}000{-}2{,}890{,}000$ år med standardafvigelser på $20{,}000{-}2{,}180{,}000$ år.
+
+{{< embed 01_koalescent_basics.ipynb#fig-skalering >}}
+
+{{< embed 01_koalescent_basics.ipynb#tbl-bavian-tmrca >}}
+
 
 ### Valg af stikprøvestørrelse
 
-Fra den systematiske sammenligning af $n \in \{2, 4, 6, 8, 10\}$ (NB01) er $n = 4$ valgt som udgangspunkt for enkelt-populations koalescent-inferens.
-Med $n = 4$ har tilstandsrummet $35$ tilstande og modellen beregnes på under et sekund, mens $n = 10$ giver $1001$ tilstande og beregningstider på adskillige timer. Singleton-andelen for $n = 4$ er $54{,}5\%$ mod $40{,}0\%$ for $n = 10$, hvilket viser at informationsindholdet per observation stiger moderat med $n$ mens beregningstiden vokser eksponentielt. Til to-ø modellen og IM-modellen bruges $n = 6$ som kompromis med $140$ tilstande og beregningstider på 5-15 minutter. Enkelt-populations analyser bruger $n = 4$ med beregningstid på 1-3 minutter per population. Den fulde populationsstørrelse ($n \approx 50{-}124$ haplotyper) bruges til beregning af $\hat{\pi}$, $\hat{\theta}_W$ og Tajima's $D$, men ikke til SVGD-inferens.
+Fra den systematiske sammenligning af $n \in \{2, 4, 6, 8, 10\}$ er $n = 4$ valgt som udgangspunkt for enkelt-populations koalescent-inferens.
+Med $n = 4$ har tilstandsrummet $35$ tilstande og modellen beregnes på under et sekund, mens $n = 10$ giver $1001$ tilstande og beregningstider på adskillige timer. Singleton-andelen for $n = 4$ er $54{,}5\%$ mod $40{,}0\%$ for $n = 10$, hvilket viser at informationsindholdet per observation stiger moderat med $n$ mens beregningstiden vokser eksponentielt. Til to-ø modellen og IM-modellen bruges $n = 8$ som kompromis med $140$ tilstande og beregningstider på 5-15 minutter. 
+
+{{< embed 01_koalescent_basics.ipynb#tbl-n-sammenligning >}}
+
+{{< embed 01_koalescent_basics.ipynb#fig-n-effekt >}}
+
+Den fulde populationsstørrelse ($n \approx 50$–$124$ haplotyper) bruges til beregning af $\hat{\pi}$, $\hat{\theta}_W$ og Tajima's $D$, men ikke til SVGD-inferens.
+
 
 ## Notebook 02 - Bayesiansk inferens med SVGD
 
 ### Metoden
 
-Bayesiansk inferens om de demografiske parametre $\theta$ udføres med Stein Variational Gradient Descent (SVGD) [@liu2016svgd] som implementeret i phasic. SVGD repræsenterer posterioren $p(\theta \mid \text{data})$ med et sæt af $M$ partikler $\{\theta^{(m)}\}_{m=1}^M$ opdateres iterativt via:
+Bayesiansk inferens som de demografiske parametre $\theta$ udføres med Stein Variational Gradient Descent (SVGD) [@liu2016svgd] som implementeret i phasic. SVGD repræsenterer posterioren $p(\theta \mid \text{data})$ med et sæt af $M$ partikler $\{\theta^{(m)}\}_{m=1}^M$ opdateres iterativt via:
 $$
 \theta^{(m)} \leftarrow \theta^{(m)} + \epsilon \phi^*(\theta^{(m)}),
 $$
@@ -473,34 +498,42 @@ $$
 \log \pi(\theta).
 $$
 
+
 ### Prior-valg
 
-Fire prior-strategier er sammenlignet systematisk (NB02):
+Fire prior-strategier er sammenlignet systematisk:
 
 - **GaussPrior (vag):** Bred prior der lader likelihood dominere. CI $= [1, 25]$, egnet ved lav prior-viden.
-- **GaussPrior (informativ):** Smallere prior centreret tæt på forventet $\theta$. Giver lavere posterior-std men kan give bias ved forkert centrering.
-- **HalfCauchyPrior:** Positiv fordeling med tunge haler. Egnet til skalaparametre som $N_e$ og migrationsrate $m$ fordi den undgår at afskære sandsynlighed ved lave værdier (NB02).
-- **DataPrior:** Automatisk MoM-baseret prior der konstrueres fra data. Giver den laveste posterior-std for bavian-realistiske $\theta \in [3, 20]$ (NB02).
+- **GaussPrior (informativ):** Smallere prior centreret tæt på forventet $\theta$. Giver lavere posterior-std men kan give bias ved forkert centrering. ved $n_\text{obs} = 50$ estimeres $\hat{\theta} \approx 4{,}1$ frem for sand $\theta = 7{,}0$, og biasset er stadig tydeligt ved $n_\text{obs} = 500$
+- **HalfCauchyPrior:** Positiv fordeling med tunge haler. Egnet til skalaparametre som $N_e$ og migrationsrate $m$ fordi den undgår at afskære sandsynlighed ved lave værdier.
+- **DataPrior:** Automatisk MoM-baseret prior der konstrueres fra data. Giver den laveste posterior-std for bavian-realistiske $\theta \in [3, 20]$.
 
-Analysen viser at en forkert prior ved $n < 500$ giver bias på op til $2{,}25$ i $\hat{\theta}$ sammenlignet med sand $\theta = 7{,}0$. 
+{{< embed 02_svgd_inferens_basis.ipynb#fig-priors >}}
+
+{{< embed 02_svgd_inferens_basis.ipynb#fig-prior-dominans >}}
+
 I bavian-analyserne bruges DataPrior til enkelt-populations koalescent og HalfCauchyPrior til migrationsraten i to-ø og IM-modellen.
-
 
 ### Lærningsrate og optimizer
 
 Adam med læringsrate $0{,}25$ er valgt som standardoptimizer baseret på
-systematisk sammenligning over seks strategier og bavian-realistiske $\theta \in \{3, 7, 15, 20\}$ med 300 iterationer (NB02):
+systematisk sammenligning over seks strategier og bavian-realistiske $\theta \in \{3, 7, 15, 20\}$ med 300 iterationer. Adam giver:
 $$
 \text{Adam}(0{,}25): \quad \hat{\theta} = 7{,}206 \pm 0{,}076
 \quad (\theta_{\text{sand}} = 7{,}0).
 $$
 
 Adams adaptive læringsrate per parameter kompenserer for at $\theta$ kan variere over mange størrelsesordener og forhindrer oscillerende opdateringer.
-ExpStepSize med aftagende rate ($0{,}1 \to 0{,}005$, $\tau = 40$) er et alternativ men giver større std ved høje $\theta$-værdier.Konstantelæringsrater oscillerer og er utilstrækkelige. Momentregularisering testes (NB02) men bruges ikke som standard da det destabiliserer SVGD ved stærke konstantregularisering.
+ExpStepSize med aftagende rate ($0{,}1 \to 0{,}005$, $\tau = 40$) er et alternativ men giver større std ved høje $\theta$-værdier. Konstante læringsrater oscillerer og er utilstrækkelige inden 300 iterationer. 
+
+{{< embed 02_svgd_inferens_basis.ipynb#fig-konvergens >}}
+
+{{< embed 02_svgd_inferens_basis.ipynb#fig-heatmap-lr >}}
+
 
 ### Optimal konfiguration
 
-Fra grid-søgning over partikler $\in \{20, 40, 60, 80, 120\}$ og iterations $\in \{100, 200, 300, 500\}$ for bavian baseline-parametre (NB02 + NB04) er den optimale konfiguration:
+Fra grid-søgning over partikler $\in \{20, 40, 60, 80, 120\}$ og iterations $\in \{100, 200, 300, 500\}$ for bavian baseline-parametre er den optimale konfiguration:
 $$
 M = 60 \text{ partikler}, \quad
 T = 300 \text{ iter. (enkelt-parameter)}, \quad
@@ -509,40 +542,66 @@ $$
 
 Overgangen fra $40$ til $60$ partikler reducerer posterior-std med $\approx 15\%$, mens overgangen fra $60$ til $80$ giver $< 5\%$ forbedring. Std er stabiliseret ved iteration $200-300$ og yderligere iterationer forbedrer ikke resultatet.
 
+{{< embed 02_svgd_inferens_basis.ipynb#fig-grid-svgd >}}
+
 ### Trace-analyse, coverage og posterior predictive check
 
-Konvergens overvåges via *sv.analyze_trace()* og *sv.plot_trace()* (NB02). Trace-analysen detekterer variance kollaps abrupt fald i partikeldiversitet inden konvergens og rapporterer stabiliseringstidspunktet for posterior-mean.
-Coverage-analysen (NB02) viser at $95\%$-CI dækker sand parameter i $94\%$ af tilfældene ved $n = 100$ og korrekt prior, men falder til $66\%$ ved $n = 2000$ som følge af variationel inferens' tendens til at undervurdere posterior-bredde ved store datamængder. Modelfit valideres via sammenligning af model-CDF med empirisk ECDF (NB02). Et godt match bekræfter at den neutrale koalescentmodel er et passende udgangspunkt.
+Konvergens overvåges via *sv.analyze_trace()* og *sv.plot_trace()*. Trace-analysen detekterer variance kollaps abrupt fald i partikeldiversitet inden konvergens og rapporterer stabiliseringstidspunktet for posterior-mean.
+Modelfit valideres via sammenligning af model-CDF med empirisk ECDF. Et godt match bekræfter at den neutrale koalescentmodel er et passende udgangspunkt.
 
-## Notebook 3 - Identifikation og inferens i two-island modellen
+{{< embed 02_svgd_inferens_basis.ipynb#fig-ppc >}}
+
+Coverage-analysen viser at $95\%$-CI dækker sand parameter i $94\%$ af tilfældene ved $n = 100$ og korrekt prior, men falder til $66\%$ ved $n = 2000$ som følge af variationel inferens' tendens til at undervurdere posterior-bredde ved store datamængder. 
+
+{{< embed 02_svgd_inferens_basis.ipynb#fig-coverage >}}
+
+
+
+## Notebook 3 - Identifikation og inferens i to-ø modellen
 
 ### Modelspecifikation
 
-To-ø modellen udvider standardkoalescenten til to populationer med symmetrisk migration. Tilstandsrummet udvides med en $in_{pop}$-komponent der tracker, hvilken population hver linje befinder sig i. Modellen har to frie parametre: koalescensraten $\theta_0 = 1/N$ og migrationsraten $\theta_1 = 2Nm$. Koalescens kan kun ske inden for samme population; migration sker med rate $\theta_1$ per linje (NB03).
+To-ø modellen udvider standardkoalescenten til to populationer med symmetrisk migration. Tilstandsrummet udvides med en $\text{in_{pop}}$-komponent der tracker, hvilken population hver linje befinder sig i via *StateIndexer* og *Property*-klasser. Modellen har to frie parametre: koalescensraten $\theta_0 = 1/N$ og migrationsraten $\theta_1 = 2Nm$. Koalescens kan kun ske inden for samme population; migration sker med rate $\theta_1$ per linje.
 Den biologiske motivation for to-ø modellen er veldokumenteret genflow på
 tværs af bavian-artsgrænser [@rogers2019; @sorensen2023] og modellen er den
 simpleste strukturerede koalescentmodel der simultant estimerer effektiv
-populationsstørrelse og genflydning.
+populationsstørrelse og genflow.
+
+{{< embed 03_svgd_two_island.ipynb#fig-two-island-graf >}}
+
 
 ### Identifikation og minimum stikprøvestørrelse
 
-Fra den systematiske test over bavian-parameterrum ($\theta_0 \in \{0{,}3, 0{,}7, 1{,}5\}$, $\theta_1 \in \{0{,}1, 0{,}5, 1{,}0, 2{,}0, 5{,}0\}$) med $N_{\text{obs}} = 5000$ og $n = 4$ (NB03) er følgende identificerbarhedskriterie fastlagt: parametrene er identificerbare når $\text{std}(\hat{\theta}_0) < 0{,}3$ og $\text{std}(\hat{\theta}_1) < 0{,}5$.
+Fra den systematiske test over bavian-parameterrum ($\theta_0 \in \{0{,}3, 0{,}7, 1{,}5\}$, $\theta_1 \in \{0{,}1, 0{,}5, 1{,}0, 2{,}0, 5{,}0\}$) med $N_{\text{obs}} = 5000$ og $n = 4$ er følgende identificerbarhedskriterie fastlagt: parametrene er identificerbare når $\text{std}(\hat{\theta}_0) < 0{,}3$ og $\text{std}(\hat{\theta}_1) < 0{,}5$.
 
-Et centralt fund er at $\mathbb{E}[TMRCA]$ er symmetrisk i migrationsraten: $\mathbb{E}[TMRCA]$ $\approx 2{,}857$ ved både $\theta_1 \to 0$ (isolation) og $\theta_1 \to \infty$ (panmixia) for $n = 2$ (NB03). Dette skyldes at med kun et linjepar er der en koalescens-begivenhed og isolation og panmixia giver identisk forventning. Med $n = 4$ afhjælpes symmetriproblemet fordi SFS-mønsteret bærer mere information om migrationsstrukturen. Minimum antal observationer for $\text{std}(\hat{\theta}_1) < 0{,}3$ ved høj migration er $N_{\text{obs}} \geq 5000$
-(NB03). Alle bavian-analyser bruger 5000 observationer per population.
+Et centralt fund er at $\mathbb{E}[TMRCA]$ er symmetrisk i migrationsraten: $\mathbb{E}[TMRCA]$ $\approx 2{,}857$ ved både $\theta_1 \to 0$ (isolation) og $\theta_1 \to \infty$ (panmixia) for $n = 2$. Dette skyldes at med kun et linjepar er der en koalescens-begivenhed og isolation og panmixia giver identisk forventning. Med $n = 4$ afhjælpes symmetriproblemet fordi SFS-mønsteret bærer mere information om migrationsstrukturen. Den parvise posterior viser systematisk negativ korrelation mellem $\theta_0$ og $\theta_1$: overvurderes koalescensraten, undervurderes migrationsraten og vice versa. Konfunderingen er stærkest ved lav migration og aftager ved $\theta_1 \geq 1{,}0$. Minimum antal observationer for $\text{std}(\hat{\theta}_1) < 0{,}3$ ved høj migration er $N_\text{obs} \geq 5000$, og alle bavian-analyser bruger 5000 observationer per population.
 
-### Asymmetrisk migration og prior-valg
+{{< embed 03_svgd_two_island.ipynb#tbl-identification >}}
 
-Den asymmetriske model med separate rater $m_{12}$ og $m_{21}$ testes for at undersøge om genflow er retningsbestemt (NBO3). Modellen kræver $n \geq 4$ og $N_{\text{obs}} \geq 5000$ for identificerbar estimering. Testen på simulerede data ($\theta_0 = 0{,}7$, $m_{12} = 2{,}0$, $m_{21} = 0{,}3$) giver:
-$$
-\hat{m}_{12} = 1{,}609 \pm 0{,}934, \quad \hat{m}_{21} = 0{,}581 \pm 0{,}281.
-$$
+{{< embed 03_svgd_two_island.ipynb#fig-pairwise-scenarier >}}
 
-HalfCauchyPrior er valgt til migrationsraten fordi GaussPrior giver systematisk bias: $\hat{\theta}_1 = 2{,}51$ (sand $= 0{,}9$) med GaussPrior mod $\hat{\theta}_1 = 0{,}863 \pm 0{,}287$ med HalfCauchyPrior (NB03). Biasset skyldes at en positiv migrationsrate er kompatibel med mange genealogier ved lave $\theta_1$-værdier, og en Gaussisk prior der tillader negative værdier trækker posterior mod for høje positive værdier.
+
+### Method of Moments vs. SVGD
+
+MoM-estimater for migrationsraten $\theta_1$ er ustabile ved $n_\text{obs} \leq 1000$:
+ved $n_\text{obs} = 300$ estimeres $\hat{\theta}_1 = 2{,}13$ frem for sand $\theta_1 = 1{,}0$, og ved $n_\text{obs} = 1000$ er estimatet stadig $1{,}68$. SVGD-posterior-mean er konsistent tættere på sandhed, og standardafvigelsen afspejler den reelle estimationsusikkerhed frem for blot punktestimater. Over fem bavian-relevante parameter-kombinationer er MoM kun tilstrækkelig i 2 af 5 scenarier ved $n_\text{obs} = 3000$.
+
+{{< embed 03_svgd_two_island.ipynb#fig-mom-vs-svgd >}}
+
+### Prior-valg og asymmetrisk migration 
+
+*HalfCauchyPrior* er valgt til migrationsraten fordi *GaussPrior* giver systematisk bias: $\hat{\theta}_1 = 2{,}51$ (sand $= 0{,}9$) med *GaussPrior*  mod $\hat{\theta}_1 = 0{,}863 \pm 0{,}287$ med *HalfCauchyPrior*. Biasset skyldes at en Gaussisk prior der tillader negative værdier trækker posterioren mod for høje positive værdier ved lave $\theta_1$.
+
+Den asymmetriske model med separate rater $m_{12}$ og $m_{21}$ testes for at undersøge om genflow er retningsbestemt. Testen på simulerede data ($\theta_0 = 0{,}7$, $m_{12} = 2{,}0$, $m_{21} = 0{,}3$) giver $\hat{m}_{12} = 1{,}609 \pm 0{,}934$ og $\hat{m}_{21} = 0{,}581 \pm 0{,}281$, med stærk negativ korrelation i den parvise posterior konsistent med at det er summen af migrationsraterne der primært driver koalescensprocessen for $n = 2$.
+
+{{< embed 03_svgd_two_island.ipynb#fig-asym-pairwise >}}
 
 ### Likelihood-overflade og konfundering
 
-Iso-linjerne for $\mathbb{E}[TMRCA]$ (NB03) viser at parametre langs samme kurve er konfunderede: eksempelvis giver $(\theta_0, \theta_1) = (0{,}5, 3{,}0)$ og $(\theta_0, \theta_1) = (1{,}5, 0{,}3)$ identisk $\mathbb{E}[TMRCA]$. Konfunderingen reduceres ved at inkludere SFS-features frem for blot TMRCA-observationer.
+Iso-linjerne for $\mathbb{E}[TMRCA]$ (NB03) viser at parametre langs samme kurve er konfunderede: eksempelvis giver $(\theta_0, \theta_1) = (0{,}5, 3{,}0)$ og $(\theta_0, \theta_1) = (1{,}5, 0{,}3)$ identisk $\mathbb{E}[TMRCA]$. Konfunderingen reduceres ved at inkludere SFS-features frem for blot TMRCA-observationer, fordi SFS-mønsteret bærer information om populationsstruktur ud over hvad den samlede grenlænde alene kan give.
+
+{{< embed 03_svgd_two_island.ipynb#fig-migration-tmrca >}}
+
 
 ## Notebook 04 - Numerisk præcision, parallel skalering og beregningsgrænser
 
@@ -551,6 +610,9 @@ Iso-linjerne for $\mathbb{E}[TMRCA]$ (NB03) viser at parametre langs samme kurve
 Phasic understøtter arbitrær-præcision aritmetik via GNU MPFR der aktiveres
 automatisk når betingelsestallet overstiger en tærskel. Testen (NB04) viser at double-præcision er tilstrækkelig for $n \leq 12$ under standard bavian-parametre med betingelsestal under $10^{10}$. MPFR er nødvendig ved meget høje rates (betingelsestal $> 10^{15}$) eller $n > 15$.
 For bavian-parametre ($\theta_0 \in [0{,}01, 5{,}0]$, $\theta_1 \in [0{,}1, 10{,}0]$) er double-præcision tilstrækkelig i alle analyser og MPFR aktiveres ikke (NB04), hvilket bekræfter at beregningsrammen er numerisk stabil for de parametre der er relevante for bavian-demografisk inferens.
+
+{{< embed 04_numerical_precision_and_scaling.ipynb#tbl-praecision >}}
+
 
 ### Beregningstid og optimal konfiguration 
 
@@ -563,39 +625,83 @@ Tilstandsrummet vokser eksponentielt med $n$. For to-ø modellen er:
 | 6 | 140 | $5{-}15$ min |
 | 8 | 420 | $30{-}60$ min |
 
-Dette motiverer valget af $n \in \{4, 6\}$ til bavian-analyser som en afvejning af informationsindhold og beregningstid (NB04).
+: Beregningstid som funktion af prøvestørrelse $n$ i to-ø modellen. {#tbl-states-time}
 
-Fra grid-søgningen over (particles $\times$ iterations) for bavian two-island baseline $\theta = [0{,}7, 1{,}0]$ (NB04):
+Dette motiverer valget af $n \in \{4, 6\}$ til bavian-analyser som en afvejning af informationsindhold og beregningstid. Grafbaseret elimination er hurtigere end
+matrixbaseret beregning for sparse grafer, fordi kun de faktisk forekommende
+tilstandsovergange repræsenteres.
+
+{{< embed 04_numerical_precision_and_scaling.ipynb#fig-skalering-states >}}
+
+
+### Optimal SVGD-konfiguration
+
+Fra grid-søgningen over (particles $\times$ iterations) for bavian to-ø baseline $\theta = [0{,}7, 1{,}0]$ er den optimale konfiguration:
 $$
 n_{\text{particles}} = 60, \quad n_{\text{iterations}} = 300 \text{ (enkelt-parameter)},
 \quad n_{\text{iterations}} = 400 \text{ (to-parameter)}.
 $$
 
-Disse er de optimale kombinationer i balancen mellem posterior-std og beregningstid.
+Disse er de optimale kombinationer i balancen mellem posterior-std og beregningstid under 30 sekunder for to-ø modellen.
+
+{{< embed 04_numerical_precision_and_scaling.ipynb#fig-grid-island >}}
+
 
 ## Notebook 05 - Tidsinhomogen koalescent og demografisk inferens
 
 ### Populationsflaskehals og multi-epoch demografi
 
-En populationsflaskehals modelleres ved at opdele koalescenten i tre epoker via *distribution_context* i phasic: normal $N$ fra $t = 0$ til $t_{\text{start}}$, reduceret $N_{\text{bottle}}$ fra $t_{\text{start}}$ til $t_{\text{end}}$ og normal $N$ igen derefter. Flaskehalsen vises som en hump i TMRCA-PDF og et singleton-overskud i SFS.
+En populationsflaskehals modelleres ved at opdele koalescenten i tre epoker via *distribution_context* i phasic: normal $N$ fra $t = 0$ til $t_{\text{start}}$, reduceret $N_{\text{bottle}}$ fra $t_{\text{start}}$ til $t_{\text{end}}$ og normal $N$ igen derefter.  I den tidsinhomogene koalescent varierer koalescensraten som:
+$$
+\lambda_k(t) = \binom{k}{2}\cdot\frac{1}{N(t)}.
+$$
 
-Testen (NB05) viser at flaskehalse er kun detekterbare i SFS når $t_{\text{start}} \approx 0$ og $N_{\text{bottle}} < N/50$. Moderate flaskehalse ($f < 10$) sent i koalescenten ($t_{\text{start}} > 0{,}5$) er nærmest usynlige i både TMRCA og SFS.
+Flaskehalsen vises som en bule i TMRCA-PDF og et singleton-overskud i SFS. Flaskehalse er kun detekterbare i SFS når $t_\text{start} \approx 0$ og $N_\text{bot} < N/50$. Moderate flaskehalse ($f < 10$) sent i koalescenten ($t_\text{start} > 0{,}5$) er nærmest usynlige i både TMRCA og SFS.
 
-Den tidsinhomogene model med stykvist konstant $N_e$ over tre epoker implementeres via en epoch-baseret koalescentgraf med et *epoch*-slot. Epoch-skift modelleres som Markov-overgange med rate $r_{\text{switch}} = 15/t_{\text{coal}}$; afvigelsen fra et deterministisk skift er under $10^{-3}$ ved $r_{\text{switch}} > 10/t_{\text{coal}}$ (NB05).
+{{< embed 05_time_inhomogeneous.ipynb#fig-bottleneck-cdf >}}
 
+{{< embed 05_time_inhomogeneous.ipynb#fig-sfs-bottleneck >}}
+
+
+### Multi-epoch scenarier
+
+Den tidsinhomogene model med stykvist konstant $N_e$ over tre epoker implementeres via en epoch-baseret koalescentgraf med et *epoch*-slot. Epoch-skift modelleres som Markov-overgange med rate $r_\text{switch} = 15/t_{\text{coal}}$; afvigelsen fra et deterministisk skift er under $10^{-3}$ ved $r_\text{switch} > 10/t_\text{coal}$.
+
+Fire typiske demografiske scenarier sammenlignes: konstant $N$, ekspansion ($N_e$ voksende baglæns), kontraktion ($N_e$ faldende baglæns) og flaskehals med recovery.
+
+{{< embed 05_time_inhomogeneous.ipynb#fig-multiepoch >}}
+
+Ekspansion giver den stejleste tidlige CDF og de fleste tidlige koalescenser. Kontraktion giver den fladeste CDF med en bred, tunghaletfordeling. Flaskehals med recovery giver en S-form i CDF med tydelige knæk ved epoch-grænser og en karakteristisk top i PDF under flaskehalsperioden.
 
 ### Epokevalg og IM-modellen
 
-Fra PSMC-profilet i Sørensen et al. (2023) og Rogers et al. (2019) er tre epoker ved 0, 50.000 og 200.000 år valgt (NB05, Del 11). Disse tidspunkter svarer til konsistente brud i PSMC-kurverne på tværs af populationer. Epoch-raterne beregnes per population baseret på $N_{\text{ref}} = \hat{\pi}/(4\mu)$: $t_{\text{coal}} = t_{\text{år}}/(2N_e \cdot g)$.
+Fra PSMC-profilet i @sorensen2023 og @rogers2019 er tre epoker ved 0, $0$, $50.000$ og
+$200.000$ år valgt svarende til konsistente brud i PSMC-kurverne på tværs af populationer. Epoch-raterne beregnes per population baseret på $N_{\text{ref}} = \hat{\pi}/(4\mu)$: $t_{\text{coal}} = t_{\text{år}}/(2N_e \cdot g)$.
 
-IM-modellen implementeres som en tidsinhomogen to-ø model med split-tidspunkt $t_s$ (NB05). For $t < t_s$ tillades symmetrisk migration; for $t > t_s$ er der en ancestral population. Epoch-skiftet implementeres med $r_{\text{switch}} = 15/t_{s,\text{coal}}$. Modellen har tre frie parametre: $\theta_0$, $\theta_1$ og epoch-switch-raten. E[TMRCA] som funktion af $t_s$ i biologiske enheder viser at kendte bavian split-tider ($\approx 1{,}0$ Mya for *P. anubis*/*P. cynocephalus*) er i det identificerbare interval (NB05).
+IM-modellen implementeres som en tidsinhomogen to-ø model med split-tidspunkt $t_s$.
+$$
+\theta(t) = \begin{cases}
+(\theta_0,\,\theta_1) & t < t_s \\
+(\theta_a,\,0) & t \geq t_s
+\end{cases}
+$$
+
+Epoch-skiftet implementeres med $r_{\text{switch}} = 15/t_{s,\text{coal}}$. Modellen har tre frie parametre: $\theta_0$, $\theta_1$ og epoch-switch-raten. $\mathbb{E}[\text{TMRCA}]$ som funktion af $t_s$ i biologiske enheder viser at kendte bavian split-tider ($\approx 1{,}0$ Milioner år for *P. anubis*/*P. cynocephalus*) er i det identificerbare interval.
+
+{{< embed 05_time_inhomogeneous.ipynb#fig-im-tmrca >}}
+
 
 ## Notebook 6 - Inferens via joint sandsynligheder og diskrete SFS-observationer
 
 ### Joint probability-grafen og deficit
 
-Joint probability-grafen beregner den fælles sandsynlighed for observerede mutations-kombinationer $(z_1, z_2, \ldots)$ antal $1$-ton, $2$-ton, $\ldots$ mutationer per locus (NB06). Parameteren *tot_reward_limit* sætter en øvre grænse for totalt antal mutationer; observationer ud over denne grænse tildeles en "trash"-tilstand med resterende sandsynlighedsmasse (deficit). Deficit $= 1 - \sum p_i$ bør holdes under 5\% for pålidelig inferens.
-Fra analysen over bavian-realistiske $\mu$ og $\theta$ (NB06):
+*Joint_prob_graph* beregner den fælles sandsynlighed for observerede mutations-kombinationer $(z_1, z_2, \ldots)$ antal $1$-ton, $2$-ton, $\ldots$ mutationer per locus. Log-likelihood for en observation $\mathbf{k}$ er:
+$$
+\log p(\mathbf{k} \mid \theta) = \log P_\mathbf{k}(\theta),
+$$
+
+beregnet eksakt fra absorptionssandsynligheder i den udvidede graf. Parameteren *tot_reward_limit* sætter en øvre grænse for totalt antal mutationer; observationer ud over denne grænse tildeles en "trash"-tilstand med resterende sandsynlighedsmasse (deficit). Deficit $= 1 - \sum_\mathbf{k} P_\mathbf{k}$ bør holdes under 5\% for pålidelig inferens.
+Fra analysen over bavian-realistiske $\mu$ og $\theta$:
 
 | $\mu$ | limit | Deficit |
 |---|---|---|
@@ -604,19 +710,32 @@ Fra analysen over bavian-realistiske $\mu$ og $\theta$ (NB06):
 | 1{,}5 | 3 | $0{,}05$ |
 | 2{,}0 | 3 | $0{,}20$ |
 
+: Deficit som funktion af mutationsrate og tot_reward_limit. {#tbl-deficit}
+
 $\mu = 1{,}0$ og *tot_reward_limit = 3* er valgt til bavian-analyser (deficit $< 1\%$).
+
+{{< embed 06_joint_probability_inferens.ipynb#fig-deficit >}}
+
 
 ### Prior, gevinst og sensitivitet
 
-DataPrior kollapser numerisk ved joint-grafen og giver posterior-std på  $10^6{-}10^8$ (NB06). Manuel GaussPrior med $\text{CI} = [\hat{\theta}_{\text{MoM}} \cdot 0{,}2,\, \hat{\theta}_{\text{MoM}} \cdot 5]$ bruges i stedet og giver stabil konvergens.
+*DataPrior* kollapser numerisk ved joint-grafen og giver posterior-std på  $10^6{-}10^8$. Manuel GaussPrior med $\text{CI} = [\hat{\theta}_{\text{MoM}} \cdot 0{,}2,\, \hat{\theta}_{\text{MoM}} \cdot 5]$ bruges i stedet og giver stabil konvergens.
 
-Sammenligning (NB06) viser at gevinsten ved joint over TMRCA er scenearieafhængig:
+Sammenligning af observationstyper viser at gevinsten ved joint over TMRCA er scenearieafhængig:
 
 - Gevinst $> 10\%$ ved $\theta < 5$ og $n_{\text{obs}} < 500$.
 - Samlede grenlængde giver lavest std ved moderate $\theta$.
 - Multi-feature SFS giver gevinst $\approx 56\%$ ved $\theta = 10$ og $N_{\text{obs}} > 3000$.
 
-Forkert specificeret $\mu$ giver proportional bias i $\hat{\theta}$ der ikke forsvinder med flere obersvartioner (NB06). En fejl på $2\times$ i $\mu$ giver en fejl på $2{-}3\times$ i $\hat{\theta}$:
+Sandsynlighedstabellens 2D-struktur ændrer sig systematisk med $\theta$ og denne form-ændring er informationsbærende ud over hvad marginalerne alene kan give.
+
+{{< embed 06_joint_probability_inferens.ipynb#tbl-joint-vs-tmrca >}}
+
+{{< embed 06_joint_probability_inferens.ipynb#fig-heatmap-joint >}}
+
+### Sensitivitet over for mutationsrate
+
+En fejlspecificeret mutationsrate $\mu$ giver proportional bias i $\hat{\theta}$ der ikke forsvinder med flere obersvartioner:
 
 | $\mu_{\text{fittet}}$ | $\hat{\theta}$ | Bias |
 |---|---|---|
@@ -624,7 +743,12 @@ Forkert specificeret $\mu$ giver proportional bias i $\hat{\theta}$ der ikke for
 | $1{,}0$ | $7{,}85$ | $+12\%$ |
 | $1{,}5$ | $14{,}5$ | $+107\%$ |
 
-Sensitivitetsanalyse over $\mu \in \{0{,}7, 1{,}0, 1{,}5\}$ rapporteres for alle bavian-populationer.
+: Effekt af fejlspecificeret $\mu$ på $\hat{\theta}$ (sand $\theta = 7{,}0$, $\mu_\text{sand} = 1{,}0$). {#tbl-mu-sensitivity}
+
+En fejl på $2\times$ i $\mu$ giver en fejl på $2$–$3\times$ i $\hat{\theta}$. Sensitivitetsanalyse over $\mu \in \{0{,}7, 1{,}0, 1{,}5\}$ rapporteres for alle bavian-populationer.
+
+{{< embed 06_joint_probability_inferens.ipynb#fig-arg-pairwise >}}
+
 
 ## Biologiske enheder og databehandling
 
@@ -637,7 +761,7 @@ N_e = \frac{\hat{\pi}}{4\mu}, \quad
 m_{\text{per generation}} = \frac{\theta_1}{2N_e},
 $$
 
-hvor $\hat{\pi}$ er nukleotiddiversitet per site, $\mu = 0{,}9 \times 10^{-8}$ per site per generation og $g = 11$ år [@sorensen2023].  $N_{\text{ref}} = \hat{\pi}/(4\mu)$ bruges som referencepopulationsstørrelse.
+hvor $\hat{\pi}$ er nukleotiddiversitet per site, $\mu = 0{,}9 \times 10^{-8}$ per site per generation og $g = 11$ år [@sorensen2023]. $N_{\text{ref}} = \hat{\pi}/(4\mu)$ bruges som referencepopulationsstørrelse og som udgangspunkt for prior-kalibrering i SVGD.
 
 ### Nukleotiddiversitet, Wattersons estimator og Tajima's $D$
 
@@ -663,7 +787,26 @@ hvor $\hat{\pi}_{\text{total}} = \sum_l 2p_l(1-p_l)n_l/(n_l-1)$ er det totale an
 
 Observationer til SVGD-inferens genereres via hypergeometrisk subsampling: for hvert SNP med afledt allelantal $a_l$ ud af $n_l$ haplotyper samples $n_{\text{sub}} \in \{4, 6\}$ haplotyper via $k \sim \text{Hypergeometrisk}(n_l, a_l, n_{\text{sub}})$, og $k$ bruges som TMRCA-proxy-observation hvis $0 < k < n_{\text{sub}}$. Subsampling sikrer at observationerne matcher grafens stikprøvestørrelse uden at kassere information fra individer.
 
-Alle analyser er udført på helgenomsekvenseringsdata fra kromosom $20$ i det fasede VCZ-datasæt fra Sørensen et al. (2023): $2.665.269$ varianter (SNPs) på tværs af $227$ diploide individer fordelt på seks *Papio*-arter. Populationstilhørsforhold er bestemt fra Tabel S2 i Sørensen et al. (2023). 
+Alle analyser er udført på helgenomsekvenseringsdata fra kromosom $20$ i det fasede VCZ-datasæt fra Sørensen et al. (2023): $2.665.269$ varianter (SNPs) på tværs af $227$ diploide individer fordelt på seks *Papio*-arter. Populationstilhørsforhold er bestemt fra Tabel S2 i @sorensen2023. 
+
+## Samlet konfiguration
+
+| Parameter | Valg | Begrundelse |
+|---|---|---|
+| $n$ (enkelt-pop.) | 4 | 22 tilstande, $< 1$ min, 3 SFS-komponenter |
+| $n$ (to-ø / IM) | 6 | 66 tilstande, 5–15 min, bedre migration-signal |
+| Optimizer | *Adam(0.25)* | Lavest bias over bavian-$\theta$ |
+| Iterationer (enkelt) | 300 | Konvergeret inden 200 for de fleste modeller |
+| Iterationer (to-param.) | 400 | Ekstra iterationer til migration-identifikation |
+| Partikler | 60 | Diminishing returns over 60 |
+| Prior (enkelt-pop.) | *DataPrior* | Automatisk, data-informeret |
+| Prior (migration) | *HalfCauchyPrior* | Positiv-støttet, undgår bias |
+| Aritmetik | 64-bit float64 | Tilstrækkelig for bavian-parametre |
+| *tot_reward_limit* | 3 | Deficit $< 1\%$ for $\mu = 1{,}0$ |
+| $\mu$ | $0{,}9 \times 10^{-8}$ | Per site per generation [@sorensen2023] |
+| $g$ | 11 år | Generationstid [@sorensen2023] |
+
+: Standardkonfiguration til bavian-analyser. {#tbl-config}
 
 
 # Diskussion
