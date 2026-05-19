@@ -395,6 +395,16 @@ relativ afvigelse under $10^{-6}$, og verifikationen holder for $n = 2, \ldots, 
 
 {{< embed ../notebooks/01_koalescent_basics.ipynb#tbl-verificering >}}
 
+### Tilstandsdynamik
+
+Tilstandssandsynlighederne $\mathbf{P}(t) = e^{\mathbf{S}t}$ beskriver hvordan processen bevæger sig gennem tilstandsrummet over tid. Ved $t = 0{,}2$ befinder processen sig primært i tilstanden $(2,1,0,0)$ med $49{,}7\%$ sandsynlighed, mens starttilstanden $(4,0,0,0)$ stadig har $30{,}0\%$ sandsynlighed. Til $t = 1{,}0$ dominerer tilstanden $(1,0,1,0)$ med $34{,}4\%$ sandsynlighed det næstsidste trin inden absorption. Denne tilstandsdynamik illustrerer at selv for $t \approx \mathbb{E}[H]$ er der betydelig sandsynlighed for at processen endnu ikke er absorberet.
+
+{{< embed ../notebooks/01_koalescent_basics ipynb#fig-tilstandsdynamik >}}
+
+Det forventede antal aktive lineager falder hurtigt fra $n$ mod 2 og derefter langsomt mod 1, svarende til at de fleste koalescenshændelser sker tidligt mens den sidste er lang.
+
+{{< embed ../notebooks/01_koalescent_basics.ipynb#fig-aktive-lineager >}}
+
 
 ### Forventet sojourn time
 
@@ -425,6 +435,10 @@ Den samlede grenlængde $\mathbb{E}[L] = 3{,}667$ stemmer præcist med Watterson
 
 {{< embed ../notebooks/01_koalescent_basics.ipynb#fig-sfs >}}
 
+CDF og PDF for TMRCA illustrerer fordelingens form: PDF har en top ved lave $t$-værdier og en lang tung hale, konsistent med at de fleste lineager smelter hurtigt og MRCA akkumuleres langsomt.
+
+{{< embed ../notebooks/01_koalescent_basics.ipynb#fig-cdf-pdf >}}
+
 ### Kovariansstruktur i SFS
 
 Den multivariate fase-type ramme giver direkte adgang til kovariansmatricen for SFS-komponenterne via reward-transformationer [@hobolth2021]. 
@@ -445,7 +459,15 @@ $$
 \text{Cov}(B_2, B_3) = -0{,}444.
 $$
 
+{{< embed ../notebooks/01_koalescent_basics.ipynb#tbl-kovarians >}}
+
 Den negative kovarians mellem singletons ($B_1$) og doubletons ($B_2$) afspejler at de to SFS-komponenter konkurrerer om grenlængdebudget: en genealogi med mange singletons har typisk færre doubletons og omvendt, da de koalescerer med modstridende genealogiske mønstre. Den positive kovarians mellem $B_1$ og $B_3$ skyldes at begge akkumuleres simultant i tilstande med mange aktive linjer tidligt i koalescenten en lang koalescent giver mere grenlængde i alle kategorier. Disse kovariansstrukturer er relevante fordi de viser at naiv antagelse om uafhængighed mellem SFS-komponenter undervurderer usikkerheden på demografiske estimater.
+
+### Diskrete mutationer
+
+Via *graph.discretize()* tilføjes Poisson-mutationer med rate $\mu$ langs grenene. PMF-plottet viser en stærkt højreskæv fordeling: sandsynligheden for 0 eller 1 mutation pr. locus er størst, og fordelingen nærmer sig Poisson for store $N$ og $\mu$.
+
+{{< embed ../notebooks/01_koalescent_basics.ipynb#fig-pmf-mutationer >}}
 
 ### Matrixrepræsentation og tilstandsdynamik
 
@@ -512,24 +534,57 @@ Fire prior-strategier er sammenlignet systematisk:
 
 {{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-prior-dominans >}}
 
-I bavian-analyserne bruges DataPrior til enkelt-populations koalescent og HalfCauchyPrior til migrationsraten i to-ø og IM-modellen.
+Konvergensforløbet under de fire priors viser tydeligt at forkert prior kæmper mod likelihood i de første iterationer, mens korrekt prior og Half-Cauchy konvergerer hurtigt.
+
+{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-konvergens-priors >}}
+
+Prior-dominansen aftager efterhånden som datasætstørrelsen øges — ved $n_\text{obs} \geq 1000$ er forskellen negligibel.
+
+{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-prior-dominans >}}
+
+Over bavian-realistiske $\theta \in \{3, 7, 15, 20\}$ giver *DataPrior* den laveste posterior-std.
+
+{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#tbl-prior-bav >}}
+
+I bavian-analyserne bruges *DataPrior* til enkelt-populations koalescent og *HalfCauchyPrior* til migrationsraten i to-ø og IM-modellen.
 
 ### Lærningsrate og optimizer
 
-Adam med læringsrate $0{,}25$ er valgt som standardoptimizer baseret på
-systematisk sammenligning over seks strategier og bavian-realistiske $\theta \in \{3, 7, 15, 20\}$ med 300 iterationer. Adam giver:
+Adam med læringsrate $0{,}25$ er valgt som standardoptimizer baseret på systematisk sammenligning over seks strategier og bavian-realistiske $\theta \in \{3, 7, 15, 20\}$ med 300 iterationer. Adam giver:
 $$
 \text{Adam}(0{,}25): \quad \hat{\theta} = 7{,}206 \pm 0{,}076
 \quad (\theta_{\text{sand}} = 7{,}0).
 $$
 
-Adams adaptive læringsrate per parameter kompenserer for at $\theta$ kan variere over mange størrelsesordener og forhindrer oscillerende opdateringer.
-ExpStepSize med aftagende rate ($0{,}1 \to 0{,}005$, $\tau = 40$) er et alternativ men giver større std ved høje $\theta$-værdier. Konstante læringsrater oscillerer og er utilstrækkelige inden 300 iterationer. 
+{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-lr-schedules >}}
+
+Konvergensplottene viser at konstante læringsrater oscillerer og ikke konvergerer tilstrækkeligt, mens Adam og aftagende schedules stabiliserer sig inden iteration 200.
 
 {{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-konvergens >}}
 
+En systematisk kalibrering over bavian-realistiske $\theta$-værdier bekræfter at `Adam(0.25)` er den bedste globale strategi.
+
 {{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-heatmap-lr >}}
 
+Det samlede heatmap over bias og std for alle kombinationer giver et overblik over robustheden på tværs af parameterrum.
+
+{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-heatmap-bias-std >}}
+
+### Regularisering
+
+Momentregularisering kan stabilisere konvergens i tidlige iterationer, men stærk konstant regularisering giver en bredere posterior fordi partiklerne forhindres i at finde posterior-koncentrationen. Aftagende regularisering (`ExpRegularization`) er et bedre kompromis.
+
+{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-regularisering >}}
+
+### Posterior predictive check og coverage
+
+Modelfit valideres via sammenligning af model-CDF med empirisk ECDF. Et godt match bekræfter at den neutrale koalescentmodel er passende.
+
+{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-ppc >}}
+
+Coverage-analysen viser at $95\%$-CI dækker sand parameter i $94\%$ af tilfældene ved $n_\text{obs} = 100$ og korrekt prior, men falder til $66\%$ ved $n_\text{obs} = 2000$.
+
+{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-coverage >}}
 
 ### Optimal konfiguration
 
@@ -577,6 +632,17 @@ Et centralt fund er at $\mathbb{E}[TMRCA]$ er symmetrisk i migrationsraten: $\ma
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#fig-pairwise-scenarier >}}
 
+### PDF-form som funktion af migration
+
+PDF-formen ændrer sig systematisk med migrationsraten: lav migration giver en bred, tunghaletfordeling mens høj migration nærmer sig standardkoalescentens eksponentielle form.
+
+{{< embed ../notebooks/03_svgd_two_island.ipynb#fig-pdf-migration >}}
+
+### TMRCA vs. SFS-baseret inferens
+
+En sammenligning af TMRCA-baseret og SFS-baseret posterior viser at SFS-baseret inferens giver smallere posterior for $\theta_0$ ved moderat migration, fordi SFS-mønsteret bærer information om populationsstruktur ud over hvad TMRCA alene kan give.
+
+{{< embed ../notebooks/03_svgd_two_island.ipynb#fig-tmrca-vs-sfs >}}
 
 ### Method of Moments vs. SVGD
 
@@ -585,11 +651,17 @@ ved $n_\text{obs} = 300$ estimeres $\hat{\theta}_1 = 2{,}13$ frem for sand $\the
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#fig-mom-vs-svgd >}}
 
+{{< embed ../notebooks/03_svgd_two_island.ipynb#tbl-mom-bavian >}}
+
+
 ### Prior-valg og asymmetrisk migration 
 
 *HalfCauchyPrior* er valgt til migrationsraten fordi *GaussPrior* giver systematisk bias: $\hat{\theta}_1 = 2{,}51$ (sand $= 0{,}9$) med *GaussPrior*  mod $\hat{\theta}_1 = 0{,}863 \pm 0{,}287$ med *HalfCauchyPrior*. Biasset skyldes at en Gaussisk prior der tillader negative værdier trækker posterioren mod for høje positive værdier ved lave $\theta_1$.
 
 Den asymmetriske model med separate rater $m_{12}$ og $m_{21}$ testes for at undersøge om genflow er retningsbestemt. Testen på simulerede data ($\theta_0 = 0{,}7$, $m_{12} = 2{,}0$, $m_{21} = 0{,}3$) giver $\hat{m}_{12} = 1{,}609 \pm 0{,}934$ og $\hat{m}_{21} = 0{,}581 \pm 0{,}281$, med stærk negativ korrelation i den parvise posterior konsistent med at det er summen af migrationsraterne der primært driver koalescensprocessen for $n = 2$.
+
+{{< embed ../notebooks/03_svgd_two_island.ipynb#tbl-prior-migration >}}
+
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#fig-asym-pairwise >}}
 
