@@ -61,7 +61,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="../site_libs/quarto-nav/headroom.min.js"></script>
 <script src="../site_libs/clipboard/clipboard.min.js"></script>
 <script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
@@ -116,9 +116,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     document.body.classList.add('hypothesis-enabled');
   });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js" integrity="sha384-c9c+LnTbwQ3aujuU7ULEPVvgLs+Fn6fJUvIGTsuu1ZcCf11fiEubah0ttpca4ntM sha384-6V1/AdqZRWk1KAlWbKBlGhN7VG4iE/yAZcO6NZPMF8od0vukrvr0tg4qY6NSrItx" crossorigin="anonymous"></script>
-
-<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 
   <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
   <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
@@ -310,10 +307,7 @@ window.Quarto = {
   <li><a href="#regularisering-og-posterior-kollaps" id="toc-regularisering-og-posterior-kollaps" class="nav-link" data-scroll-target="#regularisering-og-posterior-kollaps">Regularisering og posterior-kollaps</a></li>
   <li><a href="#posterior-validering-dækker-95-ci-den-sande-parameter" id="toc-posterior-validering-dækker-95-ci-den-sande-parameter" class="nav-link" data-scroll-target="#posterior-validering-dækker-95-ci-den-sande-parameter">Posterior-validering: Dækker 95% CI den sande parameter?</a></li>
   <li><a href="#posterior-predictive-check" id="toc-posterior-predictive-check" class="nav-link" data-scroll-target="#posterior-predictive-check">Posterior predictive check</a></li>
-  <li><a href="#udforskning-af-alle-læringsrater" id="toc-udforskning-af-alle-læringsrater" class="nav-link" data-scroll-target="#udforskning-af-alle-læringsrater">Udforskning af alle læringsrater</a></li>
-  <li><a href="#im-modellen-isolation-with-migration" id="toc-im-modellen-isolation-with-migration" class="nav-link" data-scroll-target="#im-modellen-isolation-with-migration">IM-modellen: Isolation with Migration</a></li>
-  <li><a href="#ghost-population-usynlig-population-med-genflow" id="toc-ghost-population-usynlig-population-med-genflow" class="nav-link" data-scroll-target="#ghost-population-usynlig-population-med-genflow">Ghost population: Usynlig population med genflow</a></li>
-  <li><a href="#probability-matching-en-tredje-estimeringsmetode" id="toc-probability-matching-en-tredje-estimeringsmetode" class="nav-link" data-scroll-target="#probability-matching-en-tredje-estimeringsmetode">Probability Matching: en tredje estimeringsmetode</a></li>
+  <li><a href="#sammenligning-af-alle-læringsrate-strategier" id="toc-sammenligning-af-alle-læringsrate-strategier" class="nav-link" data-scroll-target="#sammenligning-af-alle-læringsrate-strategier">Sammenligning af alle læringsrate-strategier</a></li>
   <li><a href="#systematisk-svgd-kalibrering-til-bavian-parametre" id="toc-systematisk-svgd-kalibrering-til-bavian-parametre" class="nav-link" data-scroll-target="#systematisk-svgd-kalibrering-til-bavian-parametre">Systematisk SVGD-kalibrering til bavian-parametre</a></li>
   <li><a href="#svgd-posterior-form-peaked-vs.-flad-posterior" id="toc-svgd-posterior-form-peaked-vs.-flad-posterior" class="nav-link" data-scroll-target="#svgd-posterior-form-peaked-vs.-flad-posterior">SVGD posterior-form: peaked vs.&nbsp;flad posterior</a></li>
   <li><a href="#custom-optimizer" id="toc-custom-optimizer" class="nav-link" data-scroll-target="#custom-optimizer">Custom optimizer</a></li>
@@ -344,7 +338,7 @@ window.Quarto = {
 
 <p>I denne notebook vil jeg se på Stein Variational Gradient Descent (SVGD) som metode til Bayesiansk parameterestimering i fase-type modeller. Jeg starter med en single-parameter koalescent og undersøger, hvordan valget af prior, lærings rate og regularisering påvirker konvergens og posterior-præcision. Jeg undersøger desuden prøvestørrelse-effekter og posterior-bredde.</p>
 <p><strong>SVGD</strong> repræsenterer posterioren med et sæt partikler der iterativt opdateres mod den sande posterior ved at kombinere gradient-information fra likelihood og prior med et kernelbaseret kraft, der forhindrer partikelkollaps.</p>
-<div id="7a81c81d" class="cell" data-execution_count="1">
+<div id="7a81c81d" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Importer de nødvendige pakker</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">"CUDA_VISIBLE_DEVICES"</span>] <span class="op">=</span> <span class="st">"0"</span>   </span>
@@ -369,51 +363,13 @@ window.Quarto = {
 <span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>plt.rcParams[<span class="st">'figure.figsize'</span>] <span class="op">=</span> (<span class="dv">9</span>, <span class="dv">4</span>)</span>
 <span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>clear_caches()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-
-<style>
-.widget-label,
-.widget-html,
-.widget-button,
-.widget-dropdown,
-.widget-text,
-.widget-textarea {
-    color: #CCCCCC !important;  /* Set to desired color */
-    font-size: 10px !important;      /* Font size */
-
-}
-div.widget-html-content > progress { /* Outer container */
-    height: 10px !important;
-
-}
-div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
-    height: 5px !important;
-}
-div.progress { /* Jupyter Notebook (classic) */
-    height: 5px !important;
-    min-height: 5px !important;
-    margin-top: 12px !important;    
-}
-div.progress-bar { /* Inner bar */
-    height: 5px !important;
-    min-height: 5px !important;
-    line-height: 5px !important;
-    color: 'white' !important;
-    padding-bottom: 0px !important;    
-}
-
-table {
-    font-variant-numeric: tabular-nums; 
-}
-</style>
-</div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  Removed 27 file(s), preserved directory structure</code></pre>
+<pre><code>  Removed 11 file(s), preserved directory structure</code></pre>
 </div>
 </div>
-<div id="cf79e3ed" class="cell" data-execution_count="2">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Standard parameteriseret koalescent som i notebook 01</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># theta[0] = koalescensrate (1/N)</span></span>
+<div id="cf79e3ed" class="cell" data-execution_count="9">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Standard parameteriseret doalescent som i notebook 01</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># theta[0] = coalescensrate (1/N)</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> (nr_samples <span class="op">-</span> <span class="dv">1</span>))</span>
@@ -442,7 +398,7 @@ table {
 <li>En informativ, men korrekt centreret prior konvergerer hurtigere og giver smallere posterior end en vag prior. En vag prior med store prøvestørrelse konvergerer til det samme resultat som en informativ prior.</li>
 </ul>
 <p>Jeg forventer: ved <span class="math inline">\(n_{obs} = 10.000\)</span> er prioren næsten irrelevant, men ved <span class="math inline">\(n_{obs} = 100\)</span> dominerer prioren stærkt.</p>
-<div id="c8a9501f" class="cell" data-execution_count="3">
+<div id="c8a9501f" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simuler data med kendt sand parameter</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>N_OBS <span class="op">=</span> <span class="dv">2000</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> graph.sample(N_OBS)</span>
@@ -623,7 +579,14 @@ Figure&nbsp;4.2
 </figure>
 </div>
 </div>
-<p>Fire CI-plots viser posterioren som et histogram af 80 partikler med 95%-CI markeret og den sande parameter (<span class="math inline">\(\theta=7\)</span>) som lodret linje. Vag prior giver en bred posterior stor usikkerhed. Korrekt prior giver en smal, centreret posterior der præcist dækker sand <span class="math inline">\(\theta=7\)</span>. Forkert prior giver en posterior der stadig er trukket mod lavere <span class="math inline">\(\theta\)</span>-værdier og ikke nødvendigvis indeholder sand <span class="math inline">\(\theta\)</span> i sit CI. HalfCauchy giver den smalleste posterior med den korrekte centrering.</p>
+<p>Fire CI-plots viser posterioren som et histogram af partikler med 95%-CI markeret og den sande parameter (<span class="math inline">\(\theta=7\)</span>) som lodret linje.</p>
+<ul>
+<li><strong>Vag prior</strong> giver en bred posterior med stor usikkerhed — likelihood dominerer men har brug for mange data.</li>
+<li><strong>Korrekt prior</strong> giver en smal, centreret posterior der præcist dækker sand <span class="math inline">\(\theta=7\)</span>.</li>
+<li><strong>Forkert prior</strong> giver en posterior der er trukket mod lavere <span class="math inline">\(\theta\)</span>-værdier og ikke nødvendigvis indeholder sand <span class="math inline">\(\theta\)</span> i sit CI ved <span class="math inline">\(n=2000\)</span>.</li>
+<li><strong>HalfCauchy</strong> giver en korrekt centreret posterior med tung hale mod høje værdier, velegnet til positive skalaparametre.</li>
+</ul>
+<p>Den smalleste posterior opnås med <strong>Adam-optimizeren</strong> (se læringsrate-afsnittet), ikke af prior-valget alene.</p>
 </section>
 <section id="hypotese-prior-dominans-som-funktion-af-prøvestørrelse" class="level3">
 <h3 class="anchored" data-anchor-id="hypotese-prior-dominans-som-funktion-af-prøvestørrelse">Hypotese: Prior dominans som funktion af prøvestørrelse</h3>
@@ -1040,7 +1003,14 @@ Figure&nbsp;4.6
 2000                       0.0                      0.02              12.2102               9.1259</code></pre>
 </div>
 </div>
-<p>Korrekt prior giver 94% ved <span class="math inline">\(n=100\)</span> hvad man forventer. Men ved <span class="math inline">\(n=2000\)</span> falder dækningen til 66% for korrekt prior. Det skyldes at med mange data bliver posterioren meget smal, og CI’et er beregnet som <span class="math inline">\(\pm 1.96 \times \text{std}\)</span>. Bias-tallene viser det: forkert prior ved <span class="math inline">\(n=100\)</span> har bias på −2.23 (estimerer 4.8 i stedet for 7.0), og dækningen er kun 24%, fordi CI’et slet ikke indeholder sand <span class="math inline">\(\theta=7\)</span></p>
+<p><strong>Coverage-resultater:</strong></p>
+<ul>
+<li><strong>Korrekt prior, <span class="math inline">\(n=100\)</span>:</strong> <span class="math inline">\(94\%\)</span> dækning — nærmest perfekt nominel dækning.</li>
+<li><strong>Korrekt prior, <span class="math inline">\(n=2000\)</span>:</strong> <span class="math inline">\(66\%\)</span> dækning — lavere end forventet.</li>
+<li><strong>Forkert prior, <span class="math inline">\(n=100\)</span>:</strong> <span class="math inline">\(24\%\)</span> dækning — prioren dominerer og CI indeholder ikke sand <span class="math inline">\(\theta=7\)</span>.</li>
+<li><strong>Forkert prior, <span class="math inline">\(n=2000\)</span>:</strong> <span class="math inline">\(84\%\)</span> dækning — likelihood overtager gradvist fra prioren.</li>
+</ul>
+<p>Det er vigtigt at forstå, at faldende coverage med flere data <strong>ikke er en fejl i SVGD</strong>. Det er en konsekvens af variationel inferens’ tendens til at undervurdere posterior-bredde (underdispersion): med mange data bliver posterioren meget smal, og <span class="math inline">\(\pm 1{,}96 \times \text{std}\)</span> undervurderer det sande konfidensinterval. Dette er et velkendt fænomen ved alle variationelle metoder og ikke specifikt for SVGD. For praktisk brug af bavian-data anbefales det at rapportere posterior-std direkte frem for at fortolke CI’et som et klassisk <span class="math inline">\(95\%\)</span>-konfidensinterval.</p>
 <div id="cell-fig-coverage" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualiser coverage</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">4</span>))</span>
@@ -1066,7 +1036,10 @@ Figure&nbsp;4.7: Empirisk 95pct-CI dækning som funktion af prøvestørrelse.
 </div>
 </div>
 </div>
-<p>To kurver på log-skala x-akse. Den stiplede sorte linje er 95%-dækning. Korrekt prior (blå) starter ved 94% ved <span class="math inline">\(n=100\)</span> næsten perfekt og falder til 66% ved <span class="math inline">\(n=2000\)</span>. Så flere data giver dårligere coverage. Forklaringen er at posterioren er så smal at <span class="math inline">\(\pm 1.96 \times \text{std}\)</span> undervurderer det sande CI. Forkert prior (orange) starter ved 24% ved <span class="math inline">\(n=100\)</span> ikke godt og stiger til 84% ved <span class="math inline">\(n=2000\)</span> efterhånden som likelihood overtager. Kurverne krydser hinanden, hvilket illustrerer at prior-valget ikke bare påvirker præcision men også calibrering.</p>
+<p>Coverage-plottet viser to kurver på log-skala x-akse med den stiplede sorte linje ved nominel <span class="math inline">\(95\%\)</span>-dækning.</p>
+<p><strong>Korrekt prior</strong> (blå) starter ved <span class="math inline">\(94\%\)</span> ved <span class="math inline">\(n=100\)</span> og <strong>falder</strong> til <span class="math inline">\(66\%\)</span> ved <span class="math inline">\(n=2000\)</span>. Dette skyldes ikke en fejl: variationel inferens undervurderer systematisk posterior-bredde når data er mange og posterioren er smal. SVGD giver korrekt centrerede estimater men for smalle CI’er ved store <span class="math inline">\(n\)</span>.</p>
+<p><strong>Forkert prior</strong> (orange) starter ved <span class="math inline">\(24\%\)</span> ved <span class="math inline">\(n=100\)</span> — prioren dominerer og trækker estimatet væk fra sand <span class="math inline">\(\theta\)</span> — og stiger til <span class="math inline">\(84\%\)</span> ved <span class="math inline">\(n=2000\)</span> efterhånden som likelihood overtager.</p>
+<p>Kurverne krydser hinanden, hvilket illustrerer at prior-valget ikke blot påvirker præcision men også kalibreringen af konfidensintervaller. Konklusionen er at man bør vælge prior omhyggeligt, og at posterior-std bør rapporteres direkte frem for at fortolkes som et klassisk <span class="math inline">\(95\%\)</span>-konfidensinterval.</p>
 </section>
 <section id="partikler-og-iterations-hvad-er-det-optimale-til-bavian" class="level3">
 <h3 class="anchored" data-anchor-id="partikler-og-iterations-hvad-er-det-optimale-til-bavian">Partikler og iterations: hvad er det optimale til bavian?</h3>
@@ -1210,14 +1183,10 @@ Figure&nbsp;4.8
 <p>Posterior predictive check Det til enstre viser et histogram af de observerede TMRCA-tider (blå) og model-PDF (orange kurve) evalueret ved posterior-gennemsnittet <span class="math inline">\(\hat{\theta}\)</span>. Hvis orange og blå matcher godt, reproducerer modellen data. Højre viser empirisk CDF (ECDF, blå trappeform) mod model-CDF (orange kurve). Jo tættere de to kurver ligger, desto bedre er modelfit. Et godt match her bekræfter at den neutrale koalescentmodel er passende.</p>
 </section>
 </section>
-<section id="udforskning-af-alle-læringsrater" class="level2">
-<h2 class="anchored" data-anchor-id="udforskning-af-alle-læringsrater">Udforskning af alle læringsrater</h2>
-<p>Phasic tilbyder fire step-size schedules: <em>ConstantStepSize</em>, <em>ExpStepSize</em>, <em>WarmupExpStepSize</em> og <em>AdaptiveStepSize</em>. Jeg sammenligner dem alle systematisk på samme data og visualiserer deres konvergensadfærd.</p>
-<section id="hypotese-5" class="level3">
-<h3 class="anchored" data-anchor-id="hypotese-5">Hypotese</h3>
-<ul>
-<li><em>WarmupExpStepSize</em> giver den mest stabile konvergens, fordi den starter stille og undgår tidlige store opdateringer der kan drive partikler væk fra posterioren. <em>AdaptiveStepSize</em> er den mindst forudsigelige.</li>
-</ul>
+<section id="sammenligning-af-alle-læringsrate-strategier" class="level2">
+<h2 class="anchored" data-anchor-id="sammenligning-af-alle-læringsrate-strategier">Sammenligning af alle læringsrate-strategier</h2>
+<p>phasic tilbyder fire step-size schedules: ConstantStepSize ExpStepSize, WarmupExpStepSize og Adam. Jeg sammenligner dem systematisk på samme data for at bekræfte at Adam er den bedste strategi til bavian-analyser.</p>
+<p>Alle schedules testes med sand <span class="math inline">\(\theta = 7{,}0\)</span>, <span class="math inline">\(n_{\text{obs}} = 2000\)</span> og 250 iterationer.</p>
 <div id="45385bb2" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -1316,7 +1285,14 @@ Warmup(w=80, tau=200)      7.1752    0.05239   7.073    7.278                  F
     Adam + Exp warmup      7.1823    0.07822   7.029    7.336                  False</code></pre>
 </div>
 </div>
-<p>Konstant 0.02 giver en bred posterior (std=0.901) fordi step-size er for stor til finjustering i de sene iterationer. Warmup starter langsomt, bygger op til en peak og aftager derefter denne giver den bedste kombination. Alle schedules indeholder den sande <span class="math inline">\(\theta=7\)</span> i deres 95%-CI.</p>
+<p>Alle otte schedules indeholder den sande <span class="math inline">\(\theta=7\)</span> i deres 95%-CI, men der er tydelige forskelle i posterior-bredde og konvergenshastighed.</p>
+<ul>
+<li><strong>Konstant 0.02</strong> giver en bred posterior (std <span class="math inline">\(\approx 0{,}90\)</span>) fordi step-size er for stor til finjustering i de sene iterationer — partiklerne oscillerer frem for at konvergere.</li>
+<li><strong>Konstant 0.005</strong> er bedre men langsom — processen er ikke fuldt konvergeret ved iteration 250.</li>
+<li><strong>ExpStepSize</strong> er en god balance: hurtig tidlig konvergens og fin afslutning.</li>
+<li><strong>Warmup-schedules</strong> er stabile og undgår store tidlige opdateringer, men giver ikke en smallere posterior end Adam.</li>
+<li><strong>Adam(0.25)</strong> giver den smalleste posterior-std og er den mest robuste strategi, konsistent med resultaterne i tabel tbl-prior-bav. Adam tilpasser step-size per parameter baseret på gradient-historik og er dermed den anbefalede optimizer.</li>
+</ul>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualiser konvergens</span></span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">2</span>, <span class="dv">4</span>, figsize<span class="op">=</span>(<span class="dv">16</span>, <span class="dv">7</span>))</span>
@@ -1362,546 +1338,83 @@ Figure&nbsp;4.9
 </div>
 </div>
 </section>
-</section>
-<section id="im-modellen-isolation-with-migration" class="level2">
-<h2 class="anchored" data-anchor-id="im-modellen-isolation-with-migration">IM-modellen: Isolation with Migration</h2>
-<p>Jeg udvider nu fra single-parameter koalescent til en tidsinhomogen <strong>Isolation with Migration (IM)</strong>-model. IM-modellen har to epoker: fra nuet til split-tidspunktet <span class="math inline">\(t_s\)</span> (to populationer med migration), og fra <span class="math inline">\(t_s\)</span> bagud (en ancestral population).</p>
-<p>Parametrene er: <span class="math inline">\(N_1\)</span>, <span class="math inline">\(N_2\)</span> (nuværende populationsstørrelser), <span class="math inline">\(N_a\)</span> (ancestral størrelse), <span class="math inline">\(m\)</span> (migrationsrate) og <span class="math inline">\(t_s\)</span> (split-tidspunkt).</p>
-<section id="hypotese-6" class="level3">
-<h3 class="anchored" data-anchor-id="hypotese-6">Hypotese</h3>
-<ul>
-<li>SVGD kan simultant estimere alle fem IM-parametre fra simulerede data, men <span class="math inline">\(N_a\)</span> og <span class="math inline">\(t_s\)</span> er konfunderede: en gammel split med lille ancestral population giver samme koalescenttider som et nyt split med stor ancestral population.</li>
-</ul>
-<div id="a0e6556d" class="cell" data-execution_count="16">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">2</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(</span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    descendants<span class="op">=</span>[</span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'pop1'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_samples),</span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'pop2'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_samples),</span>
-<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'in_pop'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span><span class="dv">2</span>),</span>
-<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>    ]</span>
-<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>initial <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer.state_length</span>
-<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>initial[indexer.descendants.props_to_index(pop1<span class="op">=</span><span class="dv">1</span>, pop2<span class="op">=</span><span class="dv">0</span>, in_pop<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> nr_samples</span>
-<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>(initial)</span>
-<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> two_island_epoch(state):</span>
-<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Two-island model: parametre = [theta0, theta1, epoch_switch]</span></span>
-<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a><span class="co">    theta0 = koalescensrate (1/N), theta1 = migrationsrate, epoch_switch = 1/t_s</span></span>
-<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
-<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state[indexer.descendants.indices()].<span class="bu">sum</span>() <span class="op">&lt;=</span> <span class="dv">1</span>:</span>
-<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
-<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(indexer.descendants.state_length):</span>
-<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[i] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
-<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a>        props_i <span class="op">=</span> indexer.descendants.index_to_props(i)</span>
-<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, indexer.descendants.state_length):</span>
-<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> state[j] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
-<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a>            props_j <span class="op">=</span> indexer.descendants.index_to_props(j)</span>
-<span id="cb33-28"><a href="#cb33-28" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> props_j.in_pop <span class="op">!=</span> props_i.in_pop: <span class="cf">continue</span></span>
-<span id="cb33-29"><a href="#cb33-29" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb33-30"><a href="#cb33-30" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
-<span id="cb33-31"><a href="#cb33-31" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
-<span id="cb33-32"><a href="#cb33-32" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
-<span id="cb33-33"><a href="#cb33-33" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb33-34"><a href="#cb33-34" aria-hidden="true" tabindex="-1"></a>            new[indexer.descendants.props_to_index(</span>
-<span id="cb33-35"><a href="#cb33-35" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>props_i.pop1<span class="op">+</span>props_j.pop1,</span>
-<span id="cb33-36"><a href="#cb33-36" aria-hidden="true" tabindex="-1"></a>                pop2<span class="op">=</span>props_i.pop2<span class="op">+</span>props_j.pop2,</span>
-<span id="cb33-37"><a href="#cb33-37" aria-hidden="true" tabindex="-1"></a>                in_pop<span class="op">=</span>props_i.in_pop)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb33-38"><a href="#cb33-38" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same), <span class="dv">0</span>, <span class="dv">0</span>]])</span>
-<span id="cb33-39"><a href="#cb33-39" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Migration</span></span>
-<span id="cb33-40"><a href="#cb33-40" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> props_i.in_pop <span class="op">==</span> <span class="dv">1</span>:</span>
-<span id="cb33-41"><a href="#cb33-41" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb33-42"><a href="#cb33-42" aria-hidden="true" tabindex="-1"></a>            new[indexer.descendants.props_to_index(</span>
-<span id="cb33-43"><a href="#cb33-43" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>props_i.pop1, pop2<span class="op">=</span>props_i.pop2, in_pop<span class="op">=</span><span class="dv">2</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb33-44"><a href="#cb33-44" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [<span class="dv">0</span>, state[i], <span class="dv">0</span>]])</span>
-<span id="cb33-45"><a href="#cb33-45" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
-<span id="cb33-46"><a href="#cb33-46" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb33-47"><a href="#cb33-47" aria-hidden="true" tabindex="-1"></a>            new[indexer.descendants.props_to_index(</span>
-<span id="cb33-48"><a href="#cb33-48" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>props_i.pop1, pop2<span class="op">=</span>props_i.pop2, in_pop<span class="op">=</span><span class="dv">1</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb33-49"><a href="#cb33-49" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [<span class="dv">0</span>, state[i], <span class="dv">0</span>]])</span>
-<span id="cb33-50"><a href="#cb33-50" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb33-51"><a href="#cb33-51" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-52"><a href="#cb33-52" aria-hidden="true" tabindex="-1"></a>graph_im <span class="op">=</span> Graph(two_island_epoch)</span>
-<span id="cb33-53"><a href="#cb33-53" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"IM-model tilstande: </span><span class="sc">{</span>graph_im<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb33-54"><a href="#cb33-54" aria-hidden="true" tabindex="-1"></a>graph_im.plot(rankdir<span class="op">=</span><span class="st">'LR'</span>, nodesep<span class="op">=</span><span class="fl">0.2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>IM-model tilstande: 6</code></pre>
-</div>
-<div class="cell-output cell-output-display" data-execution_count="16">
-<div>
-<figure class="figure">
-<p><a href="02_svgd_inferens_basis_files/figure-html/cell-22-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-22"><img src="02_svgd_inferens_basis_files/figure-html/cell-22-output-2.svg" class="img-fluid figure-img"></a></p>
-</figure>
-</div>
-</div>
-</div>
-<p>θ₀ og θ₁ genfinder præcist, men epoch-switch estimeres til 0.016 i stedet for 2.0 en fejlestimering. Årsagen er at epoch-switch-parameteren styrer <em>raten</em> for epoch-skiftet, ikke tidspunktet direkte.</p>
-<div id="ebd5a5f9" class="cell" data-execution_count="18">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simuler data fra IM-modellen og kør SVGD-inferens</span></span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Sande parametre: theta0=0.7, theta1=1.0 (migration), epoch_switch=2.0 (t_s=0.5)</span></span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>true_theta_im <span class="op">=</span> [<span class="fl">0.7</span>, <span class="fl">1.0</span>, <span class="fl">2.0</span>]</span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>graph_im.update_weights(true_theta_im)</span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>N_OBS <span class="op">=</span> <span class="dv">3000</span></span>
-<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>data_im <span class="op">=</span> graph_im.sample(N_OBS)</span>
-<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>prior_im <span class="op">=</span> DataPrior(graph_im, data_im)</span>
-<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Data-informeret prior:"</span>)</span>
-<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, p <span class="kw">in</span> <span class="bu">enumerate</span>(prior_im):</span>
-<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> p <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:</span>
-<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"  θ_</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">: GaussPrior(mean=</span><span class="sc">{</span>p<span class="sc">.</span>mu<span class="sc">:.3f}</span><span class="ss">, std=</span><span class="sc">{</span>p<span class="sc">.</span>sigma<span class="sc">:.3f}</span><span class="ss">)"</span>)</span>
-<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>step_im <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.005</span>, tau<span class="op">=</span><span class="fl">50.0</span>)</span>
-<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a>sv_im <span class="op">=</span> graph_im.svgd(</span>
-<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>    data_im,</span>
-<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>prior_im,</span>
-<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adam(<span class="fl">0.25</span>),</span>
-<span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">400</span>,</span>
-<span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">60</span>,</span>
-<span id="cb35-22"><a href="#cb35-22" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb35-23"><a href="#cb35-23" aria-hidden="true" tabindex="-1"></a>res_im <span class="op">=</span> sv_im.get_results()</span>
-<span id="cb35-24"><a href="#cb35-24" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Sande parametre: theta_0=</span><span class="sc">{</span>true_theta_im[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">, theta_1=</span><span class="sc">{</span>true_theta_im[<span class="dv">1</span>]<span class="sc">}</span><span class="ss">, epoch=</span><span class="sc">{</span>true_theta_im[<span class="dv">2</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb35-25"><a href="#cb35-25" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, (name, true) <span class="kw">in</span> <span class="bu">enumerate</span>(<span class="bu">zip</span>([<span class="st">'theta_0 (koalescens)'</span>, <span class="st">'theta_1 (migration)'</span>, <span class="st">'epoch-switch'</span>], true_theta_im)):</span>
-<span id="cb35-26"><a href="#cb35-26" aria-hidden="true" tabindex="-1"></a>    mean <span class="op">=</span> res_im[<span class="st">'theta_mean'</span>][i].item()</span>
-<span id="cb35-27"><a href="#cb35-27" aria-hidden="true" tabindex="-1"></a>    std  <span class="op">=</span> res_im[<span class="st">'theta_std'</span>][i].item()</span>
-<span id="cb35-28"><a href="#cb35-28" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: mean=</span><span class="sc">{</span>mean<span class="sc">:.3f}</span><span class="ss">  std=</span><span class="sc">{</span>std<span class="sc">:.4f}</span><span class="ss">  (sand </span><span class="sc">{</span>true<span class="sc">}</span><span class="ss">)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-Sande parametre: theta_0=0.7, theta_1=1.0, epoch=2.0
-  theta_0 (koalescens): mean=0.698  std=0.0510  (sand 0.7)
-  theta_1 (migration): mean=1.019  std=0.1844  (sand 1.0)
-  epoch-switch: mean=0.016  std=0.0003  (sand 2.0)</code></pre>
-</div>
-</div>
-<div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualiser IM-model posterior</span></span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>sv_im.plot_convergence()</span>
-<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>sv_im.plot_pairwise(true_theta<span class="op">=</span>true_theta_im)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div id="fig-im-posterior" class="cell quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-im-posterior-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="cell-output cell-output-display">
-<div id="fig-im-posterior-1" class="quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-subfloat-fig figure">
-<div aria-describedby="fig-im-posterior-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="02_svgd_inferens_basis_files/figure-html/fig-im-posterior-output-1.svg" class="lightbox" data-gallery="fig-im-posterior" title="Figure&nbsp;4.10&nbsp;(a): Posterior for IM-modellen med tre parametre."><img src="02_svgd_inferens_basis_files/figure-html/fig-im-posterior-output-1.svg" class="img-fluid figure-img" data-ref-parent="fig-im-posterior"></a>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-im-posterior-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-(a) Posterior for IM-modellen med tre parametre.
-</figcaption>
-</figure>
-</div>
-</div>
-<div class="cell-output cell-output-display">
-<div id="fig-im-posterior-2" class="quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-subfloat-fig figure">
-<div aria-describedby="fig-im-posterior-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="02_svgd_inferens_basis_files/figure-html/fig-im-posterior-output-2.svg" class="lightbox" data-gallery="fig-im-posterior" title="Figure&nbsp;4.10&nbsp;(b): "><img src="02_svgd_inferens_basis_files/figure-html/fig-im-posterior-output-2.svg" id="fig-im-posterior-2" class="img-fluid figure-img" data-ref-parent="fig-im-posterior"></a>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-im-posterior-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-(b)
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-im-posterior-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;4.10
-</figcaption>
-</figure>
-</div>
-</div>
-<p>Konvergensplot viser at alle tre parametre stabiliserer hurtigt <span class="math inline">\(\theta_0\)</span> og <span class="math inline">\(\theta_1\)</span>​ konvergerer til de sande værdier (0.7 og 1.0), men epoch-switch (2.0) estimeres til 0.016. Pairwise posterior er et <span class="math inline">\(3 \times 3\)</span> grid af scatter-plots der viser joint-posterior for alle par af parametre. Diagonalen viser marginal-histogrammet for hver parameter. Off-diagonalerne viser korrelationen mellem parametre man kan se om parametre er konfunderede. Den lyserrøde markering i hvert panel er den sande parameter.</p>
-</section>
-</section>
-<section id="ghost-population-usynlig-population-med-genflow" class="level2">
-<h2 class="anchored" data-anchor-id="ghost-population-usynlig-population-med-genflow">Ghost population: Usynlig population med genflow</h2>
-<p>En ghost population er en ikke-samplet population, der påvirker via migration. Jeg tilføjer en ghost population til two-island modellen og undersøger, om dens tilstedeværelse er identificere i posterior-fordelingen.</p>
-<section id="spørgsmål" class="level3">
-<h3 class="anchored" data-anchor-id="spørgsmål">Spørgsmål</h3>
-<ul>
-<li>Kan jeg identificere en ghost population indirekte effekt på koalescenttiderne? Jeg forventer at E[TMRCA] er længere med ghost migration end uden, fordi linjer kan “gemme sig” i ghost-populationen?</li>
-</ul>
-<div id="c260f2bf" class="cell" data-execution_count="19">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Ghost population: Tre-population model, men jeg sampler kun fra pop1 og pop2.</span></span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Pop3 er ghost (ingen samples). Linjer kan migrere til/fra ghost.</span></span>
-<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>indexer_ghost <span class="op">=</span> StateIndexer(</span>
-<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>    descendants<span class="op">=</span>[</span>
-<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'pop1'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_samples),</span>
-<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'pop2'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_samples),</span>
-<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'in_pop'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span><span class="dv">3</span>),  <span class="co"># pop3 = ghost</span></span>
-<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>    ]</span>
-<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>initial_ghost <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer_ghost.state_length</span>
-<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>initial_ghost[indexer_ghost.descendants.props_to_index(pop1<span class="op">=</span><span class="dv">1</span>, pop2<span class="op">=</span><span class="dv">0</span>, in_pop<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> nr_samples</span>
-<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>(initial_ghost)</span>
-<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> two_island_ghost(state):</span>
-<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Two-island + ghost population. Parametre: [theta0, theta1, ghost_migr]</span></span>
-<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a><span class="co">    ghost_migr = migrationsrate til/fra ghost pop</span></span>
-<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
-<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state[indexer_ghost.descendants.indices()].<span class="bu">sum</span>() <span class="op">&lt;=</span> <span class="dv">1</span>:</span>
-<span id="cb38-22"><a href="#cb38-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
-<span id="cb38-23"><a href="#cb38-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(indexer_ghost.descendants.state_length):</span>
-<span id="cb38-24"><a href="#cb38-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[i] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
-<span id="cb38-25"><a href="#cb38-25" aria-hidden="true" tabindex="-1"></a>        props_i <span class="op">=</span> indexer_ghost.descendants.index_to_props(i)</span>
-<span id="cb38-26"><a href="#cb38-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, indexer_ghost.descendants.state_length):</span>
-<span id="cb38-27"><a href="#cb38-27" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> state[j] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
-<span id="cb38-28"><a href="#cb38-28" aria-hidden="true" tabindex="-1"></a>            props_j <span class="op">=</span> indexer_ghost.descendants.index_to_props(j)</span>
-<span id="cb38-29"><a href="#cb38-29" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> props_j.in_pop <span class="op">!=</span> props_i.in_pop: <span class="cf">continue</span></span>
-<span id="cb38-30"><a href="#cb38-30" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb38-31"><a href="#cb38-31" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
-<span id="cb38-32"><a href="#cb38-32" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
-<span id="cb38-33"><a href="#cb38-33" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
-<span id="cb38-34"><a href="#cb38-34" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb38-35"><a href="#cb38-35" aria-hidden="true" tabindex="-1"></a>            new[indexer_ghost.descendants.props_to_index(</span>
-<span id="cb38-36"><a href="#cb38-36" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>props_i.pop1<span class="op">+</span>props_j.pop1,</span>
-<span id="cb38-37"><a href="#cb38-37" aria-hidden="true" tabindex="-1"></a>                pop2<span class="op">=</span>props_i.pop2<span class="op">+</span>props_j.pop2,</span>
-<span id="cb38-38"><a href="#cb38-38" aria-hidden="true" tabindex="-1"></a>                in_pop<span class="op">=</span>props_i.in_pop)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb38-39"><a href="#cb38-39" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same), <span class="dv">0</span>, <span class="dv">0</span>]])</span>
-<span id="cb38-40"><a href="#cb38-40" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Migration pop1 ↔ pop2</span></span>
-<span id="cb38-41"><a href="#cb38-41" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> props_i.in_pop <span class="kw">in</span> [<span class="dv">1</span>, <span class="dv">2</span>]:</span>
-<span id="cb38-42"><a href="#cb38-42" aria-hidden="true" tabindex="-1"></a>            other_pop <span class="op">=</span> <span class="dv">3</span> <span class="op">-</span> props_i.in_pop  <span class="co"># 1→2, 2→1</span></span>
-<span id="cb38-43"><a href="#cb38-43" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb38-44"><a href="#cb38-44" aria-hidden="true" tabindex="-1"></a>            new[indexer_ghost.descendants.props_to_index(</span>
-<span id="cb38-45"><a href="#cb38-45" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>props_i.pop1, pop2<span class="op">=</span>props_i.pop2, in_pop<span class="op">=</span>other_pop)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb38-46"><a href="#cb38-46" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [<span class="dv">0</span>, state[i], <span class="dv">0</span>]])</span>
-<span id="cb38-47"><a href="#cb38-47" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Migration til/fra ghost (pop3)</span></span>
-<span id="cb38-48"><a href="#cb38-48" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> props_i.in_pop <span class="kw">in</span> [<span class="dv">1</span>, <span class="dv">2</span>]:</span>
-<span id="cb38-49"><a href="#cb38-49" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb38-50"><a href="#cb38-50" aria-hidden="true" tabindex="-1"></a>            new[indexer_ghost.descendants.props_to_index(</span>
-<span id="cb38-51"><a href="#cb38-51" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>props_i.pop1, pop2<span class="op">=</span>props_i.pop2, in_pop<span class="op">=</span><span class="dv">3</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb38-52"><a href="#cb38-52" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [<span class="dv">0</span>, <span class="dv">0</span>, state[i]]])  <span class="co"># theta2 = ghost migration</span></span>
-<span id="cb38-53"><a href="#cb38-53" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elif</span> props_i.in_pop <span class="op">==</span> <span class="dv">3</span>:</span>
-<span id="cb38-54"><a href="#cb38-54" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> dest_pop <span class="kw">in</span> [<span class="dv">1</span>, <span class="dv">2</span>]:</span>
-<span id="cb38-55"><a href="#cb38-55" aria-hidden="true" tabindex="-1"></a>                new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb38-56"><a href="#cb38-56" aria-hidden="true" tabindex="-1"></a>                new[indexer_ghost.descendants.props_to_index(</span>
-<span id="cb38-57"><a href="#cb38-57" aria-hidden="true" tabindex="-1"></a>                    pop1<span class="op">=</span>props_i.pop1, pop2<span class="op">=</span>props_i.pop2, in_pop<span class="op">=</span>dest_pop)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb38-58"><a href="#cb38-58" aria-hidden="true" tabindex="-1"></a>                transitions.append([new, [<span class="dv">0</span>, <span class="dv">0</span>, state[i]]])</span>
-<span id="cb38-59"><a href="#cb38-59" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb38-60"><a href="#cb38-60" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb38-61"><a href="#cb38-61" aria-hidden="true" tabindex="-1"></a>g_ghost <span class="op">=</span> Graph(two_island_ghost)</span>
-<span id="cb38-62"><a href="#cb38-62" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Ghost-model tilstande: </span><span class="sc">{</span>g_ghost<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Ghost-model tilstande: 10</code></pre>
-</div>
-</div>
-<div id="556ab2ab" class="cell" data-execution_count="5">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>g_ghost.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="5">
-<div>
-<figure class="figure">
-<p><a href="02_svgd_inferens_basis_files/figure-html/cell-26-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-25"><img src="02_svgd_inferens_basis_files/figure-html/cell-26-output-1.svg" class="img-fluid figure-img"></a></p>
-</figure>
-</div>
-</div>
-</div>
-<div id="7c002599" class="cell" data-execution_count="21">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Byg en simpel to-ø model til "ingen ghost"-sammenligningen</span></span>
-<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>(initial)  <span class="co"># brug samme initial som two_island_epoch</span></span>
-<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> two_island_simple(state):</span>
-<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Simpel two-island uden epoch. Parametre: [theta0, theta1]"""</span></span>
-<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state[indexer.descendants.indices()].<span class="bu">sum</span>() <span class="op">&lt;=</span> <span class="dv">1</span>:</span>
-<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
-<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(indexer.descendants.state_length):</span>
-<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[i] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
-<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>        props_i <span class="op">=</span> indexer.descendants.index_to_props(i)</span>
-<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, indexer.descendants.state_length):</span>
-<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> state[j] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
-<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a>            props_j <span class="op">=</span> indexer.descendants.index_to_props(j)</span>
-<span id="cb41-14"><a href="#cb41-14" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> props_j.in_pop <span class="op">!=</span> props_i.in_pop: <span class="cf">continue</span></span>
-<span id="cb41-15"><a href="#cb41-15" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb41-16"><a href="#cb41-16" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
-<span id="cb41-17"><a href="#cb41-17" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
-<span id="cb41-18"><a href="#cb41-18" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
-<span id="cb41-19"><a href="#cb41-19" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb41-20"><a href="#cb41-20" aria-hidden="true" tabindex="-1"></a>            new[indexer.descendants.props_to_index(</span>
-<span id="cb41-21"><a href="#cb41-21" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>props_i.pop1<span class="op">+</span>props_j.pop1,</span>
-<span id="cb41-22"><a href="#cb41-22" aria-hidden="true" tabindex="-1"></a>                pop2<span class="op">=</span>props_i.pop2<span class="op">+</span>props_j.pop2,</span>
-<span id="cb41-23"><a href="#cb41-23" aria-hidden="true" tabindex="-1"></a>                in_pop<span class="op">=</span>props_i.in_pop)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb41-24"><a href="#cb41-24" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same), <span class="dv">0</span>]])</span>
-<span id="cb41-25"><a href="#cb41-25" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> props_i.in_pop <span class="op">==</span> <span class="dv">1</span>:</span>
-<span id="cb41-26"><a href="#cb41-26" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb41-27"><a href="#cb41-27" aria-hidden="true" tabindex="-1"></a>            new[indexer.descendants.props_to_index(</span>
-<span id="cb41-28"><a href="#cb41-28" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>props_i.pop1, pop2<span class="op">=</span>props_i.pop2, in_pop<span class="op">=</span><span class="dv">2</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb41-29"><a href="#cb41-29" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [<span class="dv">0</span>, state[i]]])</span>
-<span id="cb41-30"><a href="#cb41-30" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
-<span id="cb41-31"><a href="#cb41-31" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb41-32"><a href="#cb41-32" aria-hidden="true" tabindex="-1"></a>            new[indexer.descendants.props_to_index(</span>
-<span id="cb41-33"><a href="#cb41-33" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>props_i.pop1, pop2<span class="op">=</span>props_i.pop2, in_pop<span class="op">=</span><span class="dv">1</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb41-34"><a href="#cb41-34" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [<span class="dv">0</span>, state[i]]])</span>
-<span id="cb41-35"><a href="#cb41-35" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb41-36"><a href="#cb41-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-37"><a href="#cb41-37" aria-hidden="true" tabindex="-1"></a>g_simple <span class="op">=</span> Graph(two_island_simple)</span>
-<span id="cb41-38"><a href="#cb41-38" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-39"><a href="#cb41-39" aria-hidden="true" tabindex="-1"></a><span class="co"># Nu sammenlign korrekt</span></span>
-<span id="cb41-40"><a href="#cb41-40" aria-hidden="true" tabindex="-1"></a>migration_rates <span class="op">=</span> [<span class="fl">0.01</span>, <span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">5.0</span>]</span>
-<span id="cb41-41"><a href="#cb41-41" aria-hidden="true" tabindex="-1"></a>ghost_rates     <span class="op">=</span> [<span class="fl">0.01</span>, <span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">2.0</span>]</span>
-<span id="cb41-42"><a href="#cb41-42" aria-hidden="true" tabindex="-1"></a>rows <span class="op">=</span> []</span>
-<span id="cb41-43"><a href="#cb41-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-44"><a href="#cb41-44" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> m <span class="kw">in</span> migration_rates:</span>
-<span id="cb41-45"><a href="#cb41-45" aria-hidden="true" tabindex="-1"></a>    E_no_ghost <span class="op">=</span> g_simple.expectation()</span>
-<span id="cb41-46"><a href="#cb41-46" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> g_m <span class="kw">in</span> ghost_rates:</span>
-<span id="cb41-47"><a href="#cb41-47" aria-hidden="true" tabindex="-1"></a>        E_ghost <span class="op">=</span> g_ghost.expectation()</span>
-<span id="cb41-48"><a href="#cb41-48" aria-hidden="true" tabindex="-1"></a>        rows.append({</span>
-<span id="cb41-49"><a href="#cb41-49" aria-hidden="true" tabindex="-1"></a>            <span class="st">'Migration (theta1)'</span>: m, <span class="st">'Ghost migration'</span>: g_m,</span>
-<span id="cb41-50"><a href="#cb41-50" aria-hidden="true" tabindex="-1"></a>            <span class="st">'E[TMRCA] uden ghost'</span>: <span class="bu">round</span>(E_no_ghost, <span class="dv">4</span>),</span>
-<span id="cb41-51"><a href="#cb41-51" aria-hidden="true" tabindex="-1"></a>            <span class="st">'E[TMRCA] med ghost'</span>:  <span class="bu">round</span>(E_ghost, <span class="dv">4</span>),</span>
-<span id="cb41-52"><a href="#cb41-52" aria-hidden="true" tabindex="-1"></a>            <span class="st">'Forskel'</span>: <span class="bu">round</span>(E_ghost <span class="op">-</span> E_no_ghost, <span class="dv">4</span>),</span>
-<span id="cb41-53"><a href="#cb41-53" aria-hidden="true" tabindex="-1"></a>        })</span>
-<span id="cb41-54"><a href="#cb41-54" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-55"><a href="#cb41-55" aria-hidden="true" tabindex="-1"></a>df_ghost <span class="op">=</span> pd.DataFrame(rows)</span>
-<span id="cb41-56"><a href="#cb41-56" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"E[TMRCA] med ghost population:"</span>)</span>
-<span id="cb41-57"><a href="#cb41-57" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_ghost.pivot(index<span class="op">=</span><span class="st">'Migration (theta1)'</span>, columns<span class="op">=</span><span class="st">'Ghost migration'</span>,</span>
-<span id="cb41-58"><a href="#cb41-58" aria-hidden="true" tabindex="-1"></a>                     values<span class="op">=</span><span class="st">'E[TMRCA] med ghost'</span>).<span class="bu">round</span>(<span class="dv">3</span>))</span>
-<span id="cb41-59"><a href="#cb41-59" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
-<span id="cb41-60"><a href="#cb41-60" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Forskel (ghost - ingen ghost):"</span>)</span>
-<span id="cb41-61"><a href="#cb41-61" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_ghost.pivot(index<span class="op">=</span><span class="st">'Migration (theta1)'</span>, columns<span class="op">=</span><span class="st">'Ghost migration'</span>,</span>
-<span id="cb41-62"><a href="#cb41-62" aria-hidden="true" tabindex="-1"></a>                     values<span class="op">=</span><span class="st">'Forskel'</span>).<span class="bu">round</span>(<span class="dv">4</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>E[TMRCA] med ghost population:
-Ghost migration     0.01  0.50  1.00  2.00
-Migration (theta1)                        
-0.01                 2.7   2.7   2.7   2.7
-0.50                 2.7   2.7   2.7   2.7
-1.00                 2.7   2.7   2.7   2.7
-2.00                 2.7   2.7   2.7   2.7
-5.00                 2.7   2.7   2.7   2.7
-
-Forskel (ghost - ingen ghost):
-Ghost migration       0.01    0.50    1.00    2.00
-Migration (theta1)                                
-0.01                0.7002  0.7002  0.7002  0.7002
-0.50                0.7002  0.7002  0.7002  0.7002
-1.00                0.7002  0.7002  0.7002  0.7002
-2.00                0.7002  0.7002  0.7002  0.7002
-5.00                0.7002  0.7002  0.7002  0.7002</code></pre>
-</div>
-</div>
-<p>Ghost-populationen øger E[TMRCA] markant men effekten er modsatsat den forventede ved høj ghost-migration. Ved lav ghost-migration (0.01) er E[TMRCA] størst (7.82) fordi linjer vandrer ind i ghost-populationen og sidder fast der. Ved høj ghost-migration (2.0) er E[TMRCA] lavere (6.25) fordi linjer hurtigt kommer ud igen og koalescerer. Tabellen viser at ghost-migration generelt forlænger TMRCA sammenlignet med ingen ghost, men effekten aftager med stigende ghost-migration fordi høj migration reducerer isolation.</p>
-</section>
-</section>
-<section id="probability-matching-en-tredje-estimeringsmetode" class="level2">
-<h2 class="anchored" data-anchor-id="probability-matching-en-tredje-estimeringsmetode">Probability Matching: en tredje estimeringsmetode</h2>
-<p><em>probability_matching()</em> er en alternativ estimeringsmetode der matcher observerede sandsynligheder direkte mod model-sandsynligheder frem for at matche momenter (MoM) eller optimere posterior (SVGD). Den er særligt nyttig som startpunkt til SVGD på joint probability-grafer, da den giver et godt startestimat hurtigt.</p>
-<p>Metoden minimerer <span class="math inline">\(\sum_i (p_{\text{obs},i} - p_{\text{model},i})^2\)</span> over sandsynlighederne for alle observerede kombinationer.</p>
-<div id="dd200b63" class="cell" data-execution_count="22">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> StateIndexer, Property</span>
-<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> partial</span>
-<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itertools <span class="im">import</span> combinations_with_replacement</span>
-<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>all_pairs_pm <span class="op">=</span> partial(combinations_with_replacement, r<span class="op">=</span><span class="dv">2</span>)</span>
-<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>nr_samples_pm <span class="op">=</span> <span class="dv">3</span></span>
-<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>indexer_pm <span class="op">=</span> StateIndexer(</span>
-<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>    lineage<span class="op">=</span>[Property(<span class="st">'descendants'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span>nr_samples_pm)]</span>
-<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples_pm] <span class="op">+</span> [<span class="dv">0</span>]<span class="op">*</span>(nr_samples_pm<span class="op">-</span><span class="dv">1</span>))</span>
-<span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coal_pm(state):</span>
-<span id="cb43-14"><a href="#cb43-14" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb43-15"><a href="#cb43-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, j <span class="kw">in</span> all_pairs_pm(indexer_pm.lineage):</span>
-<span id="cb43-16"><a href="#cb43-16" aria-hidden="true" tabindex="-1"></a>        p1 <span class="op">=</span> indexer_pm.lineage.index_to_props(i)</span>
-<span id="cb43-17"><a href="#cb43-17" aria-hidden="true" tabindex="-1"></a>        p2 <span class="op">=</span> indexer_pm.lineage.index_to_props(j)</span>
-<span id="cb43-18"><a href="#cb43-18" aria-hidden="true" tabindex="-1"></a>        same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb43-19"><a href="#cb43-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
-<span id="cb43-20"><a href="#cb43-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
-<span id="cb43-21"><a href="#cb43-21" aria-hidden="true" tabindex="-1"></a>        new <span class="op">=</span> state.copy()</span>
-<span id="cb43-22"><a href="#cb43-22" aria-hidden="true" tabindex="-1"></a>        new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb43-23"><a href="#cb43-23" aria-hidden="true" tabindex="-1"></a>        des <span class="op">=</span> indexer_pm.lineage.props_to_index(descendants<span class="op">=</span>p1.descendants<span class="op">+</span>p2.descendants)</span>
-<span id="cb43-24"><a href="#cb43-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> des <span class="op">&lt;</span> indexer_pm.lineage.state_length:</span>
-<span id="cb43-25"><a href="#cb43-25" aria-hidden="true" tabindex="-1"></a>            new[des] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb43-26"><a href="#cb43-26" aria-hidden="true" tabindex="-1"></a>        transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)]])</span>
-<span id="cb43-27"><a href="#cb43-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb43-28"><a href="#cb43-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-29"><a href="#cb43-29" aria-hidden="true" tabindex="-1"></a>mutation_rate_pm <span class="op">=</span> <span class="fl">1.0</span></span>
-<span id="cb43-30"><a href="#cb43-30" aria-hidden="true" tabindex="-1"></a>graph_pm <span class="op">=</span> Graph(coal_pm)</span>
-<span id="cb43-31"><a href="#cb43-31" aria-hidden="true" tabindex="-1"></a>joint_graph_pm <span class="op">=</span> graph_pm.joint_prob_graph(</span>
-<span id="cb43-32"><a href="#cb43-32" aria-hidden="true" tabindex="-1"></a>    indexer_pm, tot_reward_limit<span class="op">=</span><span class="dv">3</span>, mutation_rate<span class="op">=</span>mutation_rate_pm</span>
-<span id="cb43-33"><a href="#cb43-33" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb43-34"><a href="#cb43-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-35"><a href="#cb43-35" aria-hidden="true" tabindex="-1"></a><span class="co"># Simuler data fra sand theta=7</span></span>
-<span id="cb43-36"><a href="#cb43-36" aria-hidden="true" tabindex="-1"></a>true_theta_pm <span class="op">=</span> [<span class="fl">7.0</span>, mutation_rate_pm]</span>
-<span id="cb43-37"><a href="#cb43-37" aria-hidden="true" tabindex="-1"></a>joint_graph_pm.update_weights(true_theta_pm)</span>
-<span id="cb43-38"><a href="#cb43-38" aria-hidden="true" tabindex="-1"></a>table_pm <span class="op">=</span> joint_graph_pm.joint_prob_table()</span>
-<span id="cb43-39"><a href="#cb43-39" aria-hidden="true" tabindex="-1"></a>p_pm <span class="op">=</span> (table_pm[<span class="st">'prob'</span>] <span class="op">/</span> table_pm[<span class="st">'prob'</span>].<span class="bu">sum</span>()).to_numpy()</span>
-<span id="cb43-40"><a href="#cb43-40" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb43-41"><a href="#cb43-41" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
-<span id="cb43-42"><a href="#cb43-42" aria-hidden="true" tabindex="-1"></a>sampled_idx <span class="op">=</span> np.random.choice(<span class="bu">len</span>(table_pm), size<span class="op">=</span><span class="dv">2000</span>, p<span class="op">=</span>p_pm)</span>
-<span id="cb43-43"><a href="#cb43-43" aria-hidden="true" tabindex="-1"></a>observations_pm <span class="op">=</span> [</span>
-<span id="cb43-44"><a href="#cb43-44" aria-hidden="true" tabindex="-1"></a>    table_pm.iloc[i][table_pm.columns[:<span class="op">-</span><span class="dv">1</span>]].tolist()</span>
-<span id="cb43-45"><a href="#cb43-45" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> sampled_idx</span>
-<span id="cb43-46"><a href="#cb43-46" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb43-47"><a href="#cb43-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-48"><a href="#cb43-48" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Antal observationer: </span><span class="sc">{</span><span class="bu">len</span>(observations_pm)<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb43-49"><a href="#cb43-49" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Sand theta: </span><span class="sc">{</span>true_theta_pm<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Antal observationer: 2000
-Sand theta: [7.0, 1.0]</code></pre>
-</div>
-</div>
-<div id="8126dcdd" class="cell" data-execution_count="23">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Kør probability matching</span></span>
-<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>pm <span class="op">=</span> joint_graph_pm.probability_matching(</span>
-<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>    observations_pm,</span>
-<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">1</span>, mutation_rate_pm)],</span>
-<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"=== Probability Matching Resultat ==="</span>)</span>
-<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Sand theta:    </span><span class="sc">{</span>true_theta_pm[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"PM estimat:    </span><span class="sc">{</span>pm<span class="sc">.</span>theta[<span class="dv">0</span>]<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
-<span id="cb45-10"><a href="#cb45-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Std fejl:      </span><span class="sc">{</span>pm<span class="sc">.</span>std[<span class="dv">0</span>]<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
-<span id="cb45-11"><a href="#cb45-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Konvergeret:   </span><span class="sc">{</span>pm<span class="sc">.</span>success<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb45-12"><a href="#cb45-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Residual:      </span><span class="sc">{</span>pm<span class="sc">.</span>residual<span class="sc">:.2e}</span><span class="ss">"</span>)</span>
-<span id="cb45-13"><a href="#cb45-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb45-14"><a href="#cb45-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Scatter-plot: empiriske vs. model-sandsynligheder</span></span>
-<span id="cb45-15"><a href="#cb45-15" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb45-16"><a href="#cb45-16" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">5</span>, <span class="dv">5</span>))</span>
-<span id="cb45-17"><a href="#cb45-17" aria-hidden="true" tabindex="-1"></a>ax.plot([<span class="dv">0</span>, <span class="dv">1</span>], [<span class="dv">0</span>, <span class="dv">1</span>], ls<span class="op">=</span><span class="st">'--'</span>, color<span class="op">=</span><span class="st">'C1'</span>, label<span class="op">=</span><span class="st">'Perfekt match'</span>)</span>
-<span id="cb45-18"><a href="#cb45-18" aria-hidden="true" tabindex="-1"></a>ax.scatter(pm.empirical_probs, pm.model_probs, alpha<span class="op">=</span><span class="fl">0.6</span>, color<span class="op">=</span><span class="st">'C0'</span>, s<span class="op">=</span><span class="dv">30</span>)</span>
-<span id="cb45-19"><a href="#cb45-19" aria-hidden="true" tabindex="-1"></a>ax.set_xscale(<span class="st">'log'</span>)<span class="op">;</span> ax.set_yscale(<span class="st">'log'</span>)</span>
-<span id="cb45-20"><a href="#cb45-20" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'Empirisk sandsynlighed (log)'</span>)</span>
-<span id="cb45-21"><a href="#cb45-21" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'Model-sandsynlighed (log)'</span>)</span>
-<span id="cb45-22"><a href="#cb45-22" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'Probability Matching: empirisk vs. model'</span>)</span>
-<span id="cb45-23"><a href="#cb45-23" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
-<span id="cb45-24"><a href="#cb45-24" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb45-25"><a href="#cb45-25" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>ProbMatch: theta_dim=2, n_free=1, n_obs=2000, n_unique_obs=10
-ProbMatch: initial guess (full theta) = [7.88046282 1.        ]
-ProbMatch: converged — `gtol` termination condition is satisfied.
-ProbMatch: theta = [7.0085398 1.       ]
-ProbMatch: residual = 5.381491e-05
-=== Probability Matching Resultat ===
-Sand theta:    7.0
-PM estimat:    7.0085
-Std fejl:      0.3336
-Konvergeret:   True
-Residual:      5.38e-05</code></pre>
-</div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><a href="02_svgd_inferens_basis_files/figure-html/cell-29-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-26"><img src="02_svgd_inferens_basis_files/figure-html/cell-29-output-2.svg" class="img-fluid figure-img"></a></p>
-</figure>
-</div>
-</div>
-</div>
-<p>Log-log scatter-plot med empiriske sandsynligheder på x-aksen og model-sandsynligheder på y-aksen. Den stiplede linje er <span class="math inline">\(y=x\)</span>: perfekt match. Punkterne ligger meget tæt på den stiplede linje, hvilket viser at PM-metoden har fundet en <span class="math inline">\(\hat{\theta}\)</span> der giver en model-sandsynlighedstabel der nærmest identisk med de observerede relative frekvenser. Residual <span class="math inline">\(5.4 \times 10^{-5}\)</span> bekræfter dette. Jo tættere på nul, desto bedre match.</p>
-<div id="5510f1a5" class="cell" data-execution_count="24">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Brug PM-estimat som prior til efterfølgende SVGD</span></span>
-<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>sv_pm <span class="op">=</span> joint_graph_pm.svgd(</span>
-<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>    observations_pm,</span>
-<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>pm.prior,        <span class="co"># automatisk PM-baseret prior</span></span>
-<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">1</span>, mutation_rate_pm)],</span>
-<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adam(<span class="fl">0.25</span>),</span>
-<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">250</span>,</span>
-<span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb47-9"><a href="#cb47-9" aria-hidden="true" tabindex="-1"></a>sv_pm.plot_convergence()</span>
-<span id="cb47-10"><a href="#cb47-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-11"><a href="#cb47-11" aria-hidden="true" tabindex="-1"></a>res_pm <span class="op">=</span> sv_pm.get_results()</span>
-<span id="cb47-12"><a href="#cb47-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Sand theta: </span><span class="sc">{</span>true_theta_pm[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb47-13"><a href="#cb47-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"PM start:   </span><span class="sc">{</span>pm<span class="sc">.</span>theta[<span class="dv">0</span>]<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
-<span id="cb47-14"><a href="#cb47-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"SVGD mean:  </span><span class="sc">{</span>res_pm[<span class="st">'theta_mean'</span>][<span class="dv">0</span>]<span class="sc">.</span>item()<span class="sc">:.4f}</span><span class="ss"> +/- </span><span class="sc">{</span>res_pm[<span class="st">'theta_std'</span>][<span class="dv">0</span>]<span class="sc">.</span>item()<span class="sc">:.4f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><a href="02_svgd_inferens_basis_files/figure-html/cell-30-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-27"><img src="02_svgd_inferens_basis_files/figure-html/cell-30-output-1.svg" class="img-fluid figure-img"></a></p>
-</figure>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Sand theta: 7.0
-PM start:   7.0085
-SVGD mean:  6.9388 +/- 0.1659</code></pre>
-</div>
-</div>
-<p>SVGD-konvergensplot efter at PM-estimatet bruges som prior. Kurven starter allerede tæt på sand <span class="math inline">\(\theta=7\)</span> og konvergerer hurtigt inden iteration 50 er kurven flad. PM giver et præcist startpunkt, og SVGD tilføjer usikkerhedskvantificering. Slutresultatet er <span class="math inline">\(6.897 \pm 0.146\)</span> en smal, præcis posterior.</p>
-</section>
 <section id="systematisk-svgd-kalibrering-til-bavian-parametre" class="level2">
 <h2 class="anchored" data-anchor-id="systematisk-svgd-kalibrering-til-bavian-parametre">Systematisk SVGD-kalibrering til bavian-parametre</h2>
 <p>Jeg simulerer data fra en koalescent med bavian-realistiske theta-værdier (<span class="math inline">\(\theta \in \{10^{-4}, 10^{-3}, 10^{-2}\}\)</span> svarende til <span class="math inline">\(N_e \approx 10k-100k\)</span>) og finder den bedste kombination af <strong>prior</strong>, <strong>learning rate</strong>, <strong>iterations</strong> og <strong>particles</strong>.</p>
 <div id="cbb6783d" class="cell" data-execution_count="25">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (Graph, with_ipv, GaussPrior, HalfCauchyPrior, DataPrior,</span>
-<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>    Adam, ExpStepSize, ConstantStepSize, clear_caches)</span>
-<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> warnings</span>
-<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a>warnings.filterwarnings(<span class="st">'ignore'</span>)</span>
-<span id="cb49-8"><a href="#cb49-8" aria-hidden="true" tabindex="-1"></a>clear_caches()</span>
-<span id="cb49-9"><a href="#cb49-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb49-10"><a href="#cb49-10" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
-<span id="cb49-11"><a href="#cb49-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb49-12"><a href="#cb49-12" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples] <span class="op">+</span> [<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>))</span>
-<span id="cb49-13"><a href="#cb49-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coal_bav(state):</span>
-<span id="cb49-14"><a href="#cb49-14" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb49-15"><a href="#cb49-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
-<span id="cb49-16"><a href="#cb49-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
-<span id="cb49-17"><a href="#cb49-17" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb49-18"><a href="#cb49-18" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
-<span id="cb49-19"><a href="#cb49-19" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
-<span id="cb49-20"><a href="#cb49-20" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
-<span id="cb49-21"><a href="#cb49-21" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[i<span class="op">+</span>j<span class="op">+</span><span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb49-22"><a href="#cb49-22" aria-hidden="true" tabindex="-1"></a>            transitions.append((new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)]))</span>
-<span id="cb49-23"><a href="#cb49-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb49-24"><a href="#cb49-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb49-25"><a href="#cb49-25" aria-hidden="true" tabindex="-1"></a>graph_bav <span class="op">=</span> Graph(coal_bav)</span>
-<span id="cb49-26"><a href="#cb49-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb49-27"><a href="#cb49-27" aria-hidden="true" tabindex="-1"></a>theta_bavian_cases <span class="op">=</span> [</span>
-<span id="cb49-28"><a href="#cb49-28" aria-hidden="true" tabindex="-1"></a>    (<span class="fl">1.0</span>,  <span class="st">'Lav N_e (lille pop.)'</span>),</span>
-<span id="cb49-29"><a href="#cb49-29" aria-hidden="true" tabindex="-1"></a>    (<span class="fl">5.0</span>,  <span class="st">'Moderat N_e (bavian baseline)'</span>),</span>
-<span id="cb49-30"><a href="#cb49-30" aria-hidden="true" tabindex="-1"></a>    (<span class="fl">10.0</span>, <span class="st">'Høj N_e (stor pop.)'</span>),</span>
-<span id="cb49-31"><a href="#cb49-31" aria-hidden="true" tabindex="-1"></a>    (<span class="fl">20.0</span>, <span class="st">'Meget hj N_e'</span>),</span>
-<span id="cb49-32"><a href="#cb49-32" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb49-33"><a href="#cb49-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb49-34"><a href="#cb49-34" aria-hidden="true" tabindex="-1"></a>lr_configs_bav <span class="op">=</span> {</span>
-<span id="cb49-35"><a href="#cb49-35" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.1)'</span>:           {<span class="st">'optimizer'</span>: Adam(<span class="fl">0.1</span>)},</span>
-<span id="cb49-36"><a href="#cb49-36" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.25)'</span>:          {<span class="st">'optimizer'</span>: Adam(<span class="fl">0.25</span>)},</span>
-<span id="cb49-37"><a href="#cb49-37" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.5)'</span>:           {<span class="st">'optimizer'</span>: Adam(<span class="fl">0.5</span>)},</span>
-<span id="cb49-38"><a href="#cb49-38" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Exp(0.05-&gt;0.005,t=30)'</span>: {<span class="st">'learning_rate'</span>: ExpStepSize(<span class="fl">0.05</span>, <span class="fl">0.005</span>, <span class="fl">30.0</span>)},</span>
-<span id="cb49-39"><a href="#cb49-39" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Exp(0.1-&gt;0.005,t=40)'</span>:  {<span class="st">'learning_rate'</span>: ExpStepSize(<span class="fl">0.1</span>, <span class="fl">0.005</span>, <span class="fl">40.0</span>)},</span>
-<span id="cb49-40"><a href="#cb49-40" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Exp(0.1-&gt;0.001,t=60)'</span>:  {<span class="st">'learning_rate'</span>: ExpStepSize(<span class="fl">0.1</span>, <span class="fl">0.001</span>, <span class="fl">60.0</span>)},</span>
-<span id="cb49-41"><a href="#cb49-41" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb49-42"><a href="#cb49-42" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb49-43"><a href="#cb49-43" aria-hidden="true" tabindex="-1"></a>rows_bav <span class="op">=</span> []</span>
-<span id="cb49-44"><a href="#cb49-44" aria-hidden="true" tabindex="-1"></a>N_OBS_BAV <span class="op">=</span> <span class="dv">3000</span></span>
-<span id="cb49-45"><a href="#cb49-45" aria-hidden="true" tabindex="-1"></a>N_ITER_BAV <span class="op">=</span> <span class="dv">300</span></span>
-<span id="cb49-46"><a href="#cb49-46" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb49-47"><a href="#cb49-47" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> true_theta, label <span class="kw">in</span> theta_bavian_cases:</span>
-<span id="cb49-48"><a href="#cb49-48" aria-hidden="true" tabindex="-1"></a>    graph_bav.update_weights([true_theta])</span>
-<span id="cb49-49"><a href="#cb49-49" aria-hidden="true" tabindex="-1"></a>    data_bav <span class="op">=</span> graph_bav.sample(N_OBS_BAV)</span>
-<span id="cb49-50"><a href="#cb49-50" aria-hidden="true" tabindex="-1"></a>    prior_bav <span class="op">=</span> DataPrior(graph_bav, data_bav)</span>
-<span id="cb49-51"><a href="#cb49-51" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb49-52"><a href="#cb49-52" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> lr_name, kwargs <span class="kw">in</span> lr_configs_bav.items():</span>
-<span id="cb49-53"><a href="#cb49-53" aria-hidden="true" tabindex="-1"></a>        sv <span class="op">=</span> graph_bav.svgd(data_bav, prior<span class="op">=</span>prior_bav,</span>
-<span id="cb49-54"><a href="#cb49-54" aria-hidden="true" tabindex="-1"></a>                             n_iterations<span class="op">=</span>N_ITER_BAV, <span class="op">**</span>kwargs)</span>
-<span id="cb49-55"><a href="#cb49-55" aria-hidden="true" tabindex="-1"></a>        res <span class="op">=</span> sv.get_results()</span>
-<span id="cb49-56"><a href="#cb49-56" aria-hidden="true" tabindex="-1"></a>        mean <span class="op">=</span> res[<span class="st">'theta_mean'</span>].item()</span>
-<span id="cb49-57"><a href="#cb49-57" aria-hidden="true" tabindex="-1"></a>        std  <span class="op">=</span> res[<span class="st">'theta_std'</span>].item()</span>
-<span id="cb49-58"><a href="#cb49-58" aria-hidden="true" tabindex="-1"></a>        rows_bav.append({</span>
-<span id="cb49-59"><a href="#cb49-59" aria-hidden="true" tabindex="-1"></a>            <span class="st">'Theta'</span>: true_theta, <span class="st">'Label'</span>: label,</span>
-<span id="cb49-60"><a href="#cb49-60" aria-hidden="true" tabindex="-1"></a>            <span class="st">'Strategy'</span>: lr_name,</span>
-<span id="cb49-61"><a href="#cb49-61" aria-hidden="true" tabindex="-1"></a>            <span class="st">'Mean'</span>: <span class="bu">round</span>(mean, <span class="dv">4</span>), <span class="st">'Std'</span>: <span class="bu">round</span>(std, <span class="dv">5</span>),</span>
-<span id="cb49-62"><a href="#cb49-62" aria-hidden="true" tabindex="-1"></a>            <span class="st">'Bias'</span>: <span class="bu">round</span>(<span class="bu">abs</span>(mean <span class="op">-</span> true_theta), <span class="dv">4</span>),</span>
-<span id="cb49-63"><a href="#cb49-63" aria-hidden="true" tabindex="-1"></a>            <span class="st">'RelBias procent'</span>: <span class="bu">round</span>(<span class="bu">abs</span>(mean <span class="op">-</span> true_theta)<span class="op">/</span>true_theta<span class="op">*</span><span class="dv">100</span>, <span class="dv">2</span>),</span>
-<span id="cb49-64"><a href="#cb49-64" aria-hidden="true" tabindex="-1"></a>        })</span>
-<span id="cb49-65"><a href="#cb49-65" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb49-66"><a href="#cb49-66" aria-hidden="true" tabindex="-1"></a>df_bav <span class="op">=</span> pd.DataFrame(rows_bav)</span>
-<span id="cb49-67"><a href="#cb49-67" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Rangering per theta (lav std + lav bias = bedst):"</span>)</span>
-<span id="cb49-68"><a href="#cb49-68" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> theta, label <span class="kw">in</span> theta_bavian_cases:</span>
-<span id="cb49-69"><a href="#cb49-69" aria-hidden="true" tabindex="-1"></a>    sub <span class="op">=</span> df_bav[df_bav[<span class="st">'Theta'</span>]<span class="op">==</span>theta].copy()</span>
-<span id="cb49-70"><a href="#cb49-70" aria-hidden="true" tabindex="-1"></a>    sub[<span class="st">'Score'</span>] <span class="op">=</span> sub[<span class="st">'Std'</span>] <span class="op">+</span> <span class="fl">0.5</span><span class="op">*</span>sub[<span class="st">'Bias'</span>]</span>
-<span id="cb49-71"><a href="#cb49-71" aria-hidden="true" tabindex="-1"></a>    sub_sorted <span class="op">=</span> sub.sort_values(<span class="st">'Score'</span>)  <span class="co"># sortér hele sub inkl. Score</span></span>
-<span id="cb49-72"><a href="#cb49-72" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">  theta=</span><span class="sc">{</span>theta<span class="sc">}</span><span class="ss"> (</span><span class="sc">{</span>label<span class="sc">}</span><span class="ss">):"</span>)</span>
-<span id="cb49-73"><a href="#cb49-73" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(sub_sorted[[<span class="st">'Strategy'</span>,<span class="st">'Mean'</span>,<span class="st">'Std'</span>,<span class="st">'Bias'</span>,<span class="st">'RelBias procent'</span>]].to_string(index<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (Graph, with_ipv, GaussPrior, HalfCauchyPrior, DataPrior,</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>    Adam, ExpStepSize, ConstantStepSize, clear_caches)</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> warnings</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>warnings.filterwarnings(<span class="st">'ignore'</span>)</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>clear_caches()</span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples] <span class="op">+</span> [<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coal_bav(state):</span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
+<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
+<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[i<span class="op">+</span>j<span class="op">+</span><span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>            transitions.append((new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)]))</span>
+<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a>graph_bav <span class="op">=</span> Graph(coal_bav)</span>
+<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a>theta_bavian_cases <span class="op">=</span> [</span>
+<span id="cb33-28"><a href="#cb33-28" aria-hidden="true" tabindex="-1"></a>    (<span class="fl">1.0</span>,  <span class="st">'Lav N_e (lille pop.)'</span>),</span>
+<span id="cb33-29"><a href="#cb33-29" aria-hidden="true" tabindex="-1"></a>    (<span class="fl">5.0</span>,  <span class="st">'Moderat N_e (bavian baseline)'</span>),</span>
+<span id="cb33-30"><a href="#cb33-30" aria-hidden="true" tabindex="-1"></a>    (<span class="fl">10.0</span>, <span class="st">'Høj N_e (stor pop.)'</span>),</span>
+<span id="cb33-31"><a href="#cb33-31" aria-hidden="true" tabindex="-1"></a>    (<span class="fl">20.0</span>, <span class="st">'Meget hj N_e'</span>),</span>
+<span id="cb33-32"><a href="#cb33-32" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb33-33"><a href="#cb33-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-34"><a href="#cb33-34" aria-hidden="true" tabindex="-1"></a>lr_configs_bav <span class="op">=</span> {</span>
+<span id="cb33-35"><a href="#cb33-35" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.1)'</span>:           {<span class="st">'optimizer'</span>: Adam(<span class="fl">0.1</span>)},</span>
+<span id="cb33-36"><a href="#cb33-36" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.25)'</span>:          {<span class="st">'optimizer'</span>: Adam(<span class="fl">0.25</span>)},</span>
+<span id="cb33-37"><a href="#cb33-37" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.5)'</span>:           {<span class="st">'optimizer'</span>: Adam(<span class="fl">0.5</span>)},</span>
+<span id="cb33-38"><a href="#cb33-38" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Exp(0.05-&gt;0.005,t=30)'</span>: {<span class="st">'learning_rate'</span>: ExpStepSize(<span class="fl">0.05</span>, <span class="fl">0.005</span>, <span class="fl">30.0</span>)},</span>
+<span id="cb33-39"><a href="#cb33-39" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Exp(0.1-&gt;0.005,t=40)'</span>:  {<span class="st">'learning_rate'</span>: ExpStepSize(<span class="fl">0.1</span>, <span class="fl">0.005</span>, <span class="fl">40.0</span>)},</span>
+<span id="cb33-40"><a href="#cb33-40" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Exp(0.1-&gt;0.001,t=60)'</span>:  {<span class="st">'learning_rate'</span>: ExpStepSize(<span class="fl">0.1</span>, <span class="fl">0.001</span>, <span class="fl">60.0</span>)},</span>
+<span id="cb33-41"><a href="#cb33-41" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb33-42"><a href="#cb33-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-43"><a href="#cb33-43" aria-hidden="true" tabindex="-1"></a>rows_bav <span class="op">=</span> []</span>
+<span id="cb33-44"><a href="#cb33-44" aria-hidden="true" tabindex="-1"></a>N_OBS_BAV <span class="op">=</span> <span class="dv">3000</span></span>
+<span id="cb33-45"><a href="#cb33-45" aria-hidden="true" tabindex="-1"></a>N_ITER_BAV <span class="op">=</span> <span class="dv">300</span></span>
+<span id="cb33-46"><a href="#cb33-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-47"><a href="#cb33-47" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> true_theta, label <span class="kw">in</span> theta_bavian_cases:</span>
+<span id="cb33-48"><a href="#cb33-48" aria-hidden="true" tabindex="-1"></a>    graph_bav.update_weights([true_theta])</span>
+<span id="cb33-49"><a href="#cb33-49" aria-hidden="true" tabindex="-1"></a>    data_bav <span class="op">=</span> graph_bav.sample(N_OBS_BAV)</span>
+<span id="cb33-50"><a href="#cb33-50" aria-hidden="true" tabindex="-1"></a>    prior_bav <span class="op">=</span> DataPrior(graph_bav, data_bav)</span>
+<span id="cb33-51"><a href="#cb33-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-52"><a href="#cb33-52" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> lr_name, kwargs <span class="kw">in</span> lr_configs_bav.items():</span>
+<span id="cb33-53"><a href="#cb33-53" aria-hidden="true" tabindex="-1"></a>        sv <span class="op">=</span> graph_bav.svgd(data_bav, prior<span class="op">=</span>prior_bav,</span>
+<span id="cb33-54"><a href="#cb33-54" aria-hidden="true" tabindex="-1"></a>                             n_iterations<span class="op">=</span>N_ITER_BAV, <span class="op">**</span>kwargs)</span>
+<span id="cb33-55"><a href="#cb33-55" aria-hidden="true" tabindex="-1"></a>        res <span class="op">=</span> sv.get_results()</span>
+<span id="cb33-56"><a href="#cb33-56" aria-hidden="true" tabindex="-1"></a>        mean <span class="op">=</span> res[<span class="st">'theta_mean'</span>].item()</span>
+<span id="cb33-57"><a href="#cb33-57" aria-hidden="true" tabindex="-1"></a>        std  <span class="op">=</span> res[<span class="st">'theta_std'</span>].item()</span>
+<span id="cb33-58"><a href="#cb33-58" aria-hidden="true" tabindex="-1"></a>        rows_bav.append({</span>
+<span id="cb33-59"><a href="#cb33-59" aria-hidden="true" tabindex="-1"></a>            <span class="st">'Theta'</span>: true_theta, <span class="st">'Label'</span>: label,</span>
+<span id="cb33-60"><a href="#cb33-60" aria-hidden="true" tabindex="-1"></a>            <span class="st">'Strategy'</span>: lr_name,</span>
+<span id="cb33-61"><a href="#cb33-61" aria-hidden="true" tabindex="-1"></a>            <span class="st">'Mean'</span>: <span class="bu">round</span>(mean, <span class="dv">4</span>), <span class="st">'Std'</span>: <span class="bu">round</span>(std, <span class="dv">5</span>),</span>
+<span id="cb33-62"><a href="#cb33-62" aria-hidden="true" tabindex="-1"></a>            <span class="st">'Bias'</span>: <span class="bu">round</span>(<span class="bu">abs</span>(mean <span class="op">-</span> true_theta), <span class="dv">4</span>),</span>
+<span id="cb33-63"><a href="#cb33-63" aria-hidden="true" tabindex="-1"></a>            <span class="st">'RelBias procent'</span>: <span class="bu">round</span>(<span class="bu">abs</span>(mean <span class="op">-</span> true_theta)<span class="op">/</span>true_theta<span class="op">*</span><span class="dv">100</span>, <span class="dv">2</span>),</span>
+<span id="cb33-64"><a href="#cb33-64" aria-hidden="true" tabindex="-1"></a>        })</span>
+<span id="cb33-65"><a href="#cb33-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-66"><a href="#cb33-66" aria-hidden="true" tabindex="-1"></a>df_bav <span class="op">=</span> pd.DataFrame(rows_bav)</span>
+<span id="cb33-67"><a href="#cb33-67" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Rangering per theta (lav std + lav bias = bedst):"</span>)</span>
+<span id="cb33-68"><a href="#cb33-68" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> theta, label <span class="kw">in</span> theta_bavian_cases:</span>
+<span id="cb33-69"><a href="#cb33-69" aria-hidden="true" tabindex="-1"></a>    sub <span class="op">=</span> df_bav[df_bav[<span class="st">'Theta'</span>]<span class="op">==</span>theta].copy()</span>
+<span id="cb33-70"><a href="#cb33-70" aria-hidden="true" tabindex="-1"></a>    sub[<span class="st">'Score'</span>] <span class="op">=</span> sub[<span class="st">'Std'</span>] <span class="op">+</span> <span class="fl">0.5</span><span class="op">*</span>sub[<span class="st">'Bias'</span>]</span>
+<span id="cb33-71"><a href="#cb33-71" aria-hidden="true" tabindex="-1"></a>    sub_sorted <span class="op">=</span> sub.sort_values(<span class="st">'Score'</span>)  <span class="co"># sortér hele sub inkl. Score</span></span>
+<span id="cb33-72"><a href="#cb33-72" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">  theta=</span><span class="sc">{</span>theta<span class="sc">}</span><span class="ss"> (</span><span class="sc">{</span>label<span class="sc">}</span><span class="ss">):"</span>)</span>
+<span id="cb33-73"><a href="#cb33-73" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(sub_sorted[[<span class="st">'Strategy'</span>,<span class="st">'Mean'</span>,<span class="st">'Std'</span>,<span class="st">'Bias'</span>,<span class="st">'RelBias procent'</span>]].to_string(index<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Rangering per theta (lav std + lav bias = bedst):
 
@@ -1943,37 +1456,37 @@ Exp(0.05-&gt;0.005,t=30) 20.1273 0.44676 0.1273             0.64</code></pre>
 </div>
 </div>
 <div id="cell-fig-heatmap-bias-std" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Samlet heatmap: Bias og std over alle kombinationer</span></span>
-<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
-<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">16</span>, <span class="dv">5</span>))</span>
-<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a>pivot_std  <span class="op">=</span> df_bav.pivot_table(index<span class="op">=</span><span class="st">'Strategy'</span>, columns<span class="op">=</span><span class="st">'Theta'</span>, values<span class="op">=</span><span class="st">'Std'</span>)</span>
-<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a>pivot_bias <span class="op">=</span> df_bav.pivot_table(index<span class="op">=</span><span class="st">'Strategy'</span>, columns<span class="op">=</span><span class="st">'Theta'</span>, values<span class="op">=</span><span class="st">'Bias'</span>)</span>
-<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb51-9"><a href="#cb51-9" aria-hidden="true" tabindex="-1"></a>sns.heatmap(pivot_std, annot<span class="op">=</span><span class="va">True</span>, fmt<span class="op">=</span><span class="st">'.4f'</span>, cmap<span class="op">=</span><span class="st">'YlOrRd'</span>,</span>
-<span id="cb51-10"><a href="#cb51-10" aria-hidden="true" tabindex="-1"></a>            ax<span class="op">=</span>axes[<span class="dv">0</span>], cbar_kws<span class="op">=</span>{<span class="st">'label'</span>: <span class="st">'Posterior std (lav = bedst)'</span>})</span>
-<span id="cb51-11"><a href="#cb51-11" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'Posterior STD per strategi og theta'</span>)</span>
-<span id="cb51-12"><a href="#cb51-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb51-13"><a href="#cb51-13" aria-hidden="true" tabindex="-1"></a>sns.heatmap(pivot_bias, annot<span class="op">=</span><span class="va">True</span>, fmt<span class="op">=</span><span class="st">'.4f'</span>, cmap<span class="op">=</span><span class="st">'YlOrRd'</span>,</span>
-<span id="cb51-14"><a href="#cb51-14" aria-hidden="true" tabindex="-1"></a>            ax<span class="op">=</span>axes[<span class="dv">1</span>], cbar_kws<span class="op">=</span>{<span class="st">'label'</span>: <span class="st">'Bias (lav = bedst)'</span>})</span>
-<span id="cb51-15"><a href="#cb51-15" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'Bias per strategi og theta'</span>)</span>
-<span id="cb51-16"><a href="#cb51-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb51-17"><a href="#cb51-17" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()<span class="op">;</span> plt.show()</span>
-<span id="cb51-18"><a href="#cb51-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb51-19"><a href="#cb51-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Find bedste globale strategi</span></span>
-<span id="cb51-20"><a href="#cb51-20" aria-hidden="true" tabindex="-1"></a>df_bav[<span class="st">'Score'</span>] <span class="op">=</span> df_bav[<span class="st">'Std'</span>] <span class="op">+</span> <span class="fl">0.5</span><span class="op">*</span>df_bav[<span class="st">'Bias'</span>]</span>
-<span id="cb51-21"><a href="#cb51-21" aria-hidden="true" tabindex="-1"></a>best_global <span class="op">=</span> df_bav.groupby(<span class="st">'Strategy'</span>)[<span class="st">'Score'</span>].mean().sort_values()</span>
-<span id="cb51-22"><a href="#cb51-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Global rangering (lav score = bedst til bavian-data):"</span>)</span>
-<span id="cb51-23"><a href="#cb51-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(best_global.to_string())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Samlet heatmap: Bias og std over alle kombinationer</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">16</span>, <span class="dv">5</span>))</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>pivot_std  <span class="op">=</span> df_bav.pivot_table(index<span class="op">=</span><span class="st">'Strategy'</span>, columns<span class="op">=</span><span class="st">'Theta'</span>, values<span class="op">=</span><span class="st">'Std'</span>)</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>pivot_bias <span class="op">=</span> df_bav.pivot_table(index<span class="op">=</span><span class="st">'Strategy'</span>, columns<span class="op">=</span><span class="st">'Theta'</span>, values<span class="op">=</span><span class="st">'Bias'</span>)</span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>sns.heatmap(pivot_std, annot<span class="op">=</span><span class="va">True</span>, fmt<span class="op">=</span><span class="st">'.4f'</span>, cmap<span class="op">=</span><span class="st">'YlOrRd'</span>,</span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>            ax<span class="op">=</span>axes[<span class="dv">0</span>], cbar_kws<span class="op">=</span>{<span class="st">'label'</span>: <span class="st">'Posterior std (lav = bedst)'</span>})</span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'Posterior STD per strategi og theta'</span>)</span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>sns.heatmap(pivot_bias, annot<span class="op">=</span><span class="va">True</span>, fmt<span class="op">=</span><span class="st">'.4f'</span>, cmap<span class="op">=</span><span class="st">'YlOrRd'</span>,</span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>            ax<span class="op">=</span>axes[<span class="dv">1</span>], cbar_kws<span class="op">=</span>{<span class="st">'label'</span>: <span class="st">'Bias (lav = bedst)'</span>})</span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'Bias per strategi og theta'</span>)</span>
+<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()<span class="op">;</span> plt.show()</span>
+<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Find bedste globale strategi</span></span>
+<span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a>df_bav[<span class="st">'Score'</span>] <span class="op">=</span> df_bav[<span class="st">'Std'</span>] <span class="op">+</span> <span class="fl">0.5</span><span class="op">*</span>df_bav[<span class="st">'Bias'</span>]</span>
+<span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a>best_global <span class="op">=</span> df_bav.groupby(<span class="st">'Strategy'</span>)[<span class="st">'Score'</span>].mean().sort_values()</span>
+<span id="cb35-22"><a href="#cb35-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Global rangering (lav score = bedst til bavian-data):"</span>)</span>
+<span id="cb35-23"><a href="#cb35-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(best_global.to_string())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div id="fig-heatmap-bias-std" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-heatmap-bias-std-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="02_svgd_inferens_basis_files/figure-html/fig-heatmap-bias-std-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-28" title="Figure&nbsp;4.11: Heatmap over bias og std for alle laeringsrate-kombinationer."><img src="02_svgd_inferens_basis_files/figure-html/fig-heatmap-bias-std-output-1.svg" class="img-fluid figure-img"></a>
+<a href="02_svgd_inferens_basis_files/figure-html/fig-heatmap-bias-std-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-22" title="Figure&nbsp;4.10: Heatmap over bias og std for alle laeringsrate-kombinationer."><img src="02_svgd_inferens_basis_files/figure-html/fig-heatmap-bias-std-output-1.svg" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-heatmap-bias-std-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;4.11: Heatmap over bias og std for alle laeringsrate-kombinationer.
+Figure&nbsp;4.10: Heatmap over bias og std for alle laeringsrate-kombinationer.
 </figcaption>
 </figure>
 </div>
@@ -1991,51 +1504,51 @@ Exp(0.05-&gt;0.005,t=30)    0.420978</code></pre>
 </div>
 </div>
 <div id="cell-fig-grid-svgd" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb53"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test: antal partikler vs. iterations </span></span>
-<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>best_lr_bav <span class="op">=</span> best_global.index[<span class="dv">0</span>]</span>
-<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>best_kwargs_bav <span class="op">=</span> lr_configs_bav[best_lr_bav]</span>
-<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>true_theta_bav <span class="op">=</span> <span class="fl">5.0</span>  <span class="co"># bavian baseline</span></span>
-<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a>graph_bav.update_weights([true_theta_bav])</span>
-<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>data_bav_test <span class="op">=</span> graph_bav.sample(<span class="dv">3000</span>)</span>
-<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>prior_bav_test <span class="op">=</span> DataPrior(graph_bav, data_bav_test)</span>
-<span id="cb53-8"><a href="#cb53-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb53-9"><a href="#cb53-9" aria-hidden="true" tabindex="-1"></a>rows_pt <span class="op">=</span> []</span>
-<span id="cb53-10"><a href="#cb53-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> n_part <span class="kw">in</span> [<span class="dv">20</span>, <span class="dv">40</span>, <span class="dv">60</span>, <span class="dv">80</span>, <span class="dv">120</span>]:</span>
-<span id="cb53-11"><a href="#cb53-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> n_iter <span class="kw">in</span> [<span class="dv">100</span>, <span class="dv">200</span>, <span class="dv">300</span>, <span class="dv">500</span>]:</span>
-<span id="cb53-12"><a href="#cb53-12" aria-hidden="true" tabindex="-1"></a>        sv_pt <span class="op">=</span> graph_bav.svgd(data_bav_test, prior<span class="op">=</span>prior_bav_test,</span>
-<span id="cb53-13"><a href="#cb53-13" aria-hidden="true" tabindex="-1"></a>                                n_particles<span class="op">=</span>n_part, n_iterations<span class="op">=</span>n_iter,</span>
-<span id="cb53-14"><a href="#cb53-14" aria-hidden="true" tabindex="-1"></a>                                <span class="op">**</span>best_kwargs_bav)</span>
-<span id="cb53-15"><a href="#cb53-15" aria-hidden="true" tabindex="-1"></a>        res_pt <span class="op">=</span> sv_pt.get_results()</span>
-<span id="cb53-16"><a href="#cb53-16" aria-hidden="true" tabindex="-1"></a>        rows_pt.append({</span>
-<span id="cb53-17"><a href="#cb53-17" aria-hidden="true" tabindex="-1"></a>            <span class="st">'Particles'</span>: n_part, <span class="st">'Iterations'</span>: n_iter,</span>
-<span id="cb53-18"><a href="#cb53-18" aria-hidden="true" tabindex="-1"></a>            <span class="st">'Mean'</span>: <span class="bu">round</span>(res_pt[<span class="st">'theta_mean'</span>].item(), <span class="dv">4</span>),</span>
-<span id="cb53-19"><a href="#cb53-19" aria-hidden="true" tabindex="-1"></a>            <span class="st">'Std'</span>:  <span class="bu">round</span>(res_pt[<span class="st">'theta_std'</span>].item(), <span class="dv">5</span>),</span>
-<span id="cb53-20"><a href="#cb53-20" aria-hidden="true" tabindex="-1"></a>            <span class="st">'Bias'</span>: <span class="bu">round</span>(<span class="bu">abs</span>(res_pt[<span class="st">'theta_mean'</span>].item() <span class="op">-</span> true_theta_bav), <span class="dv">4</span>),</span>
-<span id="cb53-21"><a href="#cb53-21" aria-hidden="true" tabindex="-1"></a>        })</span>
-<span id="cb53-22"><a href="#cb53-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb53-23"><a href="#cb53-23" aria-hidden="true" tabindex="-1"></a>df_pt <span class="op">=</span> pd.DataFrame(rows_pt)</span>
-<span id="cb53-24"><a href="#cb53-24" aria-hidden="true" tabindex="-1"></a>pivot_pt <span class="op">=</span> df_pt.pivot_table(index<span class="op">=</span><span class="st">'Particles'</span>, columns<span class="op">=</span><span class="st">'Iterations'</span>, values<span class="op">=</span><span class="st">'Std'</span>)</span>
-<span id="cb53-25"><a href="#cb53-25" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="dv">5</span>))</span>
-<span id="cb53-26"><a href="#cb53-26" aria-hidden="true" tabindex="-1"></a>sns.heatmap(pivot_pt, annot<span class="op">=</span><span class="va">True</span>, fmt<span class="op">=</span><span class="st">'.5f'</span>, cmap<span class="op">=</span><span class="st">'YlGn_r'</span>, ax<span class="op">=</span>ax,</span>
-<span id="cb53-27"><a href="#cb53-27" aria-hidden="true" tabindex="-1"></a>            cbar_kws<span class="op">=</span>{<span class="st">'label'</span>: <span class="st">'Posterior std (lav = bedst)'</span>})</span>
-<span id="cb53-28"><a href="#cb53-28" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="ss">f'Std som funktion af (particles, iterations)</span><span class="ch">\n</span><span class="ss">Strategy: </span><span class="sc">{</span>best_lr_bav<span class="sc">}</span><span class="ss">, theta=</span><span class="sc">{</span>true_theta_bav<span class="sc">}</span><span class="ss">'</span>)</span>
-<span id="cb53-29"><a href="#cb53-29" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()<span class="op">;</span> plt.show()</span>
-<span id="cb53-30"><a href="#cb53-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb53-31"><a href="#cb53-31" aria-hidden="true" tabindex="-1"></a>best_combo <span class="op">=</span> df_pt.loc[df_pt[<span class="st">'Std'</span>].idxmin()]</span>
-<span id="cb53-32"><a href="#cb53-32" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Bedste kombination: </span><span class="sc">{</span><span class="bu">int</span>(best_combo[<span class="st">'Particles'</span>])<span class="sc">}</span><span class="ss"> particles, </span><span class="sc">{</span><span class="bu">int</span>(best_combo[<span class="st">'Iterations'</span>])<span class="sc">}</span><span class="ss"> iterations"</span>)</span>
-<span id="cb53-33"><a href="#cb53-33" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  Std=</span><span class="sc">{</span>best_combo[<span class="st">'Std'</span>]<span class="sc">:.5f}</span><span class="ss">  Bias=</span><span class="sc">{</span>best_combo[<span class="st">'Bias'</span>]<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
-<span id="cb53-34"><a href="#cb53-34" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Anbefaling til bavian NB07:"</span>)</span>
-<span id="cb53-35"><a href="#cb53-35" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  optimizer = </span><span class="sc">{</span>best_lr_bav<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb53-36"><a href="#cb53-36" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  n_particles = </span><span class="sc">{</span><span class="bu">int</span>(best_combo[<span class="st">'Particles'</span>])<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb53-37"><a href="#cb53-37" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  n_iterations = </span><span class="sc">{</span><span class="bu">int</span>(best_combo[<span class="st">'Iterations'</span>])<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test: antal partikler vs. iterations </span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>best_lr_bav <span class="op">=</span> best_global.index[<span class="dv">0</span>]</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>best_kwargs_bav <span class="op">=</span> lr_configs_bav[best_lr_bav]</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>true_theta_bav <span class="op">=</span> <span class="fl">5.0</span>  <span class="co"># bavian baseline</span></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>graph_bav.update_weights([true_theta_bav])</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>data_bav_test <span class="op">=</span> graph_bav.sample(<span class="dv">3000</span>)</span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>prior_bav_test <span class="op">=</span> DataPrior(graph_bav, data_bav_test)</span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>rows_pt <span class="op">=</span> []</span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> n_part <span class="kw">in</span> [<span class="dv">20</span>, <span class="dv">40</span>, <span class="dv">60</span>, <span class="dv">80</span>, <span class="dv">120</span>]:</span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> n_iter <span class="kw">in</span> [<span class="dv">100</span>, <span class="dv">200</span>, <span class="dv">300</span>, <span class="dv">500</span>]:</span>
+<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a>        sv_pt <span class="op">=</span> graph_bav.svgd(data_bav_test, prior<span class="op">=</span>prior_bav_test,</span>
+<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a>                                n_particles<span class="op">=</span>n_part, n_iterations<span class="op">=</span>n_iter,</span>
+<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a>                                <span class="op">**</span>best_kwargs_bav)</span>
+<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a>        res_pt <span class="op">=</span> sv_pt.get_results()</span>
+<span id="cb37-16"><a href="#cb37-16" aria-hidden="true" tabindex="-1"></a>        rows_pt.append({</span>
+<span id="cb37-17"><a href="#cb37-17" aria-hidden="true" tabindex="-1"></a>            <span class="st">'Particles'</span>: n_part, <span class="st">'Iterations'</span>: n_iter,</span>
+<span id="cb37-18"><a href="#cb37-18" aria-hidden="true" tabindex="-1"></a>            <span class="st">'Mean'</span>: <span class="bu">round</span>(res_pt[<span class="st">'theta_mean'</span>].item(), <span class="dv">4</span>),</span>
+<span id="cb37-19"><a href="#cb37-19" aria-hidden="true" tabindex="-1"></a>            <span class="st">'Std'</span>:  <span class="bu">round</span>(res_pt[<span class="st">'theta_std'</span>].item(), <span class="dv">5</span>),</span>
+<span id="cb37-20"><a href="#cb37-20" aria-hidden="true" tabindex="-1"></a>            <span class="st">'Bias'</span>: <span class="bu">round</span>(<span class="bu">abs</span>(res_pt[<span class="st">'theta_mean'</span>].item() <span class="op">-</span> true_theta_bav), <span class="dv">4</span>),</span>
+<span id="cb37-21"><a href="#cb37-21" aria-hidden="true" tabindex="-1"></a>        })</span>
+<span id="cb37-22"><a href="#cb37-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-23"><a href="#cb37-23" aria-hidden="true" tabindex="-1"></a>df_pt <span class="op">=</span> pd.DataFrame(rows_pt)</span>
+<span id="cb37-24"><a href="#cb37-24" aria-hidden="true" tabindex="-1"></a>pivot_pt <span class="op">=</span> df_pt.pivot_table(index<span class="op">=</span><span class="st">'Particles'</span>, columns<span class="op">=</span><span class="st">'Iterations'</span>, values<span class="op">=</span><span class="st">'Std'</span>)</span>
+<span id="cb37-25"><a href="#cb37-25" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="dv">5</span>))</span>
+<span id="cb37-26"><a href="#cb37-26" aria-hidden="true" tabindex="-1"></a>sns.heatmap(pivot_pt, annot<span class="op">=</span><span class="va">True</span>, fmt<span class="op">=</span><span class="st">'.5f'</span>, cmap<span class="op">=</span><span class="st">'YlGn_r'</span>, ax<span class="op">=</span>ax,</span>
+<span id="cb37-27"><a href="#cb37-27" aria-hidden="true" tabindex="-1"></a>            cbar_kws<span class="op">=</span>{<span class="st">'label'</span>: <span class="st">'Posterior std (lav = bedst)'</span>})</span>
+<span id="cb37-28"><a href="#cb37-28" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="ss">f'Std som funktion af (particles, iterations)</span><span class="ch">\n</span><span class="ss">Strategy: </span><span class="sc">{</span>best_lr_bav<span class="sc">}</span><span class="ss">, theta=</span><span class="sc">{</span>true_theta_bav<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb37-29"><a href="#cb37-29" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()<span class="op">;</span> plt.show()</span>
+<span id="cb37-30"><a href="#cb37-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-31"><a href="#cb37-31" aria-hidden="true" tabindex="-1"></a>best_combo <span class="op">=</span> df_pt.loc[df_pt[<span class="st">'Std'</span>].idxmin()]</span>
+<span id="cb37-32"><a href="#cb37-32" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Bedste kombination: </span><span class="sc">{</span><span class="bu">int</span>(best_combo[<span class="st">'Particles'</span>])<span class="sc">}</span><span class="ss"> particles, </span><span class="sc">{</span><span class="bu">int</span>(best_combo[<span class="st">'Iterations'</span>])<span class="sc">}</span><span class="ss"> iterations"</span>)</span>
+<span id="cb37-33"><a href="#cb37-33" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  Std=</span><span class="sc">{</span>best_combo[<span class="st">'Std'</span>]<span class="sc">:.5f}</span><span class="ss">  Bias=</span><span class="sc">{</span>best_combo[<span class="st">'Bias'</span>]<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb37-34"><a href="#cb37-34" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Anbefaling til bavian NB07:"</span>)</span>
+<span id="cb37-35"><a href="#cb37-35" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  optimizer = </span><span class="sc">{</span>best_lr_bav<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb37-36"><a href="#cb37-36" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  n_particles = </span><span class="sc">{</span><span class="bu">int</span>(best_combo[<span class="st">'Particles'</span>])<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb37-37"><a href="#cb37-37" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  n_iterations = </span><span class="sc">{</span><span class="bu">int</span>(best_combo[<span class="st">'Iterations'</span>])<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div id="fig-grid-svgd" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-grid-svgd-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="02_svgd_inferens_basis_files/figure-html/fig-grid-svgd-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-29" title="Figure&nbsp;4.12: Grid-søgning over partikler og iterationer."><img src="02_svgd_inferens_basis_files/figure-html/fig-grid-svgd-output-1.svg" class="img-fluid figure-img"></a>
+<a href="02_svgd_inferens_basis_files/figure-html/fig-grid-svgd-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-23" title="Figure&nbsp;4.11: Grid-søgning over partikler og iterationer."><img src="02_svgd_inferens_basis_files/figure-html/fig-grid-svgd-output-1.svg" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-grid-svgd-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;4.12: Grid-søgning over partikler og iterationer.
+Figure&nbsp;4.11: Grid-søgning over partikler og iterationer.
 </figcaption>
 </figure>
 </div>
@@ -2056,65 +1569,65 @@ Anbefaling til bavian NB07:
 <h2 class="anchored" data-anchor-id="svgd-posterior-form-peaked-vs.-flad-posterior">SVGD posterior-form: peaked vs.&nbsp;flad posterior</h2>
 <p>En god posterior er bred og flad og trækker ud mod siderne. En dårlig posterior har en skarp top (peaked), hvilket indikerer at SVGD er kollapset mod et enkelt punkt og undervurderer usikkerheden. Her testes systematisk hvad der forårsager peaked posteriors.</p>
 <div id="cell-fig-posterior-form" class="cell" data-execution_count="5">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb55"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> kurtosis</span>
-<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv, GaussPrior, HalfCauchyPrior, DataPrior</span>
-<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Adam, ExpStepSize, ConstantStepSize</span>
-<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a>nr_s <span class="op">=</span> <span class="dv">4</span></span>
-<span id="cb55-8"><a href="#cb55-8" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_s] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> (nr_s <span class="op">-</span> <span class="dv">1</span>))</span>
-<span id="cb55-9"><a href="#cb55-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coal_form(state):</span>
-<span id="cb55-10"><a href="#cb55-10" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb55-11"><a href="#cb55-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
-<span id="cb55-12"><a href="#cb55-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
-<span id="cb55-13"><a href="#cb55-13" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb55-14"><a href="#cb55-14" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
-<span id="cb55-15"><a href="#cb55-15" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
-<span id="cb55-16"><a href="#cb55-16" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb55-17"><a href="#cb55-17" aria-hidden="true" tabindex="-1"></a>            new[i <span class="op">+</span> j <span class="op">+</span> <span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb55-18"><a href="#cb55-18" aria-hidden="true" tabindex="-1"></a>            transitions.append((new, [state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same)]))</span>
-<span id="cb55-19"><a href="#cb55-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb55-20"><a href="#cb55-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb55-21"><a href="#cb55-21" aria-hidden="true" tabindex="-1"></a>g_form <span class="op">=</span> Graph(coal_form)</span>
-<span id="cb55-22"><a href="#cb55-22" aria-hidden="true" tabindex="-1"></a>true_theta_form <span class="op">=</span> [<span class="fl">7.0</span>]</span>
-<span id="cb55-23"><a href="#cb55-23" aria-hidden="true" tabindex="-1"></a>g_form.update_weights(true_theta_form)</span>
-<span id="cb55-24"><a href="#cb55-24" aria-hidden="true" tabindex="-1"></a>data_form <span class="op">=</span> g_form.sample(<span class="dv">2000</span>)</span>
-<span id="cb55-25"><a href="#cb55-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb55-26"><a href="#cb55-26" aria-hidden="true" tabindex="-1"></a>configs <span class="op">=</span> {</span>
-<span id="cb55-27"><a href="#cb55-27" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.25) — god'</span>:      {<span class="st">'optimizer_fn'</span>: <span class="kw">lambda</span>: Adam(<span class="fl">0.25</span>),   <span class="st">'n_iter'</span>: <span class="dv">300</span>},</span>
-<span id="cb55-28"><a href="#cb55-28" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(2.0) — peaked'</span>:    {<span class="st">'optimizer_fn'</span>: <span class="kw">lambda</span>: Adam(<span class="fl">2.0</span>),    <span class="st">'n_iter'</span>: <span class="dv">300</span>},</span>
-<span id="cb55-29"><a href="#cb55-29" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.001) — for lav'</span>: {<span class="st">'optimizer_fn'</span>: <span class="kw">lambda</span>: Adam(<span class="fl">0.001</span>),  <span class="st">'n_iter'</span>: <span class="dv">300</span>},</span>
-<span id="cb55-30"><a href="#cb55-30" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.5) — middel'</span>:    {<span class="st">'optimizer_fn'</span>: <span class="kw">lambda</span>: Adam(<span class="fl">0.5</span>),    <span class="st">'n_iter'</span>: <span class="dv">300</span>},</span>
-<span id="cb55-31"><a href="#cb55-31" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb55-32"><a href="#cb55-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb55-33"><a href="#cb55-33" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">2</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">13</span>, <span class="dv">8</span>))</span>
-<span id="cb55-34"><a href="#cb55-34" aria-hidden="true" tabindex="-1"></a>prior_form <span class="op">=</span> DataPrior(g_form, data_form)</span>
-<span id="cb55-35"><a href="#cb55-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb55-36"><a href="#cb55-36" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, (name, cfg) <span class="kw">in</span> <span class="bu">zip</span>(axes.flat, configs.items()):</span>
-<span id="cb55-37"><a href="#cb55-37" aria-hidden="true" tabindex="-1"></a>    sv <span class="op">=</span> g_form.svgd(data_form, prior<span class="op">=</span>prior_form,</span>
-<span id="cb55-38"><a href="#cb55-38" aria-hidden="true" tabindex="-1"></a>                     optimizer<span class="op">=</span>cfg[<span class="st">'optimizer_fn'</span>](),   </span>
-<span id="cb55-39"><a href="#cb55-39" aria-hidden="true" tabindex="-1"></a>                     n_particles<span class="op">=</span><span class="dv">60</span>, n_iterations<span class="op">=</span>cfg[<span class="st">'n_iter'</span>])</span>
-<span id="cb55-40"><a href="#cb55-40" aria-hidden="true" tabindex="-1"></a>    particles <span class="op">=</span> sv.get_results()[<span class="st">'particles'</span>].flatten()</span>
-<span id="cb55-41"><a href="#cb55-41" aria-hidden="true" tabindex="-1"></a>    kurt <span class="op">=</span> kurtosis(particles)</span>
-<span id="cb55-42"><a href="#cb55-42" aria-hidden="true" tabindex="-1"></a>    ax.hist(particles, bins<span class="op">=</span><span class="dv">20</span>, color<span class="op">=</span><span class="st">'steelblue'</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, edgecolor<span class="op">=</span><span class="st">'white'</span>)</span>
-<span id="cb55-43"><a href="#cb55-43" aria-hidden="true" tabindex="-1"></a>    ax.axvline(true_theta_form[<span class="dv">0</span>], color<span class="op">=</span><span class="st">'red'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, label<span class="op">=</span><span class="st">'Sand theta'</span>)</span>
-<span id="cb55-44"><a href="#cb55-44" aria-hidden="true" tabindex="-1"></a>    ax.axvline(<span class="bu">float</span>(particles.mean()), color<span class="op">=</span><span class="st">'orange'</span>, linestyle<span class="op">=</span><span class="st">'-'</span>, label<span class="op">=</span><span class="st">'Estimat'</span>)</span>
-<span id="cb55-45"><a href="#cb55-45" aria-hidden="true" tabindex="-1"></a>    peaked <span class="op">=</span> <span class="st">'PEAKED (dårlig)'</span> <span class="cf">if</span> kurt <span class="op">&gt;</span> <span class="dv">2</span> <span class="cf">else</span> <span class="st">'FLAD (god)'</span></span>
-<span id="cb55-46"><a href="#cb55-46" aria-hidden="true" tabindex="-1"></a>    ax.set_title(<span class="ss">f'</span><span class="sc">{</span>name<span class="sc">}</span><span class="ch">\n</span><span class="ss">Kurtosis=</span><span class="sc">{</span>kurt<span class="sc">:.2f}</span><span class="ss"> — </span><span class="sc">{</span>peaked<span class="sc">}</span><span class="ss">'</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
-<span id="cb55-47"><a href="#cb55-47" aria-hidden="true" tabindex="-1"></a>    ax.legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
-<span id="cb55-48"><a href="#cb55-48" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb55-49"><a href="#cb55-49" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">'Posterior-form: peaked vs. flad'</span>, fontsize<span class="op">=</span><span class="dv">12</span>)</span>
-<span id="cb55-50"><a href="#cb55-50" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb55-51"><a href="#cb55-51" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> kurtosis</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv, GaussPrior, HalfCauchyPrior, DataPrior</span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Adam, ExpStepSize, ConstantStepSize</span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>nr_s <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_s] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> (nr_s <span class="op">-</span> <span class="dv">1</span>))</span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coal_form(state):</span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a>            new[i <span class="op">+</span> j <span class="op">+</span> <span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a>            transitions.append((new, [state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same)]))</span>
+<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-21"><a href="#cb39-21" aria-hidden="true" tabindex="-1"></a>g_form <span class="op">=</span> Graph(coal_form)</span>
+<span id="cb39-22"><a href="#cb39-22" aria-hidden="true" tabindex="-1"></a>true_theta_form <span class="op">=</span> [<span class="fl">7.0</span>]</span>
+<span id="cb39-23"><a href="#cb39-23" aria-hidden="true" tabindex="-1"></a>g_form.update_weights(true_theta_form)</span>
+<span id="cb39-24"><a href="#cb39-24" aria-hidden="true" tabindex="-1"></a>data_form <span class="op">=</span> g_form.sample(<span class="dv">2000</span>)</span>
+<span id="cb39-25"><a href="#cb39-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-26"><a href="#cb39-26" aria-hidden="true" tabindex="-1"></a>configs <span class="op">=</span> {</span>
+<span id="cb39-27"><a href="#cb39-27" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.25) — god'</span>:      {<span class="st">'optimizer_fn'</span>: <span class="kw">lambda</span>: Adam(<span class="fl">0.25</span>),   <span class="st">'n_iter'</span>: <span class="dv">300</span>},</span>
+<span id="cb39-28"><a href="#cb39-28" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(2.0) — peaked'</span>:    {<span class="st">'optimizer_fn'</span>: <span class="kw">lambda</span>: Adam(<span class="fl">2.0</span>),    <span class="st">'n_iter'</span>: <span class="dv">300</span>},</span>
+<span id="cb39-29"><a href="#cb39-29" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.001) — for lav'</span>: {<span class="st">'optimizer_fn'</span>: <span class="kw">lambda</span>: Adam(<span class="fl">0.001</span>),  <span class="st">'n_iter'</span>: <span class="dv">300</span>},</span>
+<span id="cb39-30"><a href="#cb39-30" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.5) — middel'</span>:    {<span class="st">'optimizer_fn'</span>: <span class="kw">lambda</span>: Adam(<span class="fl">0.5</span>),    <span class="st">'n_iter'</span>: <span class="dv">300</span>},</span>
+<span id="cb39-31"><a href="#cb39-31" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb39-32"><a href="#cb39-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-33"><a href="#cb39-33" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">2</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">13</span>, <span class="dv">8</span>))</span>
+<span id="cb39-34"><a href="#cb39-34" aria-hidden="true" tabindex="-1"></a>prior_form <span class="op">=</span> DataPrior(g_form, data_form)</span>
+<span id="cb39-35"><a href="#cb39-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-36"><a href="#cb39-36" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, (name, cfg) <span class="kw">in</span> <span class="bu">zip</span>(axes.flat, configs.items()):</span>
+<span id="cb39-37"><a href="#cb39-37" aria-hidden="true" tabindex="-1"></a>    sv <span class="op">=</span> g_form.svgd(data_form, prior<span class="op">=</span>prior_form,</span>
+<span id="cb39-38"><a href="#cb39-38" aria-hidden="true" tabindex="-1"></a>                     optimizer<span class="op">=</span>cfg[<span class="st">'optimizer_fn'</span>](),   </span>
+<span id="cb39-39"><a href="#cb39-39" aria-hidden="true" tabindex="-1"></a>                     n_particles<span class="op">=</span><span class="dv">60</span>, n_iterations<span class="op">=</span>cfg[<span class="st">'n_iter'</span>])</span>
+<span id="cb39-40"><a href="#cb39-40" aria-hidden="true" tabindex="-1"></a>    particles <span class="op">=</span> sv.get_results()[<span class="st">'particles'</span>].flatten()</span>
+<span id="cb39-41"><a href="#cb39-41" aria-hidden="true" tabindex="-1"></a>    kurt <span class="op">=</span> kurtosis(particles)</span>
+<span id="cb39-42"><a href="#cb39-42" aria-hidden="true" tabindex="-1"></a>    ax.hist(particles, bins<span class="op">=</span><span class="dv">20</span>, color<span class="op">=</span><span class="st">'steelblue'</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, edgecolor<span class="op">=</span><span class="st">'white'</span>)</span>
+<span id="cb39-43"><a href="#cb39-43" aria-hidden="true" tabindex="-1"></a>    ax.axvline(true_theta_form[<span class="dv">0</span>], color<span class="op">=</span><span class="st">'red'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, label<span class="op">=</span><span class="st">'Sand theta'</span>)</span>
+<span id="cb39-44"><a href="#cb39-44" aria-hidden="true" tabindex="-1"></a>    ax.axvline(<span class="bu">float</span>(particles.mean()), color<span class="op">=</span><span class="st">'orange'</span>, linestyle<span class="op">=</span><span class="st">'-'</span>, label<span class="op">=</span><span class="st">'Estimat'</span>)</span>
+<span id="cb39-45"><a href="#cb39-45" aria-hidden="true" tabindex="-1"></a>    peaked <span class="op">=</span> <span class="st">'PEAKED (dårlig)'</span> <span class="cf">if</span> kurt <span class="op">&gt;</span> <span class="dv">2</span> <span class="cf">else</span> <span class="st">'FLAD (god)'</span></span>
+<span id="cb39-46"><a href="#cb39-46" aria-hidden="true" tabindex="-1"></a>    ax.set_title(<span class="ss">f'</span><span class="sc">{</span>name<span class="sc">}</span><span class="ch">\n</span><span class="ss">Kurtosis=</span><span class="sc">{</span>kurt<span class="sc">:.2f}</span><span class="ss"> — </span><span class="sc">{</span>peaked<span class="sc">}</span><span class="ss">'</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb39-47"><a href="#cb39-47" aria-hidden="true" tabindex="-1"></a>    ax.legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb39-48"><a href="#cb39-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-49"><a href="#cb39-49" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">'Posterior-form: peaked vs. flad'</span>, fontsize<span class="op">=</span><span class="dv">12</span>)</span>
+<span id="cb39-50"><a href="#cb39-50" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb39-51"><a href="#cb39-51" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div id="fig-posterior-form" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-posterior-form-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="02_svgd_inferens_basis_files/figure-html/fig-posterior-form-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-30" title="Figure&nbsp;4.13: Sammenligning af peaked vs.&nbsp;flad posterior under varierende konfigurationer."><img src="02_svgd_inferens_basis_files/figure-html/fig-posterior-form-output-1.svg" class="img-fluid figure-img"></a>
+<a href="02_svgd_inferens_basis_files/figure-html/fig-posterior-form-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-24" title="Figure&nbsp;4.12: Sammenligning af peaked vs.&nbsp;flad posterior under varierende konfigurationer."><img src="02_svgd_inferens_basis_files/figure-html/fig-posterior-form-output-1.svg" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-posterior-form-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;4.13: Sammenligning af peaked vs.&nbsp;flad posterior under varierende konfigurationer.
+Figure&nbsp;4.12: Sammenligning af peaked vs.&nbsp;flad posterior under varierende konfigurationer.
 </figcaption>
 </figure>
 </div>
@@ -2125,48 +1638,48 @@ Figure&nbsp;4.13: Sammenligning af peaked vs.&nbsp;flad posterior under varieren
 <h2 class="anchored" data-anchor-id="custom-optimizer">Custom optimizer</h2>
 <p>Her sammenlignes forskellige optimizer-strategier systematisk, herunder muligheden for at definere sin egen læringsrate-kurve.</p>
 <div id="cell-fig-custom-optimizer" class="cell" data-execution_count="7">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb56"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Adam, DataPrior</span>
-<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> kurtosis</span>
-<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb56-5"><a href="#cb56-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-6"><a href="#cb56-6" aria-hidden="true" tabindex="-1"></a>optimizers <span class="op">=</span> {</span>
-<span id="cb56-7"><a href="#cb56-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.01) — for lav'</span>:  <span class="kw">lambda</span>: Adam(<span class="fl">0.01</span>),</span>
-<span id="cb56-8"><a href="#cb56-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.25) — optimal'</span>:  <span class="kw">lambda</span>: Adam(<span class="fl">0.25</span>),</span>
-<span id="cb56-9"><a href="#cb56-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(2.0)  — for høj'</span>:  <span class="kw">lambda</span>: Adam(<span class="fl">2.0</span>),</span>
-<span id="cb56-10"><a href="#cb56-10" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb56-11"><a href="#cb56-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-12"><a href="#cb56-12" aria-hidden="true" tabindex="-1"></a>g_opt <span class="op">=</span> Graph(coal_form)</span>
-<span id="cb56-13"><a href="#cb56-13" aria-hidden="true" tabindex="-1"></a>g_opt.update_weights([<span class="fl">7.0</span>])</span>
-<span id="cb56-14"><a href="#cb56-14" aria-hidden="true" tabindex="-1"></a>data_opt <span class="op">=</span> g_opt.sample(<span class="dv">2000</span>)</span>
-<span id="cb56-15"><a href="#cb56-15" aria-hidden="true" tabindex="-1"></a>prior_opt <span class="op">=</span> DataPrior(g_opt, data_opt)</span>
-<span id="cb56-16"><a href="#cb56-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-17"><a href="#cb56-17" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">14</span>, <span class="dv">4</span>))</span>
-<span id="cb56-18"><a href="#cb56-18" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, (name, opt_fn) <span class="kw">in</span> <span class="bu">zip</span>(axes, optimizers.items()):</span>
-<span id="cb56-19"><a href="#cb56-19" aria-hidden="true" tabindex="-1"></a>    sv <span class="op">=</span> g_opt.svgd(data_opt, prior<span class="op">=</span>prior_opt, optimizer<span class="op">=</span>opt_fn(),</span>
-<span id="cb56-20"><a href="#cb56-20" aria-hidden="true" tabindex="-1"></a>                    n_particles<span class="op">=</span><span class="dv">60</span>, n_iterations<span class="op">=</span><span class="dv">300</span>)</span>
-<span id="cb56-21"><a href="#cb56-21" aria-hidden="true" tabindex="-1"></a>    particles <span class="op">=</span> sv.get_results()[<span class="st">'particles'</span>].flatten()</span>
-<span id="cb56-22"><a href="#cb56-22" aria-hidden="true" tabindex="-1"></a>    kurt <span class="op">=</span> kurtosis(particles)</span>
-<span id="cb56-23"><a href="#cb56-23" aria-hidden="true" tabindex="-1"></a>    mean <span class="op">=</span> <span class="bu">float</span>(particles.mean())</span>
-<span id="cb56-24"><a href="#cb56-24" aria-hidden="true" tabindex="-1"></a>    std  <span class="op">=</span> <span class="bu">float</span>(particles.std())</span>
-<span id="cb56-25"><a href="#cb56-25" aria-hidden="true" tabindex="-1"></a>    peaked <span class="op">=</span> <span class="st">'PEAKED'</span> <span class="cf">if</span> kurt <span class="op">&gt;</span> <span class="dv">2</span> <span class="cf">else</span> <span class="st">'FLAD'</span></span>
-<span id="cb56-26"><a href="#cb56-26" aria-hidden="true" tabindex="-1"></a>    ax.hist(particles, bins<span class="op">=</span><span class="dv">20</span>, color<span class="op">=</span><span class="st">'steelblue'</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, edgecolor<span class="op">=</span><span class="st">'white'</span>)</span>
-<span id="cb56-27"><a href="#cb56-27" aria-hidden="true" tabindex="-1"></a>    ax.axvline(<span class="fl">7.0</span>,  color<span class="op">=</span><span class="st">'red'</span>,    linestyle<span class="op">=</span><span class="st">'--'</span>, label<span class="op">=</span><span class="st">'Sand'</span>)</span>
-<span id="cb56-28"><a href="#cb56-28" aria-hidden="true" tabindex="-1"></a>    ax.axvline(mean, color<span class="op">=</span><span class="st">'orange'</span>, linestyle<span class="op">=</span><span class="st">'-'</span>,  label<span class="op">=</span><span class="ss">f'Est=</span><span class="sc">{</span>mean<span class="sc">:.3f}</span><span class="ss">'</span>)</span>
-<span id="cb56-29"><a href="#cb56-29" aria-hidden="true" tabindex="-1"></a>    ax.set_title(<span class="ss">f'</span><span class="sc">{</span>name<span class="sc">}</span><span class="ch">\n</span><span class="ss">std=</span><span class="sc">{</span>std<span class="sc">:.3f}</span><span class="ss">, kurtosis=</span><span class="sc">{</span>kurt<span class="sc">:.2f}</span><span class="ss"> — </span><span class="sc">{</span>peaked<span class="sc">}</span><span class="ss">'</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
-<span id="cb56-30"><a href="#cb56-30" aria-hidden="true" tabindex="-1"></a>    ax.legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
-<span id="cb56-31"><a href="#cb56-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-32"><a href="#cb56-32" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">'Læringsrate og posterior-form'</span>, fontsize<span class="op">=</span><span class="dv">12</span>)</span>
-<span id="cb56-33"><a href="#cb56-33" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb56-34"><a href="#cb56-34" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Adam, DataPrior</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> kurtosis</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>optimizers <span class="op">=</span> {</span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.01) — for lav'</span>:  <span class="kw">lambda</span>: Adam(<span class="fl">0.01</span>),</span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.25) — optimal'</span>:  <span class="kw">lambda</span>: Adam(<span class="fl">0.25</span>),</span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(2.0)  — for høj'</span>:  <span class="kw">lambda</span>: Adam(<span class="fl">2.0</span>),</span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>g_opt <span class="op">=</span> Graph(coal_form)</span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a>g_opt.update_weights([<span class="fl">7.0</span>])</span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a>data_opt <span class="op">=</span> g_opt.sample(<span class="dv">2000</span>)</span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a>prior_opt <span class="op">=</span> DataPrior(g_opt, data_opt)</span>
+<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">14</span>, <span class="dv">4</span>))</span>
+<span id="cb40-18"><a href="#cb40-18" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, (name, opt_fn) <span class="kw">in</span> <span class="bu">zip</span>(axes, optimizers.items()):</span>
+<span id="cb40-19"><a href="#cb40-19" aria-hidden="true" tabindex="-1"></a>    sv <span class="op">=</span> g_opt.svgd(data_opt, prior<span class="op">=</span>prior_opt, optimizer<span class="op">=</span>opt_fn(),</span>
+<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a>                    n_particles<span class="op">=</span><span class="dv">60</span>, n_iterations<span class="op">=</span><span class="dv">300</span>)</span>
+<span id="cb40-21"><a href="#cb40-21" aria-hidden="true" tabindex="-1"></a>    particles <span class="op">=</span> sv.get_results()[<span class="st">'particles'</span>].flatten()</span>
+<span id="cb40-22"><a href="#cb40-22" aria-hidden="true" tabindex="-1"></a>    kurt <span class="op">=</span> kurtosis(particles)</span>
+<span id="cb40-23"><a href="#cb40-23" aria-hidden="true" tabindex="-1"></a>    mean <span class="op">=</span> <span class="bu">float</span>(particles.mean())</span>
+<span id="cb40-24"><a href="#cb40-24" aria-hidden="true" tabindex="-1"></a>    std  <span class="op">=</span> <span class="bu">float</span>(particles.std())</span>
+<span id="cb40-25"><a href="#cb40-25" aria-hidden="true" tabindex="-1"></a>    peaked <span class="op">=</span> <span class="st">'PEAKED'</span> <span class="cf">if</span> kurt <span class="op">&gt;</span> <span class="dv">2</span> <span class="cf">else</span> <span class="st">'FLAD'</span></span>
+<span id="cb40-26"><a href="#cb40-26" aria-hidden="true" tabindex="-1"></a>    ax.hist(particles, bins<span class="op">=</span><span class="dv">20</span>, color<span class="op">=</span><span class="st">'steelblue'</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, edgecolor<span class="op">=</span><span class="st">'white'</span>)</span>
+<span id="cb40-27"><a href="#cb40-27" aria-hidden="true" tabindex="-1"></a>    ax.axvline(<span class="fl">7.0</span>,  color<span class="op">=</span><span class="st">'red'</span>,    linestyle<span class="op">=</span><span class="st">'--'</span>, label<span class="op">=</span><span class="st">'Sand'</span>)</span>
+<span id="cb40-28"><a href="#cb40-28" aria-hidden="true" tabindex="-1"></a>    ax.axvline(mean, color<span class="op">=</span><span class="st">'orange'</span>, linestyle<span class="op">=</span><span class="st">'-'</span>,  label<span class="op">=</span><span class="ss">f'Est=</span><span class="sc">{</span>mean<span class="sc">:.3f}</span><span class="ss">'</span>)</span>
+<span id="cb40-29"><a href="#cb40-29" aria-hidden="true" tabindex="-1"></a>    ax.set_title(<span class="ss">f'</span><span class="sc">{</span>name<span class="sc">}</span><span class="ch">\n</span><span class="ss">std=</span><span class="sc">{</span>std<span class="sc">:.3f}</span><span class="ss">, kurtosis=</span><span class="sc">{</span>kurt<span class="sc">:.2f}</span><span class="ss"> — </span><span class="sc">{</span>peaked<span class="sc">}</span><span class="ss">'</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb40-30"><a href="#cb40-30" aria-hidden="true" tabindex="-1"></a>    ax.legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb40-31"><a href="#cb40-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-32"><a href="#cb40-32" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">'Læringsrate og posterior-form'</span>, fontsize<span class="op">=</span><span class="dv">12</span>)</span>
+<span id="cb40-33"><a href="#cb40-33" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb40-34"><a href="#cb40-34" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div id="fig-custom-optimizer" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-custom-optimizer-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="02_svgd_inferens_basis_files/figure-html/fig-custom-optimizer-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-31" title="Figure&nbsp;4.14: Custom optimizer: sammenligning af Adam med varierende læringsrater."><img src="02_svgd_inferens_basis_files/figure-html/fig-custom-optimizer-output-1.svg" class="img-fluid figure-img"></a>
+<a href="02_svgd_inferens_basis_files/figure-html/fig-custom-optimizer-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-25" title="Figure&nbsp;4.13: Custom optimizer: sammenligning af Adam med varierende læringsrater."><img src="02_svgd_inferens_basis_files/figure-html/fig-custom-optimizer-output-1.svg" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-custom-optimizer-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;4.14: Custom optimizer: sammenligning af Adam med varierende læringsrater.
+Figure&nbsp;4.13: Custom optimizer: sammenligning af Adam med varierende læringsrater.
 </figcaption>
 </figure>
 </div>
