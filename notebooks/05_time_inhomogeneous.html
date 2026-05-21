@@ -311,6 +311,7 @@ window.Quarto = {
   <li><a href="#laplace-transformation-prob.-for-ingen-rekombination" id="toc-laplace-transformation-prob.-for-ingen-rekombination" class="nav-link" data-scroll-target="#laplace-transformation-prob.-for-ingen-rekombination">Laplace-transformation: Prob. for ingen rekombination</a></li>
   <li><a href="#im-modellen-som-tidsinhomogen-koalescent" id="toc-im-modellen-som-tidsinhomogen-koalescent" class="nav-link" data-scroll-target="#im-modellen-som-tidsinhomogen-koalescent">IM-modellen som tidsinhomogen koalescent</a></li>
   <li><a href="#epoch-model-med-storre-stikproeve-n10" id="toc-epoch-model-med-storre-stikproeve-n10" class="nav-link" data-scroll-target="#epoch-model-med-storre-stikproeve-n10">Epoch-model med storre stikproeve (n=10)</a></li>
+  <li><a href="#msprime-validering-af-im-modellen" id="toc-msprime-validering-af-im-modellen" class="nav-link" data-scroll-target="#msprime-validering-af-im-modellen">msprime-validering af IM-modellen</a></li>
   </ul>
 <div class="toc-actions"><ul class="collapse"><li><a href="https://github.dev/munch-group/emma-giraf/blob/main/notebooks/05_time_inhomogeneous.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/emma-giraf/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/emma-giraf/blob/main/notebooks/05_time_inhomogeneous.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
     </div>
@@ -1098,6 +1099,264 @@ Figure&nbsp;7.6: SFS-barplot for multi-epoch demografisk model.
 </div>
 <p>SFS-barplottet viser en faldende kurve fra singletons (1-toner) mod høje frekvensklasser (9-toner). Det er karakteristisk for en ekspanderende population: den lille nuværende <span class="math inline">\(N_e = 1\)</span> i første epoch giver mange korte eksterne grene (singletons), mens de store historiske populationer (<span class="math inline">\(N_e = 5\)</span> og <span class="math inline">\(N_e = 10\)</span>) er sjældent nok besøgt til at bidrage til høje frekvensklasser.</p>
 <p>Sammenlignet med en neutral konstant-<span class="math inline">\(N\)</span> model (som giver en <span class="math inline">\(1/k\)</span> SFS) er der her en overskud af singletons og underskud af høje frekvensklasser det klassiske signal efter en demografisk ekspansion. Epoch-modellen med <span class="math inline">\(n=10\)</span> demonstrerer, at phasic skalerer til realistische stikprøvestørrelser.</p>
+</section>
+<section id="msprime-validering-af-im-modellen" class="level2">
+<h2 class="anchored" data-anchor-id="msprime-validering-af-im-modellen">msprime-validering af IM-modellen</h2>
+<p>IM-modellen valideres ved at simulere data med msprime med et eksplicit split-tidspunkt og migrationsperiode, og verificere at SVGD estimerer de sande parametre tilbage.</p>
+<div class="cell" data-execution_count="2">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> msprime</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv, StateIndexer, Property, HalfCauchyPrior, Adam</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> simulate_im_msprime(Ne, m, t_split_gen, n_loci<span class="op">=</span><span class="dv">5000</span>, n_samples<span class="op">=</span><span class="dv">2</span>, mu<span class="op">=</span><span class="fl">0.9e-8</span>):</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    demography <span class="op">=</span> msprime.Demography()</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    demography.add_population(name<span class="op">=</span><span class="st">'pop0'</span>, initial_size<span class="op">=</span>Ne)</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    demography.add_population(name<span class="op">=</span><span class="st">'pop1'</span>, initial_size<span class="op">=</span>Ne)</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    demography.add_population(name<span class="op">=</span><span class="st">'anc'</span>,  initial_size<span class="op">=</span>Ne)</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    demography.set_symmetric_migration_rate([<span class="st">'pop0'</span>, <span class="st">'pop1'</span>], m)</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    demography.add_population_split(</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>        time<span class="op">=</span>t_split_gen,</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>        derived<span class="op">=</span>[<span class="st">'pop0'</span>, <span class="st">'pop1'</span>],</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>        ancestral<span class="op">=</span><span class="st">'anc'</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    obs <span class="op">=</span> []</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>    ts_list <span class="op">=</span> msprime.sim_ancestry(</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>        samples<span class="op">=</span>{<span class="st">'pop0'</span>: n_samples <span class="op">//</span> <span class="dv">2</span>, <span class="st">'pop1'</span>: n_samples <span class="op">//</span> <span class="dv">2</span>},</span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>        demography<span class="op">=</span>demography,</span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>        num_replicates<span class="op">=</span>n_loci,</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>        sequence_length<span class="op">=</span><span class="dv">1000</span>,</span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>        recombination_rate<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ts <span class="kw">in</span> ts_list:</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>        ts_mut <span class="op">=</span> msprime.sim_mutations(ts, rate<span class="op">=</span>mu)</span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> var <span class="kw">in</span> ts_mut.variants():</span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>            k <span class="op">=</span> <span class="bu">int</span>(var.genotypes.<span class="bu">sum</span>())</span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="dv">0</span> <span class="op">&lt;</span> k <span class="op">&lt;</span> n_samples <span class="op">*</span> <span class="dv">2</span>:</span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>                obs.append(k)</span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>                <span class="cf">break</span></span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.array(obs)</span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a><span class="co"># Sande parametre</span></span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>Ne_im    <span class="op">=</span> <span class="dv">50_000</span></span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>m_im     <span class="op">=</span> <span class="fl">1e-3</span></span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a>g_gen    <span class="op">=</span> <span class="dv">11</span></span>
+<span id="cb18-39"><a href="#cb18-39" aria-hidden="true" tabindex="-1"></a>t_split_gen <span class="op">=</span> <span class="dv">500_000</span> <span class="op">//</span> g_gen   <span class="co"># 500,000 år siden split</span></span>
+<span id="cb18-40"><a href="#cb18-40" aria-hidden="true" tabindex="-1"></a>t_split_coal <span class="op">=</span> t_split_gen <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> Ne_im)  <span class="co"># i koalescentenheder</span></span>
+<span id="cb18-41"><a href="#cb18-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-42"><a href="#cb18-42" aria-hidden="true" tabindex="-1"></a>theta0_im_true <span class="op">=</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> Ne_im)</span>
+<span id="cb18-43"><a href="#cb18-43" aria-hidden="true" tabindex="-1"></a>theta1_im_true <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> Ne_im <span class="op">*</span> m_im</span>
+<span id="cb18-44"><a href="#cb18-44" aria-hidden="true" tabindex="-1"></a>theta_anc_true <span class="op">=</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> Ne_im)</span>
+<span id="cb18-45"><a href="#cb18-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-46"><a href="#cb18-46" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Sande parametre:"</span>)</span>
+<span id="cb18-47"><a href="#cb18-47" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  theta0 = </span><span class="sc">{</span>theta0_im_true<span class="sc">:.5f}</span><span class="ss">  (Ne=</span><span class="sc">{</span>Ne_im<span class="sc">:,}</span><span class="ss">)"</span>)</span>
+<span id="cb18-48"><a href="#cb18-48" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  theta1 = </span><span class="sc">{</span>theta1_im_true<span class="sc">:.4f}</span><span class="ss">  (m=</span><span class="sc">{</span>m_im<span class="sc">}</span><span class="ss">)"</span>)</span>
+<span id="cb18-49"><a href="#cb18-49" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  t_split = </span><span class="sc">{</span>t_split_coal<span class="sc">:.3f}</span><span class="ss"> koalescentenheder (</span><span class="sc">{</span>t_split_gen<span class="op">*</span>g_gen<span class="sc">:,}</span><span class="ss"> år)"</span>)</span>
+<span id="cb18-50"><a href="#cb18-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-51"><a href="#cb18-51" aria-hidden="true" tabindex="-1"></a><span class="co"># Simuler data</span></span>
+<span id="cb18-52"><a href="#cb18-52" aria-hidden="true" tabindex="-1"></a>data_im_ms <span class="op">=</span> simulate_im_msprime(Ne_im, m_im, t_split_gen, n_loci<span class="op">=</span><span class="dv">5000</span>, n_samples<span class="op">=</span><span class="dv">4</span>)</span>
+<span id="cb18-53"><a href="#cb18-53" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  n_obs = </span><span class="sc">{</span><span class="bu">len</span>(data_im_ms)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb18-54"><a href="#cb18-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-55"><a href="#cb18-55" aria-hidden="true" tabindex="-1"></a><span class="co"># Byg IM-model (samme som NB05)</span></span>
+<span id="cb18-56"><a href="#cb18-56" aria-hidden="true" tabindex="-1"></a>nr_im <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb18-57"><a href="#cb18-57" aria-hidden="true" tabindex="-1"></a>indexer_im_ms <span class="op">=</span> StateIndexer(descendants<span class="op">=</span>[</span>
+<span id="cb18-58"><a href="#cb18-58" aria-hidden="true" tabindex="-1"></a>    Property(<span class="st">'pop1'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_im),</span>
+<span id="cb18-59"><a href="#cb18-59" aria-hidden="true" tabindex="-1"></a>    Property(<span class="st">'pop2'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_im),</span>
+<span id="cb18-60"><a href="#cb18-60" aria-hidden="true" tabindex="-1"></a>    Property(<span class="st">'in_pop'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span><span class="dv">2</span>),</span>
+<span id="cb18-61"><a href="#cb18-61" aria-hidden="true" tabindex="-1"></a>    Property(<span class="st">'epoch'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span><span class="dv">2</span>),</span>
+<span id="cb18-62"><a href="#cb18-62" aria-hidden="true" tabindex="-1"></a>])</span>
+<span id="cb18-63"><a href="#cb18-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-64"><a href="#cb18-64" aria-hidden="true" tabindex="-1"></a>init_im_ms <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer_im_ms.state_length</span>
+<span id="cb18-65"><a href="#cb18-65" aria-hidden="true" tabindex="-1"></a>init_im_ms[indexer_im_ms.descendants.props_to_index(</span>
+<span id="cb18-66"><a href="#cb18-66" aria-hidden="true" tabindex="-1"></a>    pop1<span class="op">=</span><span class="dv">1</span>, pop2<span class="op">=</span><span class="dv">0</span>, in_pop<span class="op">=</span><span class="dv">1</span>, epoch<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> nr_im</span>
+<span id="cb18-67"><a href="#cb18-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-68"><a href="#cb18-68" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>(init_im_ms)</span>
+<span id="cb18-69"><a href="#cb18-69" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> im_msprime_model(state):</span>
+<span id="cb18-70"><a href="#cb18-70" aria-hidden="true" tabindex="-1"></a>    T <span class="op">=</span> []</span>
+<span id="cb18-71"><a href="#cb18-71" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state[indexer_im_ms.descendants.indices()].<span class="bu">sum</span>() <span class="op">&lt;=</span> <span class="dv">1</span>: <span class="cf">return</span> T</span>
+<span id="cb18-72"><a href="#cb18-72" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(indexer_im_ms.descendants.state_length):</span>
+<span id="cb18-73"><a href="#cb18-73" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[i] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
+<span id="cb18-74"><a href="#cb18-74" aria-hidden="true" tabindex="-1"></a>        pi <span class="op">=</span> indexer_im_ms.descendants.index_to_props(i)</span>
+<span id="cb18-75"><a href="#cb18-75" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, indexer_im_ms.descendants.state_length):</span>
+<span id="cb18-76"><a href="#cb18-76" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> state[j] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
+<span id="cb18-77"><a href="#cb18-77" aria-hidden="true" tabindex="-1"></a>            pj <span class="op">=</span> indexer_im_ms.descendants.index_to_props(j)</span>
+<span id="cb18-78"><a href="#cb18-78" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> pj.in_pop <span class="op">!=</span> pi.in_pop: <span class="cf">continue</span></span>
+<span id="cb18-79"><a href="#cb18-79" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> pj.epoch <span class="op">!=</span> pi.epoch: <span class="cf">continue</span></span>
+<span id="cb18-80"><a href="#cb18-80" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb18-81"><a href="#cb18-81" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb18-82"><a href="#cb18-82" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb18-83"><a href="#cb18-83" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb18-84"><a href="#cb18-84" aria-hidden="true" tabindex="-1"></a>            new[indexer_im_ms.descendants.props_to_index(</span>
+<span id="cb18-85"><a href="#cb18-85" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>pi.pop1<span class="op">+</span>pj.pop1, pop2<span class="op">=</span>pi.pop2<span class="op">+</span>pj.pop2,</span>
+<span id="cb18-86"><a href="#cb18-86" aria-hidden="true" tabindex="-1"></a>                in_pop<span class="op">=</span>pi.in_pop, epoch<span class="op">=</span>pi.epoch)] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb18-87"><a href="#cb18-87" aria-hidden="true" tabindex="-1"></a>            <span class="co"># rate: theta0 for epoch 1, theta2 for epoch 2 (ancestral)</span></span>
+<span id="cb18-88"><a href="#cb18-88" aria-hidden="true" tabindex="-1"></a>            rate_idx <span class="op">=</span> <span class="dv">0</span> <span class="cf">if</span> pi.epoch <span class="op">==</span> <span class="dv">1</span> <span class="cf">else</span> <span class="dv">2</span></span>
+<span id="cb18-89"><a href="#cb18-89" aria-hidden="true" tabindex="-1"></a>            T.append([new, [<span class="dv">0</span>]<span class="op">*</span><span class="dv">3</span>])</span>
+<span id="cb18-90"><a href="#cb18-90" aria-hidden="true" tabindex="-1"></a>            T[<span class="op">-</span><span class="dv">1</span>][<span class="dv">1</span>][rate_idx] <span class="op">=</span> state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)</span>
+<span id="cb18-91"><a href="#cb18-91" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Migration (kun i epoch 1)</span></span>
+<span id="cb18-92"><a href="#cb18-92" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> pi.epoch <span class="op">==</span> <span class="dv">1</span>:</span>
+<span id="cb18-93"><a href="#cb18-93" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> pi.in_pop <span class="op">==</span> <span class="dv">1</span>:</span>
+<span id="cb18-94"><a href="#cb18-94" aria-hidden="true" tabindex="-1"></a>                new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb18-95"><a href="#cb18-95" aria-hidden="true" tabindex="-1"></a>                new[indexer_im_ms.descendants.props_to_index(</span>
+<span id="cb18-96"><a href="#cb18-96" aria-hidden="true" tabindex="-1"></a>                    pop1<span class="op">=</span>pi.pop1, pop2<span class="op">=</span>pi.pop2, in_pop<span class="op">=</span><span class="dv">2</span>, epoch<span class="op">=</span><span class="dv">1</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb18-97"><a href="#cb18-97" aria-hidden="true" tabindex="-1"></a>                T.append([new, [<span class="dv">0</span>, state[i], <span class="dv">0</span>]])</span>
+<span id="cb18-98"><a href="#cb18-98" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span>:</span>
+<span id="cb18-99"><a href="#cb18-99" aria-hidden="true" tabindex="-1"></a>                new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb18-100"><a href="#cb18-100" aria-hidden="true" tabindex="-1"></a>                new[indexer_im_ms.descendants.props_to_index(</span>
+<span id="cb18-101"><a href="#cb18-101" aria-hidden="true" tabindex="-1"></a>                    pop1<span class="op">=</span>pi.pop1, pop2<span class="op">=</span>pi.pop2, in_pop<span class="op">=</span><span class="dv">1</span>, epoch<span class="op">=</span><span class="dv">1</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb18-102"><a href="#cb18-102" aria-hidden="true" tabindex="-1"></a>                T.append([new, [<span class="dv">0</span>, state[i], <span class="dv">0</span>]])</span>
+<span id="cb18-103"><a href="#cb18-103" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Epoch-skift (epoch 1 -&gt; epoch 2)</span></span>
+<span id="cb18-104"><a href="#cb18-104" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> pi.epoch <span class="op">==</span> <span class="dv">1</span>:</span>
+<span id="cb18-105"><a href="#cb18-105" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb18-106"><a href="#cb18-106" aria-hidden="true" tabindex="-1"></a>            new[indexer_im_ms.descendants.props_to_index(</span>
+<span id="cb18-107"><a href="#cb18-107" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>pi.pop1, pop2<span class="op">=</span>pi.pop2, in_pop<span class="op">=</span><span class="dv">1</span>, epoch<span class="op">=</span><span class="dv">2</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb18-108"><a href="#cb18-108" aria-hidden="true" tabindex="-1"></a>            T.append([new, [<span class="dv">0</span>, <span class="dv">0</span>, state[i]]])</span>
+<span id="cb18-109"><a href="#cb18-109" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> T</span>
+<span id="cb18-110"><a href="#cb18-110" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-111"><a href="#cb18-111" aria-hidden="true" tabindex="-1"></a>g_im_ms <span class="op">=</span> Graph(im_msprime_model)</span>
+<span id="cb18-112"><a href="#cb18-112" aria-hidden="true" tabindex="-1"></a>r_switch_im <span class="op">=</span> <span class="dv">15</span> <span class="op">/</span> t_split_coal</span>
+<span id="cb18-113"><a href="#cb18-113" aria-hidden="true" tabindex="-1"></a>g_im_ms.update_weights([theta0_im_true, theta1_im_true, r_switch_im])</span>
+<span id="cb18-114"><a href="#cb18-114" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-115"><a href="#cb18-115" aria-hidden="true" tabindex="-1"></a>prior_im_ms <span class="op">=</span> [</span>
+<span id="cb18-116"><a href="#cb18-116" aria-hidden="true" tabindex="-1"></a>    HalfCauchyPrior(ci<span class="op">=</span>theta0_im_true <span class="op">*</span> <span class="dv">5</span>, prob<span class="op">=</span><span class="fl">0.9</span>),</span>
+<span id="cb18-117"><a href="#cb18-117" aria-hidden="true" tabindex="-1"></a>    HalfCauchyPrior(ci<span class="op">=</span><span class="fl">3.0</span>, prob<span class="op">=</span><span class="fl">0.9</span>),</span>
+<span id="cb18-118"><a href="#cb18-118" aria-hidden="true" tabindex="-1"></a>    HalfCauchyPrior(ci<span class="op">=</span>r_switch_im <span class="op">*</span> <span class="dv">3</span>, prob<span class="op">=</span><span class="fl">0.9</span>),</span>
+<span id="cb18-119"><a href="#cb18-119" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb18-120"><a href="#cb18-120" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-121"><a href="#cb18-121" aria-hidden="true" tabindex="-1"></a>sv_im_ms <span class="op">=</span> g_im_ms.svgd(data_im_ms, prior<span class="op">=</span>prior_im_ms, optimizer<span class="op">=</span>Adam(<span class="fl">0.25</span>),</span>
+<span id="cb18-122"><a href="#cb18-122" aria-hidden="true" tabindex="-1"></a>                          n_particles<span class="op">=</span><span class="dv">60</span>, n_iterations<span class="op">=</span><span class="dv">400</span>)</span>
+<span id="cb18-123"><a href="#cb18-123" aria-hidden="true" tabindex="-1"></a>res_im_ms <span class="op">=</span> sv_im_ms.get_results()</span>
+<span id="cb18-124"><a href="#cb18-124" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-125"><a href="#cb18-125" aria-hidden="true" tabindex="-1"></a>th0_est <span class="op">=</span> res_im_ms[<span class="st">'theta_mean'</span>][<span class="dv">0</span>].item()</span>
+<span id="cb18-126"><a href="#cb18-126" aria-hidden="true" tabindex="-1"></a>th1_est <span class="op">=</span> res_im_ms[<span class="st">'theta_mean'</span>][<span class="dv">1</span>].item()</span>
+<span id="cb18-127"><a href="#cb18-127" aria-hidden="true" tabindex="-1"></a>th2_est <span class="op">=</span> res_im_ms[<span class="st">'theta_mean'</span>][<span class="dv">2</span>].item()</span>
+<span id="cb18-128"><a href="#cb18-128" aria-hidden="true" tabindex="-1"></a>s0 <span class="op">=</span> res_im_ms[<span class="st">'theta_std'</span>][<span class="dv">0</span>].item()</span>
+<span id="cb18-129"><a href="#cb18-129" aria-hidden="true" tabindex="-1"></a>s1 <span class="op">=</span> res_im_ms[<span class="st">'theta_std'</span>][<span class="dv">1</span>].item()</span>
+<span id="cb18-130"><a href="#cb18-130" aria-hidden="true" tabindex="-1"></a>s2 <span class="op">=</span> res_im_ms[<span class="st">'theta_std'</span>][<span class="dv">2</span>].item()</span>
+<span id="cb18-131"><a href="#cb18-131" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-132"><a href="#cb18-132" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f" SVGD-estimater:"</span>)</span>
+<span id="cb18-133"><a href="#cb18-133" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  theta0 = </span><span class="sc">{</span>th0_est<span class="sc">:.5f}</span><span class="ss"> +/- </span><span class="sc">{</span>s0<span class="sc">:.5f}</span><span class="ss">  (sand </span><span class="sc">{</span>theta0_im_true<span class="sc">:.5f}</span><span class="ss">)"</span>)</span>
+<span id="cb18-134"><a href="#cb18-134" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  theta1 = </span><span class="sc">{</span>th1_est<span class="sc">:.4f}</span><span class="ss"> +/- </span><span class="sc">{</span>s1<span class="sc">:.4f}</span><span class="ss">  (sand </span><span class="sc">{</span>theta1_im_true<span class="sc">:.4f}</span><span class="ss">)"</span>)</span>
+<span id="cb18-135"><a href="#cb18-135" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  r_switch = </span><span class="sc">{</span>th2_est<span class="sc">:.4f}</span><span class="ss"> +/- </span><span class="sc">{</span>s2<span class="sc">:.4f}</span><span class="ss">  (sand </span><span class="sc">{</span>r_switch_im<span class="sc">:.4f}</span><span class="ss">)"</span>)</span>
+<span id="cb18-136"><a href="#cb18-136" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-137"><a href="#cb18-137" aria-hidden="true" tabindex="-1"></a>sv_im_ms.plot_pairwise(true_theta<span class="op">=</span>[theta0_im_true, theta1_im_true, r_switch_im])</span>
+<span id="cb18-138"><a href="#cb18-138" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">'msprime-validering: IM-modellen'</span>, fontsize<span class="op">=</span><span class="dv">12</span>)</span>
+<span id="cb18-139"><a href="#cb18-139" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb18-140"><a href="#cb18-140" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> SVGD-estimater:
+  theta0 = 0.00008 +/- 0.00020  (sand 0.00001)
+  theta1 = 0.4476 +/- 0.2626  (sand 100.0000)
+  r_switch = 18.1910 +/- 60.6268  (sand 33.0004)</code></pre>
+</div>
+<div id="fig-msprime-validering-im" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="2">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-msprime-validering-im-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display">
+<div id="fig-msprime-validering-im-1" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-subfloat-fig figure">
+<div aria-describedby="fig-msprime-validering-im-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="05_time_inhomogeneous_files/figure-html/fig-msprime-validering-im-output-2.svg" class="lightbox" data-gallery="fig-msprime-validering-im" title="Figure&nbsp;7.7&nbsp;(a): msprime-validering af IM-modellen: estimerede vs.&nbsp;sande parametre."><img src="05_time_inhomogeneous_files/figure-html/fig-msprime-validering-im-output-2.svg" class="img-fluid figure-img" data-ref-parent="fig-msprime-validering-im"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-msprime-validering-im-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(a) msprime-validering af IM-modellen: estimerede vs.&nbsp;sande parametre.
+</figcaption>
+</figure>
+</div>
+</div>
+<div id="fig-msprime-validering-im-2" class="cell-output cell-output-display quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-subfloat-fig figure">
+<div aria-describedby="fig-msprime-validering-im-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<pre><code>&lt;Figure size 1000x400 with 0 Axes&gt;</code></pre>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-msprime-validering-im-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(b)
+</figcaption>
+</figure>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-msprime-validering-im-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7.7
+</figcaption>
+</figure>
+</div>
+</div>
+<div class="cell" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>df_im_ms <span class="op">=</span> pd.DataFrame([</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    {<span class="st">'Parameter'</span>: <span class="st">'theta0 (koalescensrate)'</span>, </span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>     <span class="st">'Sand'</span>: <span class="bu">round</span>(theta0_im_true, <span class="dv">5</span>), </span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>     <span class="st">'Estimat'</span>: <span class="bu">round</span>(th0_est, <span class="dv">5</span>), </span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>     <span class="st">'Std'</span>: <span class="bu">round</span>(s0, <span class="dv">5</span>),</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>     <span class="st">'Bias (procent)'</span>: <span class="bu">round</span>((th0_est <span class="op">-</span> theta0_im_true) <span class="op">/</span> theta0_im_true <span class="op">*</span> <span class="dv">100</span>, <span class="dv">1</span>)},</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>    {<span class="st">'Parameter'</span>: <span class="st">'theta1 (migrationsrate)'</span>, </span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>     <span class="st">'Sand'</span>: <span class="bu">round</span>(theta1_im_true, <span class="dv">4</span>), </span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>     <span class="st">'Estimat'</span>: <span class="bu">round</span>(th1_est, <span class="dv">4</span>), </span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>     <span class="st">'Std'</span>: <span class="bu">round</span>(s1, <span class="dv">4</span>),</span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>     <span class="st">'Bias (procent)'</span>: <span class="bu">round</span>((th1_est <span class="op">-</span> theta1_im_true) <span class="op">/</span> theta1_im_true <span class="op">*</span> <span class="dv">100</span>, <span class="dv">1</span>)},</span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>    {<span class="st">'Parameter'</span>: <span class="st">'r_switch (epoch-rate)'</span>, </span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>     <span class="st">'Sand'</span>: <span class="bu">round</span>(r_switch_im, <span class="dv">4</span>), </span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>     <span class="st">'Estimat'</span>: <span class="bu">round</span>(th2_est, <span class="dv">4</span>), </span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>     <span class="st">'Std'</span>: <span class="bu">round</span>(s2, <span class="dv">4</span>),</span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>     <span class="st">'Bias (procent)'</span>: <span class="bu">round</span>((th2_est <span class="op">-</span> r_switch_im) <span class="op">/</span> r_switch_im <span class="op">*</span> <span class="dv">100</span>, <span class="dv">1</span>)},</span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>])</span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>df_im_ms</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="tbl-msprime-validering-im" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="3">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-msprime-validering-im-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;7.2: msprime-validering af IM-modellen: estimerede vs.&nbsp;sande parametre.
+</figcaption>
+<div aria-describedby="tbl-msprime-validering-im-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display" data-execution_count="3">
+<div>
+
+
+<table class="dataframe cell caption-top table table-sm table-striped small" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Parameter</th>
+<th data-quarto-table-cell-role="th">Sand</th>
+<th data-quarto-table-cell-role="th">Estimat</th>
+<th data-quarto-table-cell-role="th">Std</th>
+<th data-quarto-table-cell-role="th">Bias (procent)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">0</th>
+<td>theta0 (koalescensrate)</td>
+<td>0.00001</td>
+<td>0.00008</td>
+<td>0.0002</td>
+<td>674.4</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">1</th>
+<td>theta1 (migrationsrate)</td>
+<td>100.00000</td>
+<td>0.44760</td>
+<td>0.2626</td>
+<td>-99.6</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">2</th>
+<td>r_switch (epoch-rate)</td>
+<td>33.00040</td>
+<td>18.19100</td>
+<td>60.6268</td>
+<td>-44.9</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</figure>
+</div>
+</div>
 
 
 </section>

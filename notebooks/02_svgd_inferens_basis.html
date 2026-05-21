@@ -315,6 +315,8 @@ window.Quarto = {
   <li><a href="#ghost-population-usynlig-population-med-genflow" id="toc-ghost-population-usynlig-population-med-genflow" class="nav-link" data-scroll-target="#ghost-population-usynlig-population-med-genflow">Ghost population: Usynlig population med genflow</a></li>
   <li><a href="#probability-matching-en-tredje-estimeringsmetode" id="toc-probability-matching-en-tredje-estimeringsmetode" class="nav-link" data-scroll-target="#probability-matching-en-tredje-estimeringsmetode">Probability Matching: en tredje estimeringsmetode</a></li>
   <li><a href="#systematisk-svgd-kalibrering-til-bavian-parametre" id="toc-systematisk-svgd-kalibrering-til-bavian-parametre" class="nav-link" data-scroll-target="#systematisk-svgd-kalibrering-til-bavian-parametre">Systematisk SVGD-kalibrering til bavian-parametre</a></li>
+  <li><a href="#svgd-posterior-form-peaked-vs.-flad-posterior" id="toc-svgd-posterior-form-peaked-vs.-flad-posterior" class="nav-link" data-scroll-target="#svgd-posterior-form-peaked-vs.-flad-posterior">SVGD posterior-form: peaked vs.&nbsp;flad posterior</a></li>
+  <li><a href="#custom-optimizer" id="toc-custom-optimizer" class="nav-link" data-scroll-target="#custom-optimizer">Custom optimizer</a></li>
   </ul>
 <div class="toc-actions"><ul class="collapse"><li><a href="https://github.dev/munch-group/emma-giraf/blob/main/notebooks/02_svgd_inferens_basis.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/emma-giraf/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/emma-giraf/blob/main/notebooks/02_svgd_inferens_basis.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
     </div>
@@ -406,8 +408,7 @@ table {
 </style>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  Removed 1 file(s), preserved directory structure
-  Removed 15 file(s), preserved directory structure</code></pre>
+<pre><code>  Removed 27 file(s), preserved directory structure</code></pre>
 </div>
 </div>
 <div id="cf79e3ed" class="cell" data-execution_count="2">
@@ -2048,6 +2049,127 @@ Anbefaling til bavian NB07:
   optimizer = Adam(0.1)
   n_particles = 40
   n_iterations = 300</code></pre>
+</div>
+</div>
+</section>
+<section id="svgd-posterior-form-peaked-vs.-flad-posterior" class="level2">
+<h2 class="anchored" data-anchor-id="svgd-posterior-form-peaked-vs.-flad-posterior">SVGD posterior-form: peaked vs.&nbsp;flad posterior</h2>
+<p>En god posterior er bred og flad og trækker ud mod siderne. En dårlig posterior har en skarp top (peaked), hvilket indikerer at SVGD er kollapset mod et enkelt punkt og undervurderer usikkerheden. Her testes systematisk hvad der forårsager peaked posteriors.</p>
+<div id="cell-fig-posterior-form" class="cell" data-execution_count="5">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb55"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> kurtosis</span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv, GaussPrior, HalfCauchyPrior, DataPrior</span>
+<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Adam, ExpStepSize, ConstantStepSize</span>
+<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a>nr_s <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb55-8"><a href="#cb55-8" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_s] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> (nr_s <span class="op">-</span> <span class="dv">1</span>))</span>
+<span id="cb55-9"><a href="#cb55-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coal_form(state):</span>
+<span id="cb55-10"><a href="#cb55-10" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb55-11"><a href="#cb55-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
+<span id="cb55-12"><a href="#cb55-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
+<span id="cb55-13"><a href="#cb55-13" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb55-14"><a href="#cb55-14" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb55-15"><a href="#cb55-15" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb55-16"><a href="#cb55-16" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb55-17"><a href="#cb55-17" aria-hidden="true" tabindex="-1"></a>            new[i <span class="op">+</span> j <span class="op">+</span> <span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb55-18"><a href="#cb55-18" aria-hidden="true" tabindex="-1"></a>            transitions.append((new, [state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same)]))</span>
+<span id="cb55-19"><a href="#cb55-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb55-20"><a href="#cb55-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-21"><a href="#cb55-21" aria-hidden="true" tabindex="-1"></a>g_form <span class="op">=</span> Graph(coal_form)</span>
+<span id="cb55-22"><a href="#cb55-22" aria-hidden="true" tabindex="-1"></a>true_theta_form <span class="op">=</span> [<span class="fl">7.0</span>]</span>
+<span id="cb55-23"><a href="#cb55-23" aria-hidden="true" tabindex="-1"></a>g_form.update_weights(true_theta_form)</span>
+<span id="cb55-24"><a href="#cb55-24" aria-hidden="true" tabindex="-1"></a>data_form <span class="op">=</span> g_form.sample(<span class="dv">2000</span>)</span>
+<span id="cb55-25"><a href="#cb55-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-26"><a href="#cb55-26" aria-hidden="true" tabindex="-1"></a>configs <span class="op">=</span> {</span>
+<span id="cb55-27"><a href="#cb55-27" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.25) — god'</span>:      {<span class="st">'optimizer_fn'</span>: <span class="kw">lambda</span>: Adam(<span class="fl">0.25</span>),   <span class="st">'n_iter'</span>: <span class="dv">300</span>},</span>
+<span id="cb55-28"><a href="#cb55-28" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(2.0) — peaked'</span>:    {<span class="st">'optimizer_fn'</span>: <span class="kw">lambda</span>: Adam(<span class="fl">2.0</span>),    <span class="st">'n_iter'</span>: <span class="dv">300</span>},</span>
+<span id="cb55-29"><a href="#cb55-29" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.001) — for lav'</span>: {<span class="st">'optimizer_fn'</span>: <span class="kw">lambda</span>: Adam(<span class="fl">0.001</span>),  <span class="st">'n_iter'</span>: <span class="dv">300</span>},</span>
+<span id="cb55-30"><a href="#cb55-30" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.5) — middel'</span>:    {<span class="st">'optimizer_fn'</span>: <span class="kw">lambda</span>: Adam(<span class="fl">0.5</span>),    <span class="st">'n_iter'</span>: <span class="dv">300</span>},</span>
+<span id="cb55-31"><a href="#cb55-31" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb55-32"><a href="#cb55-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-33"><a href="#cb55-33" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">2</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">13</span>, <span class="dv">8</span>))</span>
+<span id="cb55-34"><a href="#cb55-34" aria-hidden="true" tabindex="-1"></a>prior_form <span class="op">=</span> DataPrior(g_form, data_form)</span>
+<span id="cb55-35"><a href="#cb55-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-36"><a href="#cb55-36" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, (name, cfg) <span class="kw">in</span> <span class="bu">zip</span>(axes.flat, configs.items()):</span>
+<span id="cb55-37"><a href="#cb55-37" aria-hidden="true" tabindex="-1"></a>    sv <span class="op">=</span> g_form.svgd(data_form, prior<span class="op">=</span>prior_form,</span>
+<span id="cb55-38"><a href="#cb55-38" aria-hidden="true" tabindex="-1"></a>                     optimizer<span class="op">=</span>cfg[<span class="st">'optimizer_fn'</span>](),   </span>
+<span id="cb55-39"><a href="#cb55-39" aria-hidden="true" tabindex="-1"></a>                     n_particles<span class="op">=</span><span class="dv">60</span>, n_iterations<span class="op">=</span>cfg[<span class="st">'n_iter'</span>])</span>
+<span id="cb55-40"><a href="#cb55-40" aria-hidden="true" tabindex="-1"></a>    particles <span class="op">=</span> sv.get_results()[<span class="st">'particles'</span>].flatten()</span>
+<span id="cb55-41"><a href="#cb55-41" aria-hidden="true" tabindex="-1"></a>    kurt <span class="op">=</span> kurtosis(particles)</span>
+<span id="cb55-42"><a href="#cb55-42" aria-hidden="true" tabindex="-1"></a>    ax.hist(particles, bins<span class="op">=</span><span class="dv">20</span>, color<span class="op">=</span><span class="st">'steelblue'</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, edgecolor<span class="op">=</span><span class="st">'white'</span>)</span>
+<span id="cb55-43"><a href="#cb55-43" aria-hidden="true" tabindex="-1"></a>    ax.axvline(true_theta_form[<span class="dv">0</span>], color<span class="op">=</span><span class="st">'red'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, label<span class="op">=</span><span class="st">'Sand theta'</span>)</span>
+<span id="cb55-44"><a href="#cb55-44" aria-hidden="true" tabindex="-1"></a>    ax.axvline(<span class="bu">float</span>(particles.mean()), color<span class="op">=</span><span class="st">'orange'</span>, linestyle<span class="op">=</span><span class="st">'-'</span>, label<span class="op">=</span><span class="st">'Estimat'</span>)</span>
+<span id="cb55-45"><a href="#cb55-45" aria-hidden="true" tabindex="-1"></a>    peaked <span class="op">=</span> <span class="st">'PEAKED (dårlig)'</span> <span class="cf">if</span> kurt <span class="op">&gt;</span> <span class="dv">2</span> <span class="cf">else</span> <span class="st">'FLAD (god)'</span></span>
+<span id="cb55-46"><a href="#cb55-46" aria-hidden="true" tabindex="-1"></a>    ax.set_title(<span class="ss">f'</span><span class="sc">{</span>name<span class="sc">}</span><span class="ch">\n</span><span class="ss">Kurtosis=</span><span class="sc">{</span>kurt<span class="sc">:.2f}</span><span class="ss"> — </span><span class="sc">{</span>peaked<span class="sc">}</span><span class="ss">'</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb55-47"><a href="#cb55-47" aria-hidden="true" tabindex="-1"></a>    ax.legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb55-48"><a href="#cb55-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-49"><a href="#cb55-49" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">'Posterior-form: peaked vs. flad'</span>, fontsize<span class="op">=</span><span class="dv">12</span>)</span>
+<span id="cb55-50"><a href="#cb55-50" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb55-51"><a href="#cb55-51" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div id="fig-posterior-form" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-posterior-form-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="02_svgd_inferens_basis_files/figure-html/fig-posterior-form-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-30" title="Figure&nbsp;4.13: Sammenligning af peaked vs.&nbsp;flad posterior under varierende konfigurationer."><img src="02_svgd_inferens_basis_files/figure-html/fig-posterior-form-output-1.svg" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-posterior-form-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4.13: Sammenligning af peaked vs.&nbsp;flad posterior under varierende konfigurationer.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="custom-optimizer" class="level2">
+<h2 class="anchored" data-anchor-id="custom-optimizer">Custom optimizer</h2>
+<p>Her sammenlignes forskellige optimizer-strategier systematisk, herunder muligheden for at definere sin egen læringsrate-kurve.</p>
+<div id="cell-fig-custom-optimizer" class="cell" data-execution_count="7">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb56"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Adam, DataPrior</span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> kurtosis</span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb56-5"><a href="#cb56-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-6"><a href="#cb56-6" aria-hidden="true" tabindex="-1"></a>optimizers <span class="op">=</span> {</span>
+<span id="cb56-7"><a href="#cb56-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.01) — for lav'</span>:  <span class="kw">lambda</span>: Adam(<span class="fl">0.01</span>),</span>
+<span id="cb56-8"><a href="#cb56-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(0.25) — optimal'</span>:  <span class="kw">lambda</span>: Adam(<span class="fl">0.25</span>),</span>
+<span id="cb56-9"><a href="#cb56-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Adam(2.0)  — for høj'</span>:  <span class="kw">lambda</span>: Adam(<span class="fl">2.0</span>),</span>
+<span id="cb56-10"><a href="#cb56-10" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb56-11"><a href="#cb56-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-12"><a href="#cb56-12" aria-hidden="true" tabindex="-1"></a>g_opt <span class="op">=</span> Graph(coal_form)</span>
+<span id="cb56-13"><a href="#cb56-13" aria-hidden="true" tabindex="-1"></a>g_opt.update_weights([<span class="fl">7.0</span>])</span>
+<span id="cb56-14"><a href="#cb56-14" aria-hidden="true" tabindex="-1"></a>data_opt <span class="op">=</span> g_opt.sample(<span class="dv">2000</span>)</span>
+<span id="cb56-15"><a href="#cb56-15" aria-hidden="true" tabindex="-1"></a>prior_opt <span class="op">=</span> DataPrior(g_opt, data_opt)</span>
+<span id="cb56-16"><a href="#cb56-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-17"><a href="#cb56-17" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">14</span>, <span class="dv">4</span>))</span>
+<span id="cb56-18"><a href="#cb56-18" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, (name, opt_fn) <span class="kw">in</span> <span class="bu">zip</span>(axes, optimizers.items()):</span>
+<span id="cb56-19"><a href="#cb56-19" aria-hidden="true" tabindex="-1"></a>    sv <span class="op">=</span> g_opt.svgd(data_opt, prior<span class="op">=</span>prior_opt, optimizer<span class="op">=</span>opt_fn(),</span>
+<span id="cb56-20"><a href="#cb56-20" aria-hidden="true" tabindex="-1"></a>                    n_particles<span class="op">=</span><span class="dv">60</span>, n_iterations<span class="op">=</span><span class="dv">300</span>)</span>
+<span id="cb56-21"><a href="#cb56-21" aria-hidden="true" tabindex="-1"></a>    particles <span class="op">=</span> sv.get_results()[<span class="st">'particles'</span>].flatten()</span>
+<span id="cb56-22"><a href="#cb56-22" aria-hidden="true" tabindex="-1"></a>    kurt <span class="op">=</span> kurtosis(particles)</span>
+<span id="cb56-23"><a href="#cb56-23" aria-hidden="true" tabindex="-1"></a>    mean <span class="op">=</span> <span class="bu">float</span>(particles.mean())</span>
+<span id="cb56-24"><a href="#cb56-24" aria-hidden="true" tabindex="-1"></a>    std  <span class="op">=</span> <span class="bu">float</span>(particles.std())</span>
+<span id="cb56-25"><a href="#cb56-25" aria-hidden="true" tabindex="-1"></a>    peaked <span class="op">=</span> <span class="st">'PEAKED'</span> <span class="cf">if</span> kurt <span class="op">&gt;</span> <span class="dv">2</span> <span class="cf">else</span> <span class="st">'FLAD'</span></span>
+<span id="cb56-26"><a href="#cb56-26" aria-hidden="true" tabindex="-1"></a>    ax.hist(particles, bins<span class="op">=</span><span class="dv">20</span>, color<span class="op">=</span><span class="st">'steelblue'</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, edgecolor<span class="op">=</span><span class="st">'white'</span>)</span>
+<span id="cb56-27"><a href="#cb56-27" aria-hidden="true" tabindex="-1"></a>    ax.axvline(<span class="fl">7.0</span>,  color<span class="op">=</span><span class="st">'red'</span>,    linestyle<span class="op">=</span><span class="st">'--'</span>, label<span class="op">=</span><span class="st">'Sand'</span>)</span>
+<span id="cb56-28"><a href="#cb56-28" aria-hidden="true" tabindex="-1"></a>    ax.axvline(mean, color<span class="op">=</span><span class="st">'orange'</span>, linestyle<span class="op">=</span><span class="st">'-'</span>,  label<span class="op">=</span><span class="ss">f'Est=</span><span class="sc">{</span>mean<span class="sc">:.3f}</span><span class="ss">'</span>)</span>
+<span id="cb56-29"><a href="#cb56-29" aria-hidden="true" tabindex="-1"></a>    ax.set_title(<span class="ss">f'</span><span class="sc">{</span>name<span class="sc">}</span><span class="ch">\n</span><span class="ss">std=</span><span class="sc">{</span>std<span class="sc">:.3f}</span><span class="ss">, kurtosis=</span><span class="sc">{</span>kurt<span class="sc">:.2f}</span><span class="ss"> — </span><span class="sc">{</span>peaked<span class="sc">}</span><span class="ss">'</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb56-30"><a href="#cb56-30" aria-hidden="true" tabindex="-1"></a>    ax.legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb56-31"><a href="#cb56-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-32"><a href="#cb56-32" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">'Læringsrate og posterior-form'</span>, fontsize<span class="op">=</span><span class="dv">12</span>)</span>
+<span id="cb56-33"><a href="#cb56-33" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb56-34"><a href="#cb56-34" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div id="fig-custom-optimizer" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-custom-optimizer-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="02_svgd_inferens_basis_files/figure-html/fig-custom-optimizer-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-31" title="Figure&nbsp;4.14: Custom optimizer: sammenligning af Adam med varierende læringsrater."><img src="02_svgd_inferens_basis_files/figure-html/fig-custom-optimizer-output-1.svg" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-custom-optimizer-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4.14: Custom optimizer: sammenligning af Adam med varierende læringsrater.
+</figcaption>
+</figure>
+</div>
 </div>
 </div>
 

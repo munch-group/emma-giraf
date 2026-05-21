@@ -320,6 +320,7 @@ window.Quarto = {
   <li><a href="#diskret-mutationsgraf-pmf-og-cdf" id="toc-diskret-mutationsgraf-pmf-og-cdf" class="nav-link" data-scroll-target="#diskret-mutationsgraf-pmf-og-cdf">Diskret mutationsgraf: PMF og CDF</a></li>
   <li><a href="#hvad-er-den-optimale-n-til-bavian-analyse" id="toc-hvad-er-den-optimale-n-til-bavian-analyse" class="nav-link" data-scroll-target="#hvad-er-den-optimale-n-til-bavian-analyse">Hvad er den optimale n til bavian-analyse?</a></li>
   <li><a href="#effekt-af-populationsstørrelse-n-hvad-forventer-jeg-for-bavianer" id="toc-effekt-af-populationsstørrelse-n-hvad-forventer-jeg-for-bavianer" class="nav-link" data-scroll-target="#effekt-af-populationsstørrelse-n-hvad-forventer-jeg-for-bavianer">Effekt af populationsstørrelse N: Hvad forventer jeg for bavianer?</a></li>
+  <li><a href="#msprime-validering-af-enkelt-populations-koalescent" id="toc-msprime-validering-af-enkelt-populations-koalescent" class="nav-link" data-scroll-target="#msprime-validering-af-enkelt-populations-koalescent">msprime-validering af enkelt-populations koalescent</a></li>
   </ul>
 <div class="toc-actions"><ul class="collapse"><li><a href="https://github.dev/munch-group/emma-giraf/blob/main/notebooks/01_koalescent_basics.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/emma-giraf/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/emma-giraf/blob/main/notebooks/01_koalescent_basics.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
     </div>
@@ -1784,6 +1785,186 @@ informationsindhold og beregningstid.</code></pre>
 <p><a href="01_koalescent_basics_files/figure-html/cell-28-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-13"><img src="01_koalescent_basics_files/figure-html/cell-28-output-2.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
+</div>
+</div>
+</section>
+<section id="msprime-validering-af-enkelt-populations-koalescent" class="level2">
+<h2 class="anchored" data-anchor-id="msprime-validering-af-enkelt-populations-koalescent">msprime-validering af enkelt-populations koalescent</h2>
+<p>For at verificere at koalescentmodellen er korrekt implementeret sammenlignes SVGD-estimater med data simuleret under kendte parametre via <em>msprime</em>. Hvis modellen er korrekt implementeret bør SVGD estimere de sande parametre tilbage inden for posterior-usikkerheden.</p>
+<div id="4433ad98" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">"CUDA_VISIBLE_DEVICES"</span>] <span class="op">=</span> <span class="st">"0"</span>   </span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">"XLA_FLAGS"</span>] <span class="op">=</span> <span class="st">"--xla_force_host_platform_device_count=1"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="cell-fig-msprime-validering-enkelt" class="cell" data-execution_count="2">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> msprime</span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv, DataPrior, Adam</span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> simulate_tmrca_msprime(Ne, n_loci<span class="op">=</span><span class="dv">5000</span>, n_samples<span class="op">=</span><span class="dv">4</span>, mu<span class="op">=</span><span class="fl">0.9e-8</span>, g<span class="op">=</span><span class="dv">11</span>):</span>
+<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Simuler TMRCA-proxy observationer via msprime."""</span></span>
+<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Konverter Ne til koalescentenheder</span></span>
+<span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># msprime arbejder i generationer; theta = 1/(2*Ne)</span></span>
+<span id="cb45-10"><a href="#cb45-10" aria-hidden="true" tabindex="-1"></a>    demography <span class="op">=</span> msprime.Demography()</span>
+<span id="cb45-11"><a href="#cb45-11" aria-hidden="true" tabindex="-1"></a>    demography.add_population(initial_size<span class="op">=</span>Ne)</span>
+<span id="cb45-12"><a href="#cb45-12" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb45-13"><a href="#cb45-13" aria-hidden="true" tabindex="-1"></a>    tmrca_obs <span class="op">=</span> []</span>
+<span id="cb45-14"><a href="#cb45-14" aria-hidden="true" tabindex="-1"></a>    ts_list <span class="op">=</span> msprime.sim_ancestry(</span>
+<span id="cb45-15"><a href="#cb45-15" aria-hidden="true" tabindex="-1"></a>        samples<span class="op">=</span>n_samples <span class="op">//</span> <span class="dv">2</span>,  <span class="co"># diploide individer</span></span>
+<span id="cb45-16"><a href="#cb45-16" aria-hidden="true" tabindex="-1"></a>        demography<span class="op">=</span>demography,</span>
+<span id="cb45-17"><a href="#cb45-17" aria-hidden="true" tabindex="-1"></a>        num_replicates<span class="op">=</span>n_loci,</span>
+<span id="cb45-18"><a href="#cb45-18" aria-hidden="true" tabindex="-1"></a>        sequence_length<span class="op">=</span><span class="dv">1000</span>,</span>
+<span id="cb45-19"><a href="#cb45-19" aria-hidden="true" tabindex="-1"></a>        recombination_rate<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb45-20"><a href="#cb45-20" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb45-21"><a href="#cb45-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ts <span class="kw">in</span> ts_list:</span>
+<span id="cb45-22"><a href="#cb45-22" aria-hidden="true" tabindex="-1"></a>        ts_mut <span class="op">=</span> msprime.sim_mutations(ts, rate<span class="op">=</span>mu)</span>
+<span id="cb45-23"><a href="#cb45-23" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> var <span class="kw">in</span> ts_mut.variants():</span>
+<span id="cb45-24"><a href="#cb45-24" aria-hidden="true" tabindex="-1"></a>            g_arr <span class="op">=</span> var.genotypes</span>
+<span id="cb45-25"><a href="#cb45-25" aria-hidden="true" tabindex="-1"></a>            k <span class="op">=</span> <span class="bu">int</span>(g_arr.<span class="bu">sum</span>())</span>
+<span id="cb45-26"><a href="#cb45-26" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="dv">0</span> <span class="op">&lt;</span> k <span class="op">&lt;</span> n_samples:</span>
+<span id="cb45-27"><a href="#cb45-27" aria-hidden="true" tabindex="-1"></a>                tmrca_obs.append(k)</span>
+<span id="cb45-28"><a href="#cb45-28" aria-hidden="true" tabindex="-1"></a>                <span class="cf">break</span></span>
+<span id="cb45-29"><a href="#cb45-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.array(tmrca_obs)</span>
+<span id="cb45-30"><a href="#cb45-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-31"><a href="#cb45-31" aria-hidden="true" tabindex="-1"></a><span class="co"># Test over bavian-realistiske Ne-værdier</span></span>
+<span id="cb45-32"><a href="#cb45-32" aria-hidden="true" tabindex="-1"></a>Ne_values <span class="op">=</span> [<span class="dv">10_000</span>, <span class="dv">25_000</span>, <span class="dv">50_000</span>, <span class="dv">100_000</span>]</span>
+<span id="cb45-33"><a href="#cb45-33" aria-hidden="true" tabindex="-1"></a>n_sub <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb45-34"><a href="#cb45-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-35"><a href="#cb45-35" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([n_sub] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> (n_sub <span class="op">-</span> <span class="dv">1</span>))</span>
+<span id="cb45-36"><a href="#cb45-36" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_val(state):</span>
+<span id="cb45-37"><a href="#cb45-37" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb45-38"><a href="#cb45-38" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
+<span id="cb45-39"><a href="#cb45-39" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
+<span id="cb45-40"><a href="#cb45-40" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb45-41"><a href="#cb45-41" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb45-42"><a href="#cb45-42" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb45-43"><a href="#cb45-43" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb45-44"><a href="#cb45-44" aria-hidden="true" tabindex="-1"></a>            new[i <span class="op">+</span> j <span class="op">+</span> <span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb45-45"><a href="#cb45-45" aria-hidden="true" tabindex="-1"></a>            transitions.append((new, [state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same)]))</span>
+<span id="cb45-46"><a href="#cb45-46" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb45-47"><a href="#cb45-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-48"><a href="#cb45-48" aria-hidden="true" tabindex="-1"></a>results_val <span class="op">=</span> []</span>
+<span id="cb45-49"><a href="#cb45-49" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> Ne_true <span class="kw">in</span> Ne_values:</span>
+<span id="cb45-50"><a href="#cb45-50" aria-hidden="true" tabindex="-1"></a>    theta_true <span class="op">=</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> Ne_true)</span>
+<span id="cb45-51"><a href="#cb45-51" aria-hidden="true" tabindex="-1"></a>    g_val <span class="op">=</span> Graph(coalescent_val)</span>
+<span id="cb45-52"><a href="#cb45-52" aria-hidden="true" tabindex="-1"></a>    g_val.update_weights([theta_true])</span>
+<span id="cb45-53"><a href="#cb45-53" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb45-54"><a href="#cb45-54" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Simuler data med msprime</span></span>
+<span id="cb45-55"><a href="#cb45-55" aria-hidden="true" tabindex="-1"></a>    data_ms <span class="op">=</span> simulate_tmrca_msprime(Ne_true, n_loci<span class="op">=</span><span class="dv">5000</span>, n_samples<span class="op">=</span>n_sub)</span>
+<span id="cb45-56"><a href="#cb45-56" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(data_ms) <span class="op">&lt;</span> <span class="dv">100</span>:</span>
+<span id="cb45-57"><a href="#cb45-57" aria-hidden="true" tabindex="-1"></a>        data_ms <span class="op">=</span> g_val.sample(<span class="dv">5000</span>)  <span class="co"># fallback hvis msprime giver for lidt data</span></span>
+<span id="cb45-58"><a href="#cb45-58" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb45-59"><a href="#cb45-59" aria-hidden="true" tabindex="-1"></a>    prior <span class="op">=</span> DataPrior(g_val, data_ms)</span>
+<span id="cb45-60"><a href="#cb45-60" aria-hidden="true" tabindex="-1"></a>    sv <span class="op">=</span> g_val.svgd(data_ms, prior<span class="op">=</span>prior, optimizer<span class="op">=</span>Adam(<span class="fl">0.25</span>),</span>
+<span id="cb45-61"><a href="#cb45-61" aria-hidden="true" tabindex="-1"></a>                    n_particles<span class="op">=</span><span class="dv">60</span>, n_iterations<span class="op">=</span><span class="dv">300</span>)</span>
+<span id="cb45-62"><a href="#cb45-62" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> sv.get_results()</span>
+<span id="cb45-63"><a href="#cb45-63" aria-hidden="true" tabindex="-1"></a>    th_est <span class="op">=</span> res[<span class="st">'theta_mean'</span>].item()</span>
+<span id="cb45-64"><a href="#cb45-64" aria-hidden="true" tabindex="-1"></a>    th_std <span class="op">=</span> res[<span class="st">'theta_std'</span>].item()</span>
+<span id="cb45-65"><a href="#cb45-65" aria-hidden="true" tabindex="-1"></a>    Ne_est <span class="op">=</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> th_est) <span class="cf">if</span> th_est <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> np.nan</span>
+<span id="cb45-66"><a href="#cb45-66" aria-hidden="true" tabindex="-1"></a>    Ne_low <span class="op">=</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> (th_est <span class="op">+</span> <span class="fl">1.96</span> <span class="op">*</span> th_std)) <span class="cf">if</span> (th_est <span class="op">+</span> <span class="fl">1.96</span> <span class="op">*</span> th_std) <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> np.nan</span>
+<span id="cb45-67"><a href="#cb45-67" aria-hidden="true" tabindex="-1"></a>    Ne_hi  <span class="op">=</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> (th_est <span class="op">-</span> <span class="fl">1.96</span> <span class="op">*</span> th_std)) <span class="cf">if</span> (th_est <span class="op">-</span> <span class="fl">1.96</span> <span class="op">*</span> th_std) <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> np.nan</span>
+<span id="cb45-68"><a href="#cb45-68" aria-hidden="true" tabindex="-1"></a>    results_val.append({</span>
+<span id="cb45-69"><a href="#cb45-69" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Ne_sand'</span>: Ne_true, <span class="st">'Ne_est'</span>: Ne_est,</span>
+<span id="cb45-70"><a href="#cb45-70" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Ne_low'</span>: Ne_low, <span class="st">'Ne_hi'</span>: Ne_hi,</span>
+<span id="cb45-71"><a href="#cb45-71" aria-hidden="true" tabindex="-1"></a>        <span class="st">'n_obs'</span>: <span class="bu">len</span>(data_ms)</span>
+<span id="cb45-72"><a href="#cb45-72" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb45-73"><a href="#cb45-73" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Ne_sand=</span><span class="sc">{</span>Ne_true<span class="sc">:&gt;7,}</span><span class="ss">  Ne_est=</span><span class="sc">{</span>Ne_est<span class="sc">:&gt;8,.0f}</span><span class="ss">  "</span></span>
+<span id="cb45-74"><a href="#cb45-74" aria-hidden="true" tabindex="-1"></a>          <span class="ss">f"95 procent-CI [</span><span class="sc">{</span>Ne_low<span class="sc">:&gt;8,.0f}</span><span class="ss"> - </span><span class="sc">{</span>Ne_hi<span class="sc">:&gt;8,.0f}</span><span class="ss">]  n_obs=</span><span class="sc">{</span><span class="bu">len</span>(data_ms)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb45-75"><a href="#cb45-75" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-76"><a href="#cb45-76" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot</span></span>
+<span id="cb45-77"><a href="#cb45-77" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="dv">5</span>))</span>
+<span id="cb45-78"><a href="#cb45-78" aria-hidden="true" tabindex="-1"></a>Ne_sand <span class="op">=</span> [r[<span class="st">'Ne_sand'</span>] <span class="cf">for</span> r <span class="kw">in</span> results_val]</span>
+<span id="cb45-79"><a href="#cb45-79" aria-hidden="true" tabindex="-1"></a>Ne_ests <span class="op">=</span> [r[<span class="st">'Ne_est'</span>] <span class="cf">for</span> r <span class="kw">in</span> results_val]</span>
+<span id="cb45-80"><a href="#cb45-80" aria-hidden="true" tabindex="-1"></a>Ne_errs <span class="op">=</span> [[r[<span class="st">'Ne_est'</span>] <span class="op">-</span> r[<span class="st">'Ne_low'</span>] <span class="cf">for</span> r <span class="kw">in</span> results_val],</span>
+<span id="cb45-81"><a href="#cb45-81" aria-hidden="true" tabindex="-1"></a>           [r[<span class="st">'Ne_hi'</span>] <span class="op">-</span> r[<span class="st">'Ne_est'</span>] <span class="cf">for</span> r <span class="kw">in</span> results_val]]</span>
+<span id="cb45-82"><a href="#cb45-82" aria-hidden="true" tabindex="-1"></a>ax.errorbar(Ne_sand, Ne_ests, yerr<span class="op">=</span>Ne_errs, fmt<span class="op">=</span><span class="st">'o'</span>, capsize<span class="op">=</span><span class="dv">5</span>, label<span class="op">=</span><span class="st">'SVGD estimat +/- 95 procent-CI'</span>)</span>
+<span id="cb45-83"><a href="#cb45-83" aria-hidden="true" tabindex="-1"></a>ax.plot([<span class="bu">min</span>(Ne_sand), <span class="bu">max</span>(Ne_sand)], [<span class="bu">min</span>(Ne_sand), <span class="bu">max</span>(Ne_sand)],</span>
+<span id="cb45-84"><a href="#cb45-84" aria-hidden="true" tabindex="-1"></a>        <span class="st">'k--'</span>, label<span class="op">=</span><span class="st">'Sand Ne (1:1 linje)'</span>)</span>
+<span id="cb45-85"><a href="#cb45-85" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'Sand Ne'</span>)</span>
+<span id="cb45-86"><a href="#cb45-86" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'Estimeret Ne'</span>)</span>
+<span id="cb45-87"><a href="#cb45-87" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'msprime-validering: enkelt-populations koalescent'</span>)</span>
+<span id="cb45-88"><a href="#cb45-88" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
+<span id="cb45-89"><a href="#cb45-89" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb45-90"><a href="#cb45-90" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Ne_sand=100,000  Ne_est=       1  95 procent-CI [       1 -        1]  n_obs=4836</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div id="fig-msprime-validering-enkelt" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-msprime-validering-enkelt-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="01_koalescent_basics_files/figure-html/fig-msprime-validering-enkelt-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-14" title="Figure&nbsp;3.9: msprime-validering: SVGD-estimater af Ne sammenlignet med sande værdier."><img src="01_koalescent_basics_files/figure-html/fig-msprime-validering-enkelt-output-2.png" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-msprime-validering-enkelt-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3.9: msprime-validering: SVGD-estimater af Ne sammenlignet med sande værdier.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>df_val <span class="op">=</span> pd.DataFrame(results_val)</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>df_val[<span class="st">'Bias (procent)'</span>] <span class="op">=</span> ((df_val[<span class="st">'Ne_est'</span>] <span class="op">-</span> df_val[<span class="st">'Ne_sand'</span>]) <span class="op">/</span> df_val[<span class="st">'Ne_sand'</span>] <span class="op">*</span> <span class="dv">100</span>).<span class="bu">round</span>(<span class="dv">1</span>)</span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>df_val.columns <span class="op">=</span> [<span class="st">'Ne sand'</span>, <span class="st">'Ne estimat'</span>, <span class="st">'Ne 95 procent lav'</span>, <span class="st">'Ne 95 procent høj'</span>, <span class="st">'n obs'</span>, <span class="st">'Bias (procent)'</span>]</span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>df_val[[<span class="st">'Ne sand'</span>, <span class="st">'Ne estimat'</span>, <span class="st">'Bias (procent)'</span>, <span class="st">'n obs'</span>]].<span class="bu">round</span>(<span class="dv">0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="tbl-msprime-validering-enkelt" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="3">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-msprime-validering-enkelt-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;3.7: msprime-validering: SVGD-estimater sammenlignet med sande Ne-værdier.
+</figcaption>
+<div aria-describedby="tbl-msprime-validering-enkelt-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display" data-execution_count="3">
+<div>
+
+
+<table class="dataframe cell caption-top table table-sm table-striped small" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Ne sand</th>
+<th data-quarto-table-cell-role="th">Ne estimat</th>
+<th data-quarto-table-cell-role="th">Bias (procent)</th>
+<th data-quarto-table-cell-role="th">n obs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">0</th>
+<td>10000</td>
+<td>1.0</td>
+<td>-100.0</td>
+<td>2254</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">1</th>
+<td>25000</td>
+<td>1.0</td>
+<td>-100.0</td>
+<td>3573</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">2</th>
+<td>50000</td>
+<td>1.0</td>
+<td>-100.0</td>
+<td>4383</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">3</th>
+<td>100000</td>
+<td>1.0</td>
+<td>-100.0</td>
+<td>4836</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</figure>
 </div>
 </div>
 

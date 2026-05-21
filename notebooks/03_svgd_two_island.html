@@ -312,6 +312,7 @@ window.Quarto = {
   <li><a href="#asymmetrisk-migration-er-m_12-m_21-en-god-antagelse" id="toc-asymmetrisk-migration-er-m_12-m_21-en-god-antagelse" class="nav-link" data-scroll-target="#asymmetrisk-migration-er-m_12-m_21-en-god-antagelse">Asymmetrisk migration: Er <span class="math inline">\(m_{12} = m_{21}\)</span> en god antagelse?</a></li>
   <li><a href="#mom-baserede-priors-og-halfcauchy-prior" id="toc-mom-baserede-priors-og-halfcauchy-prior" class="nav-link" data-scroll-target="#mom-baserede-priors-og-halfcauchy-prior">MoM-baserede priors og HalfCauchy prior</a></li>
   <li><a href="#joint-probability-graf-med-population-specifikke-rewards" id="toc-joint-probability-graf-med-population-specifikke-rewards" class="nav-link" data-scroll-target="#joint-probability-graf-med-population-specifikke-rewards">Joint probability graf med population-specifikke rewards</a></li>
+  <li><a href="#msprime-validering-af-two-island-modellen" id="toc-msprime-validering-af-two-island-modellen" class="nav-link" data-scroll-target="#msprime-validering-af-two-island-modellen">msprime-validering af two-island modellen</a></li>
   </ul>
 <div class="toc-actions"><ul class="collapse"><li><a href="https://github.dev/munch-group/emma-giraf/blob/main/notebooks/03_svgd_two_island.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/emma-giraf/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/emma-giraf/blob/main/notebooks/03_svgd_two_island.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
     </div>
@@ -409,7 +410,7 @@ table {
 </style>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  Removed 4 file(s), preserved directory structure</code></pre>
+<pre><code>  Removed 14 file(s), preserved directory structure</code></pre>
 </div>
 </div>
 <div id="cell-fig-two-island-graf" class="cell" data-execution_count="2">
@@ -1512,6 +1513,237 @@ Joint SVGD: theta0=1.337+/-0.2016  theta1=3.010+/-0.6387</code></pre>
 </div>
 <div class="cell-output cell-output-display">
 <pre><code>&lt;Figure size 900x400 with 0 Axes&gt;</code></pre>
+</div>
+</div>
+</section>
+<section id="msprime-validering-af-two-island-modellen" class="level2">
+<h2 class="anchored" data-anchor-id="msprime-validering-af-two-island-modellen">msprime-validering af two-island modellen</h2>
+<p>To-ø modellen valideres ved at simulere data med msprime under kendte parametre og verificere at SVGD estimerer dem korrekt tilbage.</p>
+<div id="cell-fig-msprime-validering-island" class="cell" data-execution_count="2">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> msprime</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv, StateIndexer, Property, HalfCauchyPrior, Adam</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> simulate_two_island_msprime(Ne, m, n_loci<span class="op">=</span><span class="dv">5000</span>, n_samples<span class="op">=</span><span class="dv">2</span>):</span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>    demography <span class="op">=</span> msprime.Demography()</span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>    demography.add_population(name<span class="op">=</span><span class="st">'pop0'</span>, initial_size<span class="op">=</span>Ne)</span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>    demography.add_population(name<span class="op">=</span><span class="st">'pop1'</span>, initial_size<span class="op">=</span>Ne)</span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>    demography.set_symmetric_migration_rate([<span class="st">'pop0'</span>, <span class="st">'pop1'</span>], m)</span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>    obs <span class="op">=</span> []</span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a>    ts_list <span class="op">=</span> msprime.sim_ancestry(</span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a>        samples<span class="op">=</span>{<span class="st">'pop0'</span>: n_samples <span class="op">//</span> <span class="dv">2</span>, <span class="st">'pop1'</span>: n_samples <span class="op">//</span> <span class="dv">2</span>},</span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a>        demography<span class="op">=</span>demography,</span>
+<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a>        num_replicates<span class="op">=</span>n_loci,</span>
+<span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a>        sequence_length<span class="op">=</span><span class="dv">1000</span>,</span>
+<span id="cb40-18"><a href="#cb40-18" aria-hidden="true" tabindex="-1"></a>        recombination_rate<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb40-19"><a href="#cb40-19" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ts <span class="kw">in</span> ts_list:</span>
+<span id="cb40-21"><a href="#cb40-21" aria-hidden="true" tabindex="-1"></a>        ts_mut <span class="op">=</span> msprime.sim_mutations(ts, rate<span class="op">=</span><span class="fl">0.9e-8</span>)</span>
+<span id="cb40-22"><a href="#cb40-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> var <span class="kw">in</span> ts_mut.variants():</span>
+<span id="cb40-23"><a href="#cb40-23" aria-hidden="true" tabindex="-1"></a>            k <span class="op">=</span> <span class="bu">int</span>(var.genotypes.<span class="bu">sum</span>())</span>
+<span id="cb40-24"><a href="#cb40-24" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="dv">0</span> <span class="op">&lt;</span> k <span class="op">&lt;</span> n_samples <span class="op">*</span> <span class="dv">2</span>:</span>
+<span id="cb40-25"><a href="#cb40-25" aria-hidden="true" tabindex="-1"></a>                obs.append(k)</span>
+<span id="cb40-26"><a href="#cb40-26" aria-hidden="true" tabindex="-1"></a>                <span class="cf">break</span></span>
+<span id="cb40-27"><a href="#cb40-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.array(obs)</span>
+<span id="cb40-28"><a href="#cb40-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-29"><a href="#cb40-29" aria-hidden="true" tabindex="-1"></a><span class="co"># Sande parametre</span></span>
+<span id="cb40-30"><a href="#cb40-30" aria-hidden="true" tabindex="-1"></a>scenarios_ms <span class="op">=</span> [</span>
+<span id="cb40-31"><a href="#cb40-31" aria-hidden="true" tabindex="-1"></a>    {<span class="st">'Ne'</span>: <span class="dv">50_000</span>, <span class="st">'m'</span>: <span class="fl">1e-4</span>, <span class="st">'label'</span>: <span class="st">'Lav migration'</span>},</span>
+<span id="cb40-32"><a href="#cb40-32" aria-hidden="true" tabindex="-1"></a>    {<span class="st">'Ne'</span>: <span class="dv">50_000</span>, <span class="st">'m'</span>: <span class="fl">1e-3</span>, <span class="st">'label'</span>: <span class="st">'Moderat migration'</span>},</span>
+<span id="cb40-33"><a href="#cb40-33" aria-hidden="true" tabindex="-1"></a>    {<span class="st">'Ne'</span>: <span class="dv">25_000</span>, <span class="st">'m'</span>: <span class="fl">5e-4</span>, <span class="st">'label'</span>: <span class="st">'Lille Ne, lav m'</span>},</span>
+<span id="cb40-34"><a href="#cb40-34" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb40-35"><a href="#cb40-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-36"><a href="#cb40-36" aria-hidden="true" tabindex="-1"></a><span class="co"># Byg two-island graf</span></span>
+<span id="cb40-37"><a href="#cb40-37" aria-hidden="true" tabindex="-1"></a>nr_ms <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb40-38"><a href="#cb40-38" aria-hidden="true" tabindex="-1"></a>idx_ms <span class="op">=</span> StateIndexer(descendants<span class="op">=</span>[</span>
+<span id="cb40-39"><a href="#cb40-39" aria-hidden="true" tabindex="-1"></a>    Property(<span class="st">'pop1'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_ms),</span>
+<span id="cb40-40"><a href="#cb40-40" aria-hidden="true" tabindex="-1"></a>    Property(<span class="st">'pop2'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_ms),</span>
+<span id="cb40-41"><a href="#cb40-41" aria-hidden="true" tabindex="-1"></a>    Property(<span class="st">'in_pop'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span><span class="dv">2</span>),</span>
+<span id="cb40-42"><a href="#cb40-42" aria-hidden="true" tabindex="-1"></a>])</span>
+<span id="cb40-43"><a href="#cb40-43" aria-hidden="true" tabindex="-1"></a>init_ms <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> idx_ms.state_length</span>
+<span id="cb40-44"><a href="#cb40-44" aria-hidden="true" tabindex="-1"></a>init_ms[idx_ms.descendants.props_to_index(pop1<span class="op">=</span><span class="dv">1</span>, pop2<span class="op">=</span><span class="dv">0</span>, in_pop<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> nr_ms</span>
+<span id="cb40-45"><a href="#cb40-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-46"><a href="#cb40-46" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>(init_ms)</span>
+<span id="cb40-47"><a href="#cb40-47" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> two_isl_ms(state):</span>
+<span id="cb40-48"><a href="#cb40-48" aria-hidden="true" tabindex="-1"></a>    T <span class="op">=</span> []</span>
+<span id="cb40-49"><a href="#cb40-49" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state[idx_ms.descendants.indices()].<span class="bu">sum</span>() <span class="op">&lt;=</span> <span class="dv">1</span>: <span class="cf">return</span> T</span>
+<span id="cb40-50"><a href="#cb40-50" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(idx_ms.descendants.state_length):</span>
+<span id="cb40-51"><a href="#cb40-51" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[i] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
+<span id="cb40-52"><a href="#cb40-52" aria-hidden="true" tabindex="-1"></a>        pi <span class="op">=</span> idx_ms.descendants.index_to_props(i)</span>
+<span id="cb40-53"><a href="#cb40-53" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, idx_ms.descendants.state_length):</span>
+<span id="cb40-54"><a href="#cb40-54" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> state[j] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
+<span id="cb40-55"><a href="#cb40-55" aria-hidden="true" tabindex="-1"></a>            pj <span class="op">=</span> idx_ms.descendants.index_to_props(j)</span>
+<span id="cb40-56"><a href="#cb40-56" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> pj.in_pop <span class="op">!=</span> pi.in_pop: <span class="cf">continue</span></span>
+<span id="cb40-57"><a href="#cb40-57" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb40-58"><a href="#cb40-58" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb40-59"><a href="#cb40-59" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb40-60"><a href="#cb40-60" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb40-61"><a href="#cb40-61" aria-hidden="true" tabindex="-1"></a>            new[idx_ms.descendants.props_to_index(</span>
+<span id="cb40-62"><a href="#cb40-62" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>pi.pop1<span class="op">+</span>pj.pop1, pop2<span class="op">=</span>pi.pop2<span class="op">+</span>pj.pop2,</span>
+<span id="cb40-63"><a href="#cb40-63" aria-hidden="true" tabindex="-1"></a>                in_pop<span class="op">=</span>pi.in_pop)] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb40-64"><a href="#cb40-64" aria-hidden="true" tabindex="-1"></a>            T.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same), <span class="dv">0</span>]])</span>
+<span id="cb40-65"><a href="#cb40-65" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> pi.in_pop <span class="op">==</span> <span class="dv">1</span>:</span>
+<span id="cb40-66"><a href="#cb40-66" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb40-67"><a href="#cb40-67" aria-hidden="true" tabindex="-1"></a>            new[idx_ms.descendants.props_to_index(</span>
+<span id="cb40-68"><a href="#cb40-68" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>pi.pop1, pop2<span class="op">=</span>pi.pop2, in_pop<span class="op">=</span><span class="dv">2</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb40-69"><a href="#cb40-69" aria-hidden="true" tabindex="-1"></a>            T.append([new, [<span class="dv">0</span>, state[i]]])</span>
+<span id="cb40-70"><a href="#cb40-70" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb40-71"><a href="#cb40-71" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb40-72"><a href="#cb40-72" aria-hidden="true" tabindex="-1"></a>            new[idx_ms.descendants.props_to_index(</span>
+<span id="cb40-73"><a href="#cb40-73" aria-hidden="true" tabindex="-1"></a>                pop1<span class="op">=</span>pi.pop1, pop2<span class="op">=</span>pi.pop2, in_pop<span class="op">=</span><span class="dv">1</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb40-74"><a href="#cb40-74" aria-hidden="true" tabindex="-1"></a>            T.append([new, [<span class="dv">0</span>, state[i]]])</span>
+<span id="cb40-75"><a href="#cb40-75" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> T</span>
+<span id="cb40-76"><a href="#cb40-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-77"><a href="#cb40-77" aria-hidden="true" tabindex="-1"></a>results_ms <span class="op">=</span> []</span>
+<span id="cb40-78"><a href="#cb40-78" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> sc <span class="kw">in</span> scenarios_ms:</span>
+<span id="cb40-79"><a href="#cb40-79" aria-hidden="true" tabindex="-1"></a>    Ne, m <span class="op">=</span> sc[<span class="st">'Ne'</span>], sc[<span class="st">'m'</span>]</span>
+<span id="cb40-80"><a href="#cb40-80" aria-hidden="true" tabindex="-1"></a>    theta0_true <span class="op">=</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> Ne)</span>
+<span id="cb40-81"><a href="#cb40-81" aria-hidden="true" tabindex="-1"></a>    theta1_true <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> Ne <span class="op">*</span> m  <span class="co"># koalescentenheder</span></span>
+<span id="cb40-82"><a href="#cb40-82" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb40-83"><a href="#cb40-83" aria-hidden="true" tabindex="-1"></a>    g_ms <span class="op">=</span> Graph(two_isl_ms)</span>
+<span id="cb40-84"><a href="#cb40-84" aria-hidden="true" tabindex="-1"></a>    g_ms.update_weights([theta0_true, theta1_true])</span>
+<span id="cb40-85"><a href="#cb40-85" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb40-86"><a href="#cb40-86" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Simuler med msprime</span></span>
+<span id="cb40-87"><a href="#cb40-87" aria-hidden="true" tabindex="-1"></a>    data_ms2 <span class="op">=</span> simulate_two_island_msprime(Ne, m, n_loci<span class="op">=</span><span class="dv">5000</span>, n_samples<span class="op">=</span>nr_ms)</span>
+<span id="cb40-88"><a href="#cb40-88" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(data_ms2) <span class="op">&lt;</span> <span class="dv">200</span>:</span>
+<span id="cb40-89"><a href="#cb40-89" aria-hidden="true" tabindex="-1"></a>        data_ms2 <span class="op">=</span> g_ms.sample(<span class="dv">5000</span>)</span>
+<span id="cb40-90"><a href="#cb40-90" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb40-91"><a href="#cb40-91" aria-hidden="true" tabindex="-1"></a>    prior_ms <span class="op">=</span> [HalfCauchyPrior(ci<span class="op">=</span>theta0_true<span class="op">*</span><span class="dv">5</span>, prob<span class="op">=</span><span class="fl">0.9</span>),</span>
+<span id="cb40-92"><a href="#cb40-92" aria-hidden="true" tabindex="-1"></a>                HalfCauchyPrior(ci<span class="op">=</span><span class="fl">2.0</span>, prob<span class="op">=</span><span class="fl">0.9</span>)]</span>
+<span id="cb40-93"><a href="#cb40-93" aria-hidden="true" tabindex="-1"></a>    sv_ms <span class="op">=</span> g_ms.svgd(data_ms2, prior<span class="op">=</span>prior_ms, optimizer<span class="op">=</span>Adam(<span class="fl">0.25</span>),</span>
+<span id="cb40-94"><a href="#cb40-94" aria-hidden="true" tabindex="-1"></a>                      n_particles<span class="op">=</span><span class="dv">60</span>, n_iterations<span class="op">=</span><span class="dv">400</span>)</span>
+<span id="cb40-95"><a href="#cb40-95" aria-hidden="true" tabindex="-1"></a>    res_ms <span class="op">=</span> sv_ms.get_results()</span>
+<span id="cb40-96"><a href="#cb40-96" aria-hidden="true" tabindex="-1"></a>    th0_est <span class="op">=</span> res_ms[<span class="st">'theta_mean'</span>][<span class="dv">0</span>].item()</span>
+<span id="cb40-97"><a href="#cb40-97" aria-hidden="true" tabindex="-1"></a>    th1_est <span class="op">=</span> res_ms[<span class="st">'theta_mean'</span>][<span class="dv">1</span>].item()</span>
+<span id="cb40-98"><a href="#cb40-98" aria-hidden="true" tabindex="-1"></a>    s0 <span class="op">=</span> res_ms[<span class="st">'theta_std'</span>][<span class="dv">0</span>].item()</span>
+<span id="cb40-99"><a href="#cb40-99" aria-hidden="true" tabindex="-1"></a>    s1 <span class="op">=</span> res_ms[<span class="st">'theta_std'</span>][<span class="dv">1</span>].item()</span>
+<span id="cb40-100"><a href="#cb40-100" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb40-101"><a href="#cb40-101" aria-hidden="true" tabindex="-1"></a>    results_ms.append({</span>
+<span id="cb40-102"><a href="#cb40-102" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Scenarie'</span>: sc[<span class="st">'label'</span>],</span>
+<span id="cb40-103"><a href="#cb40-103" aria-hidden="true" tabindex="-1"></a>        <span class="st">'theta0 sand'</span>: <span class="bu">round</span>(theta0_true, <span class="dv">5</span>),</span>
+<span id="cb40-104"><a href="#cb40-104" aria-hidden="true" tabindex="-1"></a>        <span class="st">'theta0 est'</span>:  <span class="bu">round</span>(th0_est, <span class="dv">5</span>),</span>
+<span id="cb40-105"><a href="#cb40-105" aria-hidden="true" tabindex="-1"></a>        <span class="st">'theta0 std'</span>:  <span class="bu">round</span>(s0, <span class="dv">5</span>),</span>
+<span id="cb40-106"><a href="#cb40-106" aria-hidden="true" tabindex="-1"></a>        <span class="st">'theta1 sand'</span>: <span class="bu">round</span>(theta1_true, <span class="dv">3</span>),</span>
+<span id="cb40-107"><a href="#cb40-107" aria-hidden="true" tabindex="-1"></a>        <span class="st">'theta1 est'</span>:  <span class="bu">round</span>(th1_est, <span class="dv">3</span>),</span>
+<span id="cb40-108"><a href="#cb40-108" aria-hidden="true" tabindex="-1"></a>        <span class="st">'theta1 std'</span>:  <span class="bu">round</span>(s1, <span class="dv">3</span>),</span>
+<span id="cb40-109"><a href="#cb40-109" aria-hidden="true" tabindex="-1"></a>        <span class="st">'n_obs'</span>: <span class="bu">len</span>(data_ms2),</span>
+<span id="cb40-110"><a href="#cb40-110" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb40-111"><a href="#cb40-111" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>sc[<span class="st">'label'</span>]<span class="sc">}</span><span class="ss">: theta0=</span><span class="sc">{</span>th0_est<span class="sc">:.5f}</span><span class="ss">+/-</span><span class="sc">{</span>s0<span class="sc">:.5f}</span><span class="ss"> (sand </span><span class="sc">{</span>theta0_true<span class="sc">:.5f}</span><span class="ss">)  "</span></span>
+<span id="cb40-112"><a href="#cb40-112" aria-hidden="true" tabindex="-1"></a>          <span class="ss">f"theta1=</span><span class="sc">{</span>th1_est<span class="sc">:.3f}</span><span class="ss">+/-</span><span class="sc">{</span>s1<span class="sc">:.3f}</span><span class="ss"> (sand </span><span class="sc">{</span>theta1_true<span class="sc">:.3f}</span><span class="ss">)"</span>)</span>
+<span id="cb40-113"><a href="#cb40-113" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-114"><a href="#cb40-114" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot</span></span>
+<span id="cb40-115"><a href="#cb40-115" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">5</span>))</span>
+<span id="cb40-116"><a href="#cb40-116" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> [r[<span class="st">'Scenarie'</span>] <span class="cf">for</span> r <span class="kw">in</span> results_ms]</span>
+<span id="cb40-117"><a href="#cb40-117" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.arange(<span class="bu">len</span>(labels))</span>
+<span id="cb40-118"><a href="#cb40-118" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-119"><a href="#cb40-119" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, param, key_est, key_std, key_sand, title <span class="kw">in</span> <span class="bu">zip</span>(</span>
+<span id="cb40-120"><a href="#cb40-120" aria-hidden="true" tabindex="-1"></a>    axes,</span>
+<span id="cb40-121"><a href="#cb40-121" aria-hidden="true" tabindex="-1"></a>    [<span class="st">'theta0'</span>, <span class="st">'theta1'</span>],</span>
+<span id="cb40-122"><a href="#cb40-122" aria-hidden="true" tabindex="-1"></a>    [<span class="st">'theta0 est'</span>, <span class="st">'theta1 est'</span>],</span>
+<span id="cb40-123"><a href="#cb40-123" aria-hidden="true" tabindex="-1"></a>    [<span class="st">'theta0 std'</span>, <span class="st">'theta1 std'</span>],</span>
+<span id="cb40-124"><a href="#cb40-124" aria-hidden="true" tabindex="-1"></a>    [<span class="st">'theta0 sand'</span>, <span class="st">'theta1 sand'</span>],</span>
+<span id="cb40-125"><a href="#cb40-125" aria-hidden="true" tabindex="-1"></a>    [<span class="st">'theta0 (koalescensrate)'</span>, <span class="st">'theta1 (migrationsrate)'</span>]</span>
+<span id="cb40-126"><a href="#cb40-126" aria-hidden="true" tabindex="-1"></a>):</span>
+<span id="cb40-127"><a href="#cb40-127" aria-hidden="true" tabindex="-1"></a>    ests  <span class="op">=</span> [r[key_est]  <span class="cf">for</span> r <span class="kw">in</span> results_ms]</span>
+<span id="cb40-128"><a href="#cb40-128" aria-hidden="true" tabindex="-1"></a>    stds  <span class="op">=</span> [r[key_std]  <span class="cf">for</span> r <span class="kw">in</span> results_ms]</span>
+<span id="cb40-129"><a href="#cb40-129" aria-hidden="true" tabindex="-1"></a>    sands <span class="op">=</span> [r[key_sand] <span class="cf">for</span> r <span class="kw">in</span> results_ms]</span>
+<span id="cb40-130"><a href="#cb40-130" aria-hidden="true" tabindex="-1"></a>    ax.errorbar(x, ests, yerr<span class="op">=</span>[<span class="fl">1.96</span><span class="op">*</span>s <span class="cf">for</span> s <span class="kw">in</span> stds],</span>
+<span id="cb40-131"><a href="#cb40-131" aria-hidden="true" tabindex="-1"></a>                fmt<span class="op">=</span><span class="st">'o'</span>, capsize<span class="op">=</span><span class="dv">5</span>, label<span class="op">=</span><span class="st">'SVGD estimat +/- 95 procent-CI'</span>)</span>
+<span id="cb40-132"><a href="#cb40-132" aria-hidden="true" tabindex="-1"></a>    ax.scatter(x, sands, marker<span class="op">=</span><span class="st">'*'</span>, s<span class="op">=</span><span class="dv">150</span>, color<span class="op">=</span><span class="st">'red'</span>, zorder<span class="op">=</span><span class="dv">5</span>, label<span class="op">=</span><span class="st">'Sand værdi'</span>)</span>
+<span id="cb40-133"><a href="#cb40-133" aria-hidden="true" tabindex="-1"></a>    ax.set_xticks(x)</span>
+<span id="cb40-134"><a href="#cb40-134" aria-hidden="true" tabindex="-1"></a>    ax.set_xticklabels(labels, rotation<span class="op">=</span><span class="dv">15</span>, ha<span class="op">=</span><span class="st">'right'</span>)</span>
+<span id="cb40-135"><a href="#cb40-135" aria-hidden="true" tabindex="-1"></a>    ax.set_title(<span class="ss">f'msprime-validering: </span><span class="sc">{</span>title<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb40-136"><a href="#cb40-136" aria-hidden="true" tabindex="-1"></a>    ax.legend()</span>
+<span id="cb40-137"><a href="#cb40-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-138"><a href="#cb40-138" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb40-139"><a href="#cb40-139" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Lille Ne, lav m: theta0=0.57046+/-0.00675 (sand 0.00002)  theta1=0.000+/-0.000 (sand 25.000)</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div id="fig-msprime-validering-island" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-msprime-validering-island-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="03_svgd_two_island_files/figure-html/fig-msprime-validering-island-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-17" title="Figure&nbsp;5.9: msprime-validering af two-island modellen: estimerede vs.&nbsp;sande parametre."><img src="03_svgd_two_island_files/figure-html/fig-msprime-validering-island-output-2.svg" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-msprime-validering-island-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5.9: msprime-validering af two-island modellen: estimerede vs.&nbsp;sande parametre.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>pd.DataFrame(results_ms)[[<span class="st">'Scenarie'</span>, <span class="st">'theta0 sand'</span>, <span class="st">'theta0 est'</span>, <span class="st">'theta0 std'</span>,</span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>                            <span class="st">'theta1 sand'</span>, <span class="st">'theta1 est'</span>, <span class="st">'theta1 std'</span>, <span class="st">'n_obs'</span>]]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="tbl-msprime-validering-island" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="3">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-msprime-validering-island-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;5.4: msprime-validering af two-island modellen.
+</figcaption>
+<div aria-describedby="tbl-msprime-validering-island-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display" data-execution_count="3">
+<div>
+
+
+<table class="dataframe cell caption-top table table-sm table-striped small" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Scenarie</th>
+<th data-quarto-table-cell-role="th">theta0 sand</th>
+<th data-quarto-table-cell-role="th">theta0 est</th>
+<th data-quarto-table-cell-role="th">theta0 std</th>
+<th data-quarto-table-cell-role="th">theta1 sand</th>
+<th data-quarto-table-cell-role="th">theta1 est</th>
+<th data-quarto-table-cell-role="th">theta1 std</th>
+<th data-quarto-table-cell-role="th">n_obs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">0</th>
+<td>Lav migration</td>
+<td>0.00001</td>
+<td>0.58549</td>
+<td>0.00419</td>
+<td>10.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>4977</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">1</th>
+<td>Moderat migration</td>
+<td>0.00001</td>
+<td>0.57937</td>
+<td>0.00536</td>
+<td>100.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>4971</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">2</th>
+<td>Lille Ne, lav m</td>
+<td>0.00002</td>
+<td>0.57046</td>
+<td>0.00675</td>
+<td>25.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>4824</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</figure>
 </div>
 </div>
 
