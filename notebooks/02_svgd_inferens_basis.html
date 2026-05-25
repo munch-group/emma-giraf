@@ -259,7 +259,7 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../notebooks/05_time_inhomogeneous.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Notebook 5: Tidsinhomogen koalescent og demografisk inferens</span></a>
+  <a href="../notebooks/05_time_inhomogeneous.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Notebook 5: Tidsinhomogen coalescent og inferens</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -339,7 +339,7 @@ window.Quarto = {
 </header>
 
 
-<p>I denne notebook vil jeg se på Stein Variational Gradient Descent (SVGD) som metode til Bayesiansk parameterestimering i fase-type modeller. Jeg starter med en single-parameter koalescent og undersøger, hvordan valget af prior, lærings rate og regularisering påvirker konvergens og posterior-præcision. Jeg undersøger desuden prøvestørrelse-effekter og posterior-bredde.</p>
+<p>I denne notebook vil jeg se på Stein Variational Gradient Descent (SVGD) som metode til Bayesiansk parameterestimering i fase-type modeller. Jeg starter med en single-parameter coalescent og undersøger, hvordan valget af prior, læringsrate og regularisering påvirker konvergens og posterior-præcision. Jeg undersøger desuden prøvestørrelse-effekter og posterior-bredde.</p>
 <p><strong>SVGD</strong> repræsenterer posterioren med et sæt partikler der iterativt opdateres mod den sande posterior ved at kombinere gradient-information fra likelihood og prior med et kernelbaseret kraft, der forhindrer partikelkollaps.</p>
 <div id="7a81c81d" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Importer de nødvendige pakker</span></span>
@@ -409,27 +409,26 @@ table {
   Removed 12 file(s), preserved directory structure</code></pre>
 </div>
 </div>
-<div id="cf79e3ed" class="cell" data-execution_count="2">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Standard parameteriseret doalescent som i notebook 01</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># theta[0] = coalescensrate (1/N)</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> (nr_samples <span class="op">-</span> <span class="dv">1</span>))</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_1param(state):</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[i<span class="op">+</span>j<span class="op">+</span><span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)]])</span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent_1param)</span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>true_theta <span class="op">=</span> [<span class="fl">7.0</span>]</span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="cf79e3ed" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Standard coalescent som i notebook 01</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> (nr_samples <span class="op">-</span> <span class="dv">1</span>))</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_1param(state):</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[i<span class="op">+</span>j<span class="op">+</span><span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)]])</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent_1param)</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>true_theta <span class="op">=</span> [<span class="fl">7.0</span>]</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <section id="prior-sensitivitet-hvor-meget-betyder-prior-valget" class="level2">
 <h2 class="anchored" data-anchor-id="prior-sensitivitet-hvor-meget-betyder-prior-valget">Prior-sensitivitet: Hvor meget betyder prior-valget?</h2>
@@ -471,8 +470,8 @@ table {
 </div>
 </div>
 <p>Vag Gaussisk (<span class="math inline">\(\mu=5\)</span>,<span class="math inline">\(\sigma=10\)</span>) er meget bred og flad den siger næsten ingenting om <span class="math inline">\(\theta\)</span> og lader data bestemme alt. Informativ korrekt (CI=[4, 10]) er centreret tæt på sand <span class="math inline">\(\theta=7\)</span> og smallere. Informativ forkert (<span class="math inline">\(\mu=1\)</span>, <span class="math inline">\(\sigma=0.5\)</span>) er smal og centreret langt fra sand <span class="math inline">\(\theta=7\)</span> det simulerer en fejlspecificeret prior. HalfCauchy er kun defineret for positive værdier og har en tung hale mod højre, hvilket gør den robust for skalaparametre som populationsstørrelse.</p>
-<div id="ccf1d400" class="cell" data-execution_count="4">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Kør SVGD med alle fire priors og sammenlign</span></span>
+<div id="ccf1d400" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Kører SVGD med alle fire priors og sammenlign</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>step <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.005</span>, tau<span class="op">=</span><span class="fl">30.0</span>)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>svgd_results <span class="op">=</span> {}</span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -619,12 +618,12 @@ Figure&nbsp;4.2
 </div>
 <p>Fire CI-plots viser posterioren som et histogram af partikler med 95%-CI markeret og den sande parameter (<span class="math inline">\(\theta=7\)</span>) som lodret linje.</p>
 <ul>
-<li><strong>Vag prior</strong> giver en bred posterior med stor usikkerhed — likelihood dominerer men har brug for mange data.</li>
+<li><strong>Vag prior</strong> giver en bred posterior med stor usikkerhed, likelihood dominerer men har brug for mange data.</li>
 <li><strong>Korrekt prior</strong> giver en smal, centreret posterior der præcist dækker sand <span class="math inline">\(\theta=7\)</span>.</li>
 <li><strong>Forkert prior</strong> giver en posterior der er trukket mod lavere <span class="math inline">\(\theta\)</span>-værdier og ikke nødvendigvis indeholder sand <span class="math inline">\(\theta\)</span> i sit CI ved <span class="math inline">\(n=2000\)</span>.</li>
 <li><strong>HalfCauchy</strong> giver en korrekt centreret posterior med tung hale mod høje værdier, velegnet til positive skalaparametre.</li>
 </ul>
-<p>Den smalleste posterior opnås med <strong>Adam-optimizeren</strong> (se læringsrate-afsnittet), ikke af prior-valget alene.</p>
+<p>Den smalleste posterior opnås med Adam-optimizeren, ikke af prior-valget alene.</p>
 </section>
 <section id="hypotese-prior-dominans-som-funktion-af-prøvestørrelse" class="level3">
 <h3 class="anchored" data-anchor-id="hypotese-prior-dominans-som-funktion-af-prøvestørrelse">Hypotese: Prior dominans som funktion af prøvestørrelse</h3>
@@ -693,8 +692,7 @@ Figure&nbsp;4.3: Prior-dominans som funktion af prøvestørrelse.
 10000 Forkert prior 6.932490 0.124229</code></pre>
 </div>
 </div>
-<p>To kurver plottes: posterior-mean for korrekt og forkert prior som funktion af <span class="math inline">\(n\)</span> (log-skala). Den vandrette linje markerer sand <span class="math inline">\(\theta=7\)</span>. Korrekt prior (orange) starter tæt på 7 og forbliver tæt bortset fra lidt støj ved <span class="math inline">\(n=100\)</span>. Forkert prior (blå) starter langt fra 7 ved lille <span class="math inline">\(n\)</span> og klatrer gradvist mod 7 med stigende data. Krydspunktet hvor begge kurver møder den vanrette linje viser, hvornår likelihood overtager fra prior. Så ved <span class="math inline">\(n&lt;500\)</span> dominerer prioren, så man skal vælgw den omhyggeligt.</p>
-<p>Hypotesen bekræftes delvist. Ved <span class="math inline">\(n=50\)</span> er den forkerte prior dårlig estimatet er 4.1 i stedet for 7.0. Det er fordi prior dominerer totalt over likelihood ved så lille et datasæt. Biasset er stadig tydelig ved <span class="math inline">\(n=500\)</span> (5.75 vs.&nbsp;6.87), men ved <span class="math inline">\(n=1000\)</span> og opover er forskellen lille. Ved <span class="math inline">\(n=250\)</span> er der en mærkelig høj std for forkert prior (3.32) dette skyldes at likelihood og prior trækker i modsat retning og giver en bred posterior.</p>
+<p>To kurver plottes: posterior-mean for korrekt og forkert prior som funktion af <span class="math inline">\(n\)</span> (log-skala). Den vandrette linje markerer sand <span class="math inline">\(\theta=7\)</span>. Korrekt prior (orange) starter tæt på 7 og forbliver tæt bortset fra lidt støj ved <span class="math inline">\(n=100\)</span>. Forkert prior (blå) starter langt fra 7 ved lille <span class="math inline">\(n\)</span> og kommer gradvist mod 7 med stigende data. Krydspunktet hvor begge kurver møder den vanrette linje viser, hvornår likelihood overtager fra prior. Så ved <span class="math inline">\(n&lt;500\)</span> dominerer prioren, så man skal vælge den omhyggeligt.</p>
 </section>
 <section id="prior-test-med-bavian-realistiske-theta-værdier" class="level3">
 <h3 class="anchored" data-anchor-id="prior-test-med-bavian-realistiske-theta-værdier">Prior-test med bavian realistiske theta-værdier</h3>
@@ -893,6 +891,7 @@ Exp(0.1-&gt;0.005,t=30)    0.234927
 Anbefaling til NB07: Adam(0.1)</code></pre>
 </div>
 </div>
+<p>Adam(0.1) er den bedste strategi over bavian-realistiske theta-værdier (<span class="math inline">\(\theta \in \{3, 7, 15, 20\}\)</span>). I de efterfølgende enkelt-parameter-tests bruges Adam(0.25) til illustration da forskellen er marginal ved <span class="math inline">\(\theta = 7{,}0\)</span>, men Adam(0.1) anvendes som standardoptimizer i bavian-analyserne (NB07).</p>
 </section>
 </section>
 <section id="regularisering-og-posterior-kollaps" class="level2">
@@ -901,7 +900,7 @@ Anbefaling til NB07: Adam(0.1)</code></pre>
 <section id="hypotese-2" class="level3">
 <h3 class="anchored" data-anchor-id="hypotese-2">Hypotese</h3>
 <ul>
-<li>Stærk regularisering (<span class="math inline">\(\text{reg} &gt;&gt; 1\)</span>) i de tidlige iterationer stabiliserer konvergens og reducerer risikoen for partikel-divergens, men overdreven regularisering over alle iterationer fører til systematisk underdisperseret posterior.</li>
+<li>Stærk regularisering i de tidlige iterationer stabiliserer konvergens og reducerer risikoen for partikel-divergens, men overdreven regularisering over alle iterationer fører til systematisk underdisperseret posterior.</li>
 </ul>
 <div id="b559466c" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>step <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.005</span>, tau<span class="op">=</span><span class="fl">30.0</span>)</span>
@@ -928,7 +927,7 @@ Anbefaling til NB07: Adam(0.1)</code></pre>
 Sand theta = 7.0</code></pre>
 </div>
 </div>
-<p>Hypotesen bekræftes ikke fuldt ud. Stærk konstant regularisering giver faktisk en bredere posterior (std=0.657) frem for posterior-kollaps. Det skyldes at stærk regularisering tvinger partiklerne mod de empiriske momenter, men forhindrer dem også i at finde den sande posterior-koncentration. Svag og moderat aftagende regularisering er bedre kompromisser.</p>
+<p>Hypotesen bekræftes ikke fuldt ud. Stærk konstant regularisering giver faktisk en bredere posterior (std=0.7376) frem for posterior-kollaps. Det skyldes at stærk regularisering tvinger partiklerne mod de empiriske momenter, men forhindrer dem også i at finde den sande posterior-koncentration. Svag og moderat aftagende regularisering er bedre kompromisser.</p>
 <div class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Viser posterior width (std) som funktion af regulariseringsstyrke</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, (name, res) <span class="kw">in</span> <span class="bu">zip</span>(axes, svgd_reg.items()):</span>
@@ -1028,12 +1027,12 @@ Figure&nbsp;4.5
 </div>
 <p><strong>Coverage-resultater:</strong></p>
 <ul>
-<li><strong>Korrekt prior, <span class="math inline">\(n=100\)</span>:</strong> <span class="math inline">\(94\%\)</span> dækning — nærmest perfekt nominel dækning.</li>
-<li><strong>Korrekt prior, <span class="math inline">\(n=2000\)</span>:</strong> <span class="math inline">\(66\%\)</span> dækning — lavere end forventet.</li>
-<li><strong>Forkert prior, <span class="math inline">\(n=100\)</span>:</strong> <span class="math inline">\(24\%\)</span> dækning — prioren dominerer og CI indeholder ikke sand <span class="math inline">\(\theta=7\)</span>.</li>
-<li><strong>Forkert prior, <span class="math inline">\(n=2000\)</span>:</strong> <span class="math inline">\(84\%\)</span> dækning — likelihood overtager gradvist fra prioren.</li>
+<li><strong>Korrekt prior, <span class="math inline">\(n=100\)</span>:</strong> <span class="math inline">\(94\%\)</span> dækning, nærmest perfekt nominel dækning.</li>
+<li><strong>Korrekt prior, <span class="math inline">\(n=2000\)</span>:</strong> <span class="math inline">\(80\%\)</span> dækning, lavere end forventet.</li>
+<li><strong>Forkert prior, <span class="math inline">\(n=100\)</span>:</strong> <span class="math inline">\(14\%\)</span> dækning, prioren dominerer og CI indeholder ikke sand <span class="math inline">\(\theta=7\)</span>.</li>
+<li><strong>Forkert prior, <span class="math inline">\(n=2000\)</span>:</strong> <span class="math inline">\(72\%\)</span> dækning, likelihood overtager gradvist fra prioren.</li>
 </ul>
-<p>Det er vigtigt at forstå, at faldende coverage med flere data <strong>ikke er en fejl i SVGD</strong>. Det er en konsekvens af variationel inferens’ tendens til at undervurdere posterior-bredde (underdispersion): med mange data bliver posterioren meget smal, og <span class="math inline">\(\pm 1{,}96 \times \text{std}\)</span> undervurderer det sande konfidensinterval. Dette er et velkendt fænomen ved alle variationelle metoder og ikke specifikt for SVGD. For praktisk brug af bavian-data anbefales det at rapportere posterior-std direkte frem for at fortolke CI’et som et klassisk <span class="math inline">\(95\%\)</span>-konfidensinterval.</p>
+<p>Det er vigtigt at forstå, at faldende coverage med flere data ikke er en fejl i SVGD. Det er en konsekvens af variationel inferens’ tendens til at undervurdere posterior-bredde (underdispersion): med mange data bliver posterioren meget smal, og <span class="math inline">\(\pm 1{,}96 \times \text{std}\)</span> undervurderer det sande konfidensinterval. Dette er et velkendt ved alle variationelle metoder og ikke specifikt for SVGD. For praktisk brug af bavian-data anbefales det at rapportere posterior-std direkte frem for at fortolke CI’et som et klassisk <span class="math inline">\(95\%\)</span>-konfidensinterval.</p>
 <div id="cell-fig-coverage" class="cell" data-execution_count="16">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualiser coverage</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">4</span>))</span>
@@ -1060,9 +1059,8 @@ Figure&nbsp;4.6: Empirisk 95pct-CI dækning som funktion af prøvestørrelse.
 </div>
 </div>
 <p>Coverage-plottet viser to kurver på log-skala x-akse med den stiplede sorte linje ved nominel <span class="math inline">\(95\%\)</span>-dækning.</p>
-<p><strong>Korrekt prior</strong> (blå) starter ved <span class="math inline">\(94\%\)</span> ved <span class="math inline">\(n=100\)</span> og <strong>falder</strong> til <span class="math inline">\(66\%\)</span> ved <span class="math inline">\(n=2000\)</span>. Dette skyldes ikke en fejl: variationel inferens undervurderer systematisk posterior-bredde når data er mange og posterioren er smal. SVGD giver korrekt centrerede estimater men for smalle CI’er ved store <span class="math inline">\(n\)</span>.</p>
-<p><strong>Forkert prior</strong> (orange) starter ved <span class="math inline">\(24\%\)</span> ved <span class="math inline">\(n=100\)</span> — prioren dominerer og trækker estimatet væk fra sand <span class="math inline">\(\theta\)</span> — og stiger til <span class="math inline">\(84\%\)</span> ved <span class="math inline">\(n=2000\)</span> efterhånden som likelihood overtager.</p>
-<p>Kurverne krydser hinanden, hvilket illustrerer at prior-valget ikke blot påvirker præcision men også kalibreringen af konfidensintervaller. Konklusionen er at man bør vælge prior omhyggeligt, og at posterior-std bør rapporteres direkte frem for at fortolkes som et klassisk <span class="math inline">\(95\%\)</span>-konfidensinterval.</p>
+<p><strong>Korrekt prior</strong> (blå) starter ved <span class="math inline">\(94\%\)</span> ved <span class="math inline">\(n=100\)</span> og falder til <span class="math inline">\(80\%\)</span> ved <span class="math inline">\(n=2000\)</span>. Dette skyldes ikke en fejl: variationel inferens undervurderer systematisk posterior-bredde når data er mange og posterioren er smal. SVGD giver korrekt centrerede estimater men for smalle CI’er ved store <span class="math inline">\(n\)</span>.</p>
+<p><strong>Forkert prior</strong> (orange) starter ved <span class="math inline">\(14\%\)</span> ved <span class="math inline">\(n=100\)</span>, prioren dominerer og trækker estimatet væk fra sand <span class="math inline">\(\theta\)</span> og stiger til <span class="math inline">\(72\%\)</span> ved <span class="math inline">\(n=2000\)</span> efterhånden som likelihood overtager.</p>
 </section>
 <section id="partikler-og-iterations-hvad-er-det-optimale-til-bavian" class="level3">
 <h3 class="anchored" data-anchor-id="partikler-og-iterations-hvad-er-det-optimale-til-bavian">Partikler og iterations: hvad er det optimale til bavian?</h3>
@@ -1185,13 +1183,13 @@ Figure&nbsp;4.7
 </figure>
 </div>
 </div>
-<p>Posterior predictive check Det til enstre viser et histogram af de observerede TMRCA-tider (blå) og model-PDF (orange kurve) evalueret ved posterior-gennemsnittet <span class="math inline">\(\hat{\theta}\)</span>. Hvis orange og blå matcher godt, reproducerer modellen data. Højre viser empirisk CDF (ECDF, blå trappeform) mod model-CDF (orange kurve). Jo tættere de to kurver ligger, desto bedre er modelfit. Et godt match her bekræfter at den neutrale koalescentmodel er passende.</p>
+<p>Det til enstre viser et histogram af de observerede TMRCA-tider (blå) og model-PDF (orange kurve) evalueret ved posterior-gennemsnittet <span class="math inline">\(\hat{\theta}\)</span>. Hvis orange og blå matcher godt, reproducerer modellen data. Højre viser empirisk CDF (ECDF, blå trappeform) mod model-CDF (orange kurve). Jo tættere de to kurver ligger, desto bedre er modelfit. Et godt match her bekræfter at den neutrale koalescentmodel er passende.</p>
 </section>
 </section>
 <section id="sammenligning-af-alle-læringsrate-strategier" class="level2">
 <h2 class="anchored" data-anchor-id="sammenligning-af-alle-læringsrate-strategier">Sammenligning af alle læringsrate-strategier</h2>
 <p>phasic tilbyder fire step-size schedules: ConstantStepSize ExpStepSize, WarmupExpStepSize og Adam. Jeg sammenligner dem systematisk på samme data for at bekræfte at Adam er den bedste strategi til bavian-analyser.</p>
-<p>Alle schedules testes med sand <span class="math inline">\(\theta = 7{,}0\)</span>, <span class="math inline">\(n_{\text{obs}} = 2000\)</span> og 250 iterationer.</p>
+<p>Alle testes med sand <span class="math inline">\(\theta = 7{,}0\)</span>, <span class="math inline">\(n_{\text{obs}} = 2000\)</span> og 250 iterationer.</p>
 <div id="45385bb2" class="cell" data-execution_count="19">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -1242,9 +1240,9 @@ Figure&nbsp;4.7
 </div>
 </div>
 </div>
-<p>Learning rate-schedule kurver En kurve per schedule over 250 iterationer viser, hvordan step-size ændrer sig. Konstant er en vandret linje ingen ændring. ExpStepSize falder eksponentielt fra 0.1 til 0.002. Warmup(w=40) stiger lineært de første 40 iterationer til en peak og falder derefter eksponentielt. Warmup(w=80) gør det samme, bare først ved 80 hvor den har et peak og efter falder eksponentielt.</p>
-<div id="f0387f53" class="cell" data-execution_count="20">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Kør SVGD med alle schedules og sammenlign resultater</span></span>
+<p>En kurve per rate over 250 iterationer viser, hvordan step-size ændrer sig. Konstant er en vandret linje ingen ændring (blå graf). ExpStepSize falder eksponentielt fra 0.1 til 0.002. Warmup(w=40) stiger lineært de første 40 iterationer til en peak og falder derefter eksponentielt. Warmup(w=80) gør det samme, bare først ved 80 hvor den har et peak og efter falder eksponentielt.</p>
+<div id="f0387f53" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Kør SVGD med alle rater og sammenlign resultater</span></span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>schedule_configs <span class="op">=</span> {</span>
 <span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Constant(0.02)'</span>:           {<span class="st">'learning_rate'</span>: ConstantStepSize(<span class="fl">0.02</span>)},</span>
 <span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Constant(0.005)'</span>:          {<span class="st">'learning_rate'</span>: ConstantStepSize(<span class="fl">0.005</span>)},</span>
@@ -1290,10 +1288,10 @@ Warmup(w=80, tau=200)      7.0563    0.11655   6.828    7.285                   
     Adam + Exp warmup      7.0420    0.06167   6.921    7.163                   True</code></pre>
 </div>
 </div>
-<p>Alle otte schedules indeholder den sande <span class="math inline">\(\theta=7\)</span> i deres 95%-CI, men der er tydelige forskelle i posterior-bredde og konvergenshastighed.</p>
+<p>Alle otte rater indeholder den sande <span class="math inline">\(\theta=7\)</span> i deres 95%-CI, men der er tydelige forskelle i posterior-bredde og konvergenshastighed.</p>
 <ul>
-<li><strong>Konstant 0.02</strong> giver en bred posterior (std <span class="math inline">\(\approx 0{,}90\)</span>) fordi step-size er for stor til finjustering i de sene iterationer — partiklerne oscillerer frem for at konvergere.</li>
-<li><strong>Konstant 0.005</strong> er bedre men langsom — processen er ikke fuldt konvergeret ved iteration 250.</li>
+<li><strong>Konstant 0.02</strong> giver en bred posterior (std <span class="math inline">\(\approx 0{,}90\)</span>) fordi step-size er for stor til finjustering i de sene iterationer partiklerne oscillerer frem for at konvergere.</li>
+<li><strong>Konstant 0.005</strong> er bedre men langsom, processen er ikke fuldt konvergeret ved iteration 250.</li>
 <li><strong>ExpStepSize</strong> er en god balance: hurtig tidlig konvergens og fin afslutning.</li>
 <li><strong>Warmup-schedules</strong> er stabile og undgår store tidlige opdateringer, men giver ikke en smallere posterior end Adam.</li>
 <li><strong>Adam(0.25)</strong> giver den smalleste posterior-std og er den mest robuste strategi, konsistent med resultaterne i tabel tbl-prior-bav. Adam tilpasser step-size per parameter baseret på gradient-historik og er dermed den anbefalede optimizer.</li>
@@ -1345,7 +1343,7 @@ Figure&nbsp;4.8
 </section>
 <section id="systematisk-svgd-kalibrering-til-bavian-parametre" class="level2">
 <h2 class="anchored" data-anchor-id="systematisk-svgd-kalibrering-til-bavian-parametre">Systematisk SVGD-kalibrering til bavian-parametre</h2>
-<p>Jeg simulerer data fra en koalescent med bavian-realistiske theta-værdier (<span class="math inline">\(\theta \in \{10^{-4}, 10^{-3}, 10^{-2}\}\)</span> svarende til <span class="math inline">\(N_e \approx 10k-100k\)</span>) og finder den bedste kombination af <strong>prior</strong>, <strong>learning rate</strong>, <strong>iterations</strong> og <strong>particles</strong>.</p>
+<p>Jeg simulerer data fra en koalescent med bavian-realistiske theta-værdier (<span class="math inline">\(\theta \in \{10^{-4}, 10^{-3}, 10^{-2}\}\)</span> svarende til <span class="math inline">\(N_e \approx 10k-100k\)</span>) og finder den bedste kombination af prior, læringsrate, iterations og partikler.</p>
 <div id="cbb6783d" class="cell" data-execution_count="22">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (Graph, with_ipv, GaussPrior, HalfCauchyPrior, DataPrior,</span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>    Adam, ExpStepSize, ConstantStepSize, clear_caches)</span>
@@ -1533,7 +1531,7 @@ Figure&nbsp;4.9
 <section id="svgd-posterior-form-peaked-vs.-flad-posterior" class="level2">
 <h2 class="anchored" data-anchor-id="svgd-posterior-form-peaked-vs.-flad-posterior">SVGD posterior-form: peaked vs.&nbsp;flad posterior</h2>
 <p>En god posterior er bred og flad og trækker ud mod siderne. En dårlig posterior har en skarp top (peaked), hvilket indikerer at SVGD er kollapset mod et enkelt punkt og undervurderer usikkerheden. Her testes systematisk hvad der forårsager peaked posteriors.</p>
-<div id="cell-fig-posterior-form" class="cell" data-execution_count="25">
+<div id="cell-fig-posterior-form" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> kurtosis</span>
 <span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
