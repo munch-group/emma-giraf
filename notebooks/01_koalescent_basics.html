@@ -343,18 +343,60 @@ window.Quarto = {
 
 
 <p>I denne notebook ser jeg nærmere på Kingmans koalescent som er en kontinuert fase-type fordeling og hvordan den implementeres via phasic. Jeg ser på kendte analytiske resultater numerisk og undersøger, hvordan centrale populationsgenetiske størrelser: træ højde, samlede grenlængde og site frequency spectrum (SFS) kan udtrykkes som reward-transformationer af samme Markov-proces.</p>
-<div id="2ce0950c" class="cell" data-execution_count="4">
+<div id="2ce0950c" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Importer nødvendige pakker</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv  </span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config InlineBackend.figure_format <span class="op">=</span> <span class="st">'svg'</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>sns.set_palette(<span class="st">'tab10'</span>)</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>plt.rcParams[<span class="st">'figure.figsize'</span>] <span class="op">=</span> (<span class="dv">8</span>, <span class="dv">4</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">"CUDA_VISIBLE_DEVICES"</span>] <span class="op">=</span> <span class="st">"0"</span>   </span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">"XLA_FLAGS"</span>] <span class="op">=</span> <span class="st">"--xla_force_host_platform_device_count=1"</span>          </span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv  </span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config InlineBackend.figure_format <span class="op">=</span> <span class="st">'svg'</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>sns.set_palette(<span class="st">'tab10'</span>)</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>plt.rcParams[<span class="st">'figure.figsize'</span>] <span class="op">=</span> (<span class="dv">8</span>, <span class="dv">4</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+
+<style>
+.widget-label,
+.widget-html,
+.widget-button,
+.widget-dropdown,
+.widget-text,
+.widget-textarea {
+    color: #CCCCCC !important;  /* Set to desired color */
+    font-size: 10px !important;      /* Font size */
+
+}
+div.widget-html-content > progress { /* Outer container */
+    height: 10px !important;
+
+}
+div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
+    height: 5px !important;
+}
+div.progress { /* Jupyter Notebook (classic) */
+    height: 5px !important;
+    min-height: 5px !important;
+    margin-top: 12px !important;    
+}
+div.progress-bar { /* Inner bar */
+    height: 5px !important;
+    min-height: 5px !important;
+    line-height: 5px !important;
+    color: 'white' !important;
+    padding-bottom: 0px !important;    
+}
+
+table {
+    font-variant-numeric: tabular-nums; 
+}
+</style>
+</div>
 </div>
 <section id="coalescent-modellen" class="level2">
 <h2 class="anchored" data-anchor-id="coalescent-modellen">Coalescent-modellen</h2>
@@ -368,7 +410,7 @@ window.Quarto = {
 <p>Hypotese: For en prøve af størrelse <span class="math inline">\(n\)</span> er: <span class="math display">\[
 \mathbb{E}[H] = 2\left(1 - \frac{1}{n}\right), \quad \text{Var}[H] = 4\sum_{k=2}^{n} \frac{1}{k^2(k-1)^2/4}
 \]</span></p>
-<div id="1bcc5709" class="cell">
+<div id="1bcc5709" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Coalescent callback-funktion</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Tilstandsvektoren: state[i] = antal linjer med (i+1) efterkommere</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
@@ -390,10 +432,10 @@ window.Quarto = {
 <span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>            transitions.append((new, state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same)))</span>
 <span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="cell-fig-graf" class="cell" data-execution_count="8">
+<div id="cell-fig-graf" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="8">
+<div class="cell-output cell-output-display" data-execution_count="3">
 <div id="fig-graf" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-graf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -407,17 +449,17 @@ Figure&nbsp;3.1: Coalescentgrafens tilstandsrum for n=4
 </div>
 </div>
 <p>Grafen viser seks tilstande for <span class="math inline">\(n=4\)</span> prøver. Tilstandsvektoren​ <span class="math inline">\((s_1,s_2,s_3,s_4)\)</span> tæller antallet af linjer med <span class="math inline">\(1, 2, 3\)</span> og <span class="math inline">\(4\)</span> efterkommere. Starttilstanden <span class="math inline">\((4,0,0,0)\)</span> er fire uafhængige singletons. Den absorberende tilstand <span class="math inline">\((0,0,0,1)\)</span> er MRCA.</p>
-<div class="cell">
+<div class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Vis tilstandsrummet som DataFrame</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> [<span class="ss">f"</span><span class="sc">{</span>i<span class="op">+</span><span class="dv">1</span><span class="sc">}</span><span class="ss">'ton"</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(nr_samples)]</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>pd.DataFrame(graph.states(), columns<span class="op">=</span>labels)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div id="tbl-tilstande" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<div id="tbl-tilstande" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="4">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-tilstande-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Table&nbsp;3.1: Tilstandsrum for coalescent med n=4.
 </figcaption>
 <div aria-describedby="tbl-tilstande-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="cell-output cell-output-display" data-execution_count="7">
+<div class="cell-output cell-output-display" data-execution_count="4">
 <div>
 
 
@@ -490,7 +532,7 @@ Table&nbsp;3.1: Tilstandsrum for coalescent med n=4.
 <p><span class="math inline">\((0,2,0,0) \rightarrow\)</span> 2 doubletons</p>
 <p><span class="math inline">\((1,0,1,0) \rightarrow\)</span> 1 singleton + 1 tripleton</p>
 <p><span class="math inline">\((0,0,0,1) \rightarrow\)</span> MRCA - alle linjer samlet i en forfader.</p>
-<div class="cell" data-execution_count="9">
+<div class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Verificering: E[H] og Var[H] numerisk vs analytisk</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"=== Verificering for n=4 ==="</span>)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Numerisk  E[H] = </span><span class="sc">{</span>graph<span class="sc">.</span>expectation()<span class="sc">:.6f}</span><span class="ss">"</span>)</span>
@@ -527,13 +569,13 @@ Analytisk E[H] = 2*(1-1/n) = 1.500000
 Numerisk  Var[H] = 1.138889
 </code></pre>
 </div>
-<div id="tbl-verificering" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="9">
+<div id="tbl-verificering" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="5">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-verificering-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Table&nbsp;3.2: Verificering af E[H] og Var[H] mod analytiske formler.
 </figcaption>
 <div aria-describedby="tbl-verificering-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="cell-output cell-output-display" data-execution_count="9">
+<div class="cell-output cell-output-display" data-execution_count="5">
 <div>
 
 
@@ -619,7 +661,7 @@ Table&nbsp;3.2: Verificering af E[H] og Var[H] mod analytiske formler.
 <ul>
 <li>Da coalescensraten med <span class="math inline">\(k\)</span> linjer er <span class="math inline">\(\binom{k}{2} = k(k-1)/2\)</span>, er den forventede opholdstid <span class="math inline">\(\frac{1}{k(k-1)/2} = \frac{2}{k(k-1)}\)</span>. Jeg forventer, at <em>graph.expected_sojourn_time()</em> bekræfter dette.</li>
 </ul>
-<div id="tbl-sojourn" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="10">
+<div id="tbl-sojourn" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="6">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-sojourn-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Table&nbsp;3.3: Forventet sojourn-tid per tilstand for n=4
@@ -649,10 +691,15 @@ Table&nbsp;3.3: Forventet sojourn-tid per tilstand for n=4
 </div>
 </figure>
 </div>
-<p>Tilstand <span class="math inline">\((4,0,0,0): k=4\)</span> linjer <span class="math inline">\(\rightarrow\)</span> sojourn <span class="math inline">\(=0.16667 = \frac{2}{4*3}\)</span></p>
-<p>Tilstand <span class="math inline">\((2,1,0,0): k=3\)</span> linjer <span class="math inline">\(\rightarrow\)</span> sojourn <span class="math inline">\(=0.33333 = \frac{2}{3*2}\)</span></p>
-<p>Tilstand <span class="math inline">\((0,2,0,0): k=2\)</span> linjer <span class="math inline">\(\rightarrow\)</span> sojourn <span class="math inline">\(=1.0000 = \frac{2}{2*1}\)</span></p>
-<div id="be3f0881" class="cell" data-execution_count="11">
+<p>Tilstand <span class="math inline">\((4,0,0,0): k=4\)</span> linjer <span class="math inline">\(\rightarrow\)</span> sojourn <span class="math inline">\(=0.16667 = \frac{2}{4 \cdot 3}\)</span> ✓</p>
+<p>Tilstand <span class="math inline">\((2,1,0,0): k=3\)</span> linjer <span class="math inline">\(\rightarrow\)</span> sojourn <span class="math inline">\(=0.33333 = \frac{2}{3 \cdot 2}\)</span> ✓</p>
+<p>For <span class="math inline">\(k=2\)</span> er der <strong>to</strong> tilstande — formlen <span class="math inline">\(\frac{2}{k(k-1)}\)</span> giver den <em>samlede</em> forventede tid fordelt over begge:</p>
+<ul>
+<li>Tilstand <span class="math inline">\((0,2,0,0)\)</span>: sojourn <span class="math inline">\(=0.33333\)</span></li>
+<li>Tilstand <span class="math inline">\((1,0,1,0)\)</span>: sojourn <span class="math inline">\(=0.66667\)</span></li>
+<li><strong>Sum</strong> <span class="math inline">\(=0.33333+0.66667 = 1.0000 = \frac{2}{2 \cdot 1}\)</span> ✓</li>
+</ul>
+<div id="be3f0881" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Verificer: sum af sojourn tid = E[H]</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Sum af sojourn tid = </span><span class="sc">{</span><span class="bu">sum</span>(sojourn)<span class="sc">:.6f}</span><span class="ss">"</span>)</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"graph.expectation()  = </span><span class="sc">{</span>graph<span class="sc">.</span>expectation()<span class="sc">:.6f}</span><span class="ss">"</span>)</span>
@@ -663,7 +710,8 @@ graph.expectation()  = 1.500000
 Er de ens? True</code></pre>
 </div>
 </div>
-<p>Sum <span class="math inline">\(=1.50000 = \mathbb{E}[H]\)</span> Sojourn time med <span class="math inline">\(k\)</span> linjer er præcis <span class="math inline">\(\frac{2}{k(k-1)}\)</span> den reciprokke coalescensrate. Jo færre linjer, jo længere venter man. Den absorberende tilstand (MRCA) har sojourn <span class="math inline">\(=0\)</span> fordi processen stopper der. Summen af alle sojourn tider giver <span class="math inline">\(\mathbb{E}[H]= 1.5\)</span> præcis som forventet.</p>
+<p>Sum <span class="math inline">\(=1.50000 = \mathbb{E}[H]\)</span></p>
+<p>Den samlede forventede tid med <span class="math inline">\(k\)</span> linjer er <span class="math inline">\(\frac{2}{k(k-1)}\)</span> (den reciprokke coalescensrate). Når der er flere tilstande med samme <span class="math inline">\(k\)</span> (som <span class="math inline">\(k=2\)</span> for <span class="math inline">\(n=4\)</span>), fordeles den samlede sojourn-tid over disse tilstande. Jo færre linjer, jo længere venter man. Den absorberende tilstand (MRCA) har sojourn <span class="math inline">\(=0\)</span> fordi processen stopper der. Summen af alle sojourn tider giver <span class="math inline">\(\mathbb{E}[H]= 1.5\)</span> præcis som forventet.</p>
 </section>
 </section>
 <section id="reward-transformationer-sfs-og-grenlængde" class="level2">
@@ -679,7 +727,7 @@ Er de ens? True</code></pre>
 <ul>
 <li>Den forventede samlede grenlængde er <span class="math inline">\(\mathbb{E}[T_{total}] = 2\sum_{i=2}^{n} \frac{1}{i-1}\)</span>.</li>
 </ul>
-<div id="0e886705" class="cell" data-execution_count="12">
+<div id="0e886705" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>reward_matrix <span class="op">=</span> graph.states().T </span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -709,7 +757,7 @@ E[L] analytisk = 2*sum(1/k, k=1..3) = 3.666667
 Wattersons a_n = 1.833333</code></pre>
 </div>
 </div>
-<div id="cell-fig-sfs" class="cell" data-execution_count="13">
+<div id="cell-fig-sfs" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot SFS</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">5</span>, <span class="dv">4</span>))</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>sns.barplot(x<span class="op">=</span>labels, y<span class="op">=</span>sfs, hue<span class="op">=</span>labels, ax<span class="op">=</span>ax, legend<span class="op">=</span><span class="va">False</span>)</span>
@@ -746,7 +794,7 @@ Figure&nbsp;3.2: Site Frequency Spectrum for n=4 beregnet via reward-transformat
 <ul>
 <li>Da singleton og doubleton grenlængder begge akkumuleres i de tidlige stadier af koalescenten, forventer jeg negativ kovarians. Jeg forventer <span class="math inline">\(\text{Cov}(B_1, B_2) &lt; 0\)</span>.</li>
 </ul>
-<div id="tbl-kovarians" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="14">
+<div id="tbl-kovarians" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="10">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-kovarians-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Table&nbsp;3.4: Kovariansmatrix for SFS-komponenter ved n=4.
@@ -793,7 +841,7 @@ Table&nbsp;3.4: Kovariansmatrix for SFS-komponenter ved n=4.
 <ul>
 <li>Fordi singleton grenlængde er en reward-transformation over flere tilstande, forventer jeg en blanding af eksponentielle fordelinger og ikke en ren eksponentiel.</li>
 </ul>
-<div id="cell-fig-cdf-pdf" class="cell" data-execution_count="15">
+<div id="cell-fig-cdf-pdf" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>times <span class="op">=</span> np.arange(<span class="dv">0</span>, <span class="dv">5</span>, <span class="fl">0.05</span>)</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">11</span>, <span class="dv">4</span>))</span>
@@ -839,7 +887,7 @@ Figure&nbsp;3.3: CDF og PDF for TMRCA under coalescent.
 <ul>
 <li>Da alle rater skaleres med <span class="math inline">\(1/N\)</span>, forventer jeg <span class="math inline">\(\mathbb{E}[H] = N \cdot \mathbb{E}[H]_{N=1}\)</span> og <span class="math inline">\(\text{Var}[H] = N^2 \cdot \text{Var}[H]_{N=1}\)</span>.</li>
 </ul>
-<div id="6647b356" class="cell" data-execution_count="16">
+<div id="6647b356" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Parameteriseret model: coalescensrate = C(k,2) / N</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> (nr_samples <span class="op">-</span> <span class="dv">1</span>))</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_param(state):</span>
@@ -875,7 +923,7 @@ Figure&nbsp;3.3: CDF og PDF for TMRCA under coalescent.
 <span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a>                 <span class="st">'N^2 * Var_base'</span>: <span class="bu">round</span>(N<span class="op">**</span><span class="dv">2</span> <span class="op">*</span> Var_base, <span class="dv">4</span>)})</span>
 <span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a>pd.DataFrame(rows).set_index(<span class="st">'N'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="16">
+<div class="cell-output cell-output-display" data-execution_count="12">
 <div>
 
 
@@ -946,7 +994,7 @@ Figure&nbsp;3.3: CDF og PDF for TMRCA under coalescent.
 </div>
 </div>
 <p>Hypotesen bekræftes. <span class="math inline">\(\mathbb{E}[H]\)</span> skalerer lineært med <span class="math inline">\(N\)</span>, og <span class="math inline">\(\text{Var}[H]\)</span> skalerer kvadratisk. Det betyder at en dobling af populationsstørrelsen fordobler den forventede tid til MRCA, men firedobler variansen. Store populationer giver altså ikke blot langsommere coalescens de giver også meget mere variabel coalescens.</p>
-<div id="cell-fig-skalering" class="cell" data-execution_count="17">
+<div id="cell-fig-skalering" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualiser skalering</span></span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>N_range <span class="op">=</span> np.linspace(<span class="fl">0.1</span>, <span class="dv">20</span>, <span class="dv">200</span>)</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>E_vals, Var_vals <span class="op">=</span> [], []</span>
@@ -986,12 +1034,12 @@ Figure&nbsp;3.4: Skalering af E[H] og Var[H] med populationsstørrelse N.
 <section id="bavian-realistiske-n-værdier-hvad-forventer-jeg" class="level3">
 <h3 class="anchored" data-anchor-id="bavian-realistiske-n-værdier-hvad-forventer-jeg">Bavian-realistiske N-værdier: hvad forventer jeg?</h3>
 <p>Bavian-populationer har <span class="math inline">\(N_e \approx 10.000{-}200.000\)</span> individer og generationstid <span class="math inline">\(g = 11\)</span> år. Jeg omregner til koalescentenheder og beregner E[H] og Std i år.</p>
-<div class="cell" data-execution_count="19">
+<div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Bavian-realistiske N-værdier</span></span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>MU_BAV <span class="op">=</span> <span class="fl">0.9e-8</span></span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>GEN_BAV <span class="op">=</span> <span class="dv">11</span></span>
 <span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Byg parameteriseret koalescent (theta = 1/N)</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Byg parameteriseret koalescent (theta = 1/(2*Ne), diploid konvention)</span></span>
 <span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> (nr_samples <span class="op">-</span> <span class="dv">1</span>))</span>
 <span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_param_bav(state):</span>
 <span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
@@ -1010,48 +1058,47 @@ Figure&nbsp;3.4: Skalering af E[H] og Var[H] med populationsstørrelse N.
 <span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>Ne_values <span class="op">=</span> [<span class="dv">5_000</span>, <span class="dv">10_000</span>, <span class="dv">25_000</span>, <span class="dv">50_000</span>, <span class="dv">100_000</span>, <span class="dv">200_000</span>]</span>
 <span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>rows_Ne <span class="op">=</span> []</span>
 <span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> Ne <span class="kw">in</span> Ne_values:</span>
-<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>    theta_Ne <span class="op">=</span> <span class="fl">1.0</span> <span class="op">/</span> Ne</span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>    theta_Ne <span class="op">=</span> <span class="fl">1.0</span> <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> Ne)  </span>
 <span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>    g_bav_Ne.update_weights([theta_Ne])</span>
-<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>    E_coal   <span class="op">=</span> g_bav_Ne.expectation()</span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>    E_coal   <span class="op">=</span> g_bav_Ne.expectation()   </span>
 <span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>    Var_coal <span class="op">=</span> g_bav_Ne.variance()</span>
-<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>    E_gen    <span class="op">=</span> E_coal <span class="op">*</span> <span class="dv">2</span> <span class="op">*</span> Ne</span>
-<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>    E_yr     <span class="op">=</span> E_gen <span class="op">*</span> GEN_BAV</span>
-<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>    Std_yr   <span class="op">=</span> (Var_coal<span class="op">**</span><span class="fl">0.5</span>) <span class="op">*</span> <span class="dv">2</span> <span class="op">*</span> Ne <span class="op">*</span> GEN_BAV</span>
-<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>    rows_Ne.append({</span>
-<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a>        <span class="st">'N_e'</span>: <span class="ss">f'</span><span class="sc">{</span>Ne<span class="sc">:,}</span><span class="ss">'</span>, <span class="st">'theta'</span>: <span class="bu">round</span>(theta_Ne, <span class="dv">7</span>),</span>
-<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a>        <span class="st">'E[H] (coal)'</span>: <span class="bu">round</span>(E_coal, <span class="dv">4</span>),</span>
-<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a>        <span class="st">'E[H] (år)'</span>: <span class="ss">f'</span><span class="sc">{</span>E_yr<span class="sc">:,.0f}</span><span class="ss">'</span>,</span>
-<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Std (år)'</span>:  <span class="ss">f'</span><span class="sc">{</span>Std_yr<span class="sc">:,.0f}</span><span class="ss">'</span>,</span>
-<span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a>    })</span>
-<span id="cb19-37"><a href="#cb19-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-38"><a href="#cb19-38" aria-hidden="true" tabindex="-1"></a>df_Ne <span class="op">=</span> pd.DataFrame(rows_Ne)</span>
-<span id="cb19-39"><a href="#cb19-39" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Forventet TMRCA for bavian-populationer (n=4, MU=0.9e-8):"</span>)</span>
-<span id="cb19-40"><a href="#cb19-40" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_Ne.to_string(index<span class="op">=</span><span class="va">False</span>))</span>
-<span id="cb19-41"><a href="#cb19-41" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-42"><a href="#cb19-42" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="dv">4</span>))</span>
-<span id="cb19-43"><a href="#cb19-43" aria-hidden="true" tabindex="-1"></a>E_years   <span class="op">=</span> [<span class="bu">float</span>(r[<span class="st">'E[H] (år)'</span>].replace(<span class="st">','</span>,<span class="st">''</span>)) <span class="cf">for</span> r <span class="kw">in</span> rows_Ne]</span>
-<span id="cb19-44"><a href="#cb19-44" aria-hidden="true" tabindex="-1"></a>Std_years <span class="op">=</span> [<span class="bu">float</span>(r[<span class="st">'Std (år)'</span>].replace(<span class="st">','</span>,<span class="st">''</span>)) <span class="cf">for</span> r <span class="kw">in</span> rows_Ne]</span>
-<span id="cb19-45"><a href="#cb19-45" aria-hidden="true" tabindex="-1"></a>Ne_raw    <span class="op">=</span> [<span class="dv">5000</span>, <span class="dv">10000</span>, <span class="dv">25000</span>, <span class="dv">50000</span>, <span class="dv">100000</span>, <span class="dv">200000</span>]</span>
-<span id="cb19-46"><a href="#cb19-46" aria-hidden="true" tabindex="-1"></a>ax.plot(Ne_raw, E_years, <span class="st">'o-'</span>, color<span class="op">=</span><span class="st">'C0'</span>, lw<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="st">'E[TMRCA]'</span>)</span>
-<span id="cb19-47"><a href="#cb19-47" aria-hidden="true" tabindex="-1"></a>ax.fill_between(Ne_raw,</span>
-<span id="cb19-48"><a href="#cb19-48" aria-hidden="true" tabindex="-1"></a>    [e<span class="op">-</span>s <span class="cf">for</span> e,s <span class="kw">in</span> <span class="bu">zip</span>(E_years, Std_years)],</span>
-<span id="cb19-49"><a href="#cb19-49" aria-hidden="true" tabindex="-1"></a>    [e<span class="op">+</span>s <span class="cf">for</span> e,s <span class="kw">in</span> <span class="bu">zip</span>(E_years, Std_years)],</span>
-<span id="cb19-50"><a href="#cb19-50" aria-hidden="true" tabindex="-1"></a>    alpha<span class="op">=</span><span class="fl">0.15</span>, color<span class="op">=</span><span class="st">'C0'</span>, label<span class="op">=</span><span class="st">'±Std'</span>)</span>
-<span id="cb19-51"><a href="#cb19-51" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'Effektiv populationsstørrelse N_e'</span>)</span>
-<span id="cb19-52"><a href="#cb19-52" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'TMRCA (år)'</span>)</span>
-<span id="cb19-53"><a href="#cb19-53" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'Forventet TMRCA for bavian N_e (n=4)'</span>)</span>
-<span id="cb19-54"><a href="#cb19-54" aria-hidden="true" tabindex="-1"></a>ax.legend()<span class="op">;</span> plt.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>    E_yr     <span class="op">=</span> E_coal <span class="op">*</span> GEN_BAV</span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>    Std_yr   <span class="op">=</span> (Var_coal<span class="op">**</span><span class="fl">0.5</span>) <span class="op">*</span> GEN_BAV</span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>    rows_Ne.append({</span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>        <span class="st">'N_e'</span>: <span class="ss">f'</span><span class="sc">{</span>Ne<span class="sc">:,}</span><span class="ss">'</span>, <span class="st">'theta'</span>: <span class="bu">round</span>(theta_Ne, <span class="dv">8</span>),</span>
+<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a>        <span class="st">'E[H] (gen)'</span>: <span class="bu">round</span>(E_coal, <span class="dv">0</span>),</span>
+<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a>        <span class="st">'E[H] (år)'</span>: <span class="ss">f'</span><span class="sc">{</span>E_yr<span class="sc">:,.0f}</span><span class="ss">'</span>,</span>
+<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Std (år)'</span>:  <span class="ss">f'</span><span class="sc">{</span>Std_yr<span class="sc">:,.0f}</span><span class="ss">'</span>,</span>
+<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-37"><a href="#cb19-37" aria-hidden="true" tabindex="-1"></a>df_Ne <span class="op">=</span> pd.DataFrame(rows_Ne)</span>
+<span id="cb19-38"><a href="#cb19-38" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Forventet TMRCA for bavian-populationer (n=4):"</span>)</span>
+<span id="cb19-39"><a href="#cb19-39" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_Ne.to_string(index<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb19-40"><a href="#cb19-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-41"><a href="#cb19-41" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="dv">4</span>))</span>
+<span id="cb19-42"><a href="#cb19-42" aria-hidden="true" tabindex="-1"></a>E_years   <span class="op">=</span> [<span class="bu">float</span>(r[<span class="st">'E[H] (år)'</span>].replace(<span class="st">','</span>,<span class="st">''</span>)) <span class="cf">for</span> r <span class="kw">in</span> rows_Ne]</span>
+<span id="cb19-43"><a href="#cb19-43" aria-hidden="true" tabindex="-1"></a>Std_years <span class="op">=</span> [<span class="bu">float</span>(r[<span class="st">'Std (år)'</span>].replace(<span class="st">','</span>,<span class="st">''</span>)) <span class="cf">for</span> r <span class="kw">in</span> rows_Ne]</span>
+<span id="cb19-44"><a href="#cb19-44" aria-hidden="true" tabindex="-1"></a>Ne_raw    <span class="op">=</span> [<span class="dv">5000</span>, <span class="dv">10000</span>, <span class="dv">25000</span>, <span class="dv">50000</span>, <span class="dv">100000</span>, <span class="dv">200000</span>]</span>
+<span id="cb19-45"><a href="#cb19-45" aria-hidden="true" tabindex="-1"></a>ax.plot(Ne_raw, E_years, <span class="st">'o-'</span>, color<span class="op">=</span><span class="st">'C0'</span>, lw<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="st">'E[TMRCA]'</span>)</span>
+<span id="cb19-46"><a href="#cb19-46" aria-hidden="true" tabindex="-1"></a>ax.fill_between(Ne_raw,</span>
+<span id="cb19-47"><a href="#cb19-47" aria-hidden="true" tabindex="-1"></a>    [e<span class="op">-</span>s <span class="cf">for</span> e,s <span class="kw">in</span> <span class="bu">zip</span>(E_years, Std_years)],</span>
+<span id="cb19-48"><a href="#cb19-48" aria-hidden="true" tabindex="-1"></a>    [e<span class="op">+</span>s <span class="cf">for</span> e,s <span class="kw">in</span> <span class="bu">zip</span>(E_years, Std_years)],</span>
+<span id="cb19-49"><a href="#cb19-49" aria-hidden="true" tabindex="-1"></a>    alpha<span class="op">=</span><span class="fl">0.15</span>, color<span class="op">=</span><span class="st">'C0'</span>, label<span class="op">=</span><span class="st">'</span><span class="ch">\u00b1</span><span class="st">Std'</span>)</span>
+<span id="cb19-50"><a href="#cb19-50" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'Effektiv populationsst</span><span class="ch">\u00f8</span><span class="st">rrelse N_e'</span>)</span>
+<span id="cb19-51"><a href="#cb19-51" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'TMRCA (</span><span class="ch">\u00e5</span><span class="st">r)'</span>)</span>
+<span id="cb19-52"><a href="#cb19-52" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'Forventet TMRCA for bavian N_e (n=4)'</span>)</span>
+<span id="cb19-53"><a href="#cb19-53" aria-hidden="true" tabindex="-1"></a>ax.legend()<span class="op">;</span> plt.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Forventet TMRCA for bavian-populationer (n=4, MU=0.9e-8):
-    N_e    theta  E[H] (coal)         E[H] (år)        Std (år)
-  5,000 0.000200       7500.0       825,000,000     586,953,055
- 10,000 0.000100      15000.0     3,300,000,000   2,347,812,220
- 25,000 0.000040      37500.0    20,625,000,000  14,673,826,377
- 50,000 0.000020      75000.0    82,500,000,000  58,695,305,510
-100,000 0.000010     150000.0   330,000,000,000 234,781,222,039
-200,000 0.000005     300000.0 1,320,000,000,000 939,124,888,157</code></pre>
+<pre><code>Forventet TMRCA for bavian-populationer (n=4):
+    N_e    theta  E[H] (gen) E[H] (år)  Std (år)
+  5,000 0.000100     15000.0   165,000   117,391
+ 10,000 0.000050     30000.0   330,000   234,781
+ 25,000 0.000020     75000.0   825,000   586,953
+ 50,000 0.000010    150000.0 1,650,000 1,173,906
+100,000 0.000005    300000.0 3,300,000 2,347,812
+200,000 0.000003    600000.0 6,600,000 4,695,624</code></pre>
 </div>
-<div id="tbl-bavian-tmrca" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="19">
+<div id="tbl-bavian-tmrca" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-bavian-tmrca-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Table&nbsp;3.5: Forventet TMRCA i biologiske enheder for bavian-populationer.
@@ -1087,7 +1134,7 @@ Table&nbsp;3.5: Forventet TMRCA i biologiske enheder for bavian-populationer.
 <ul>
 <li>Under uendelige-sites modellen er <span class="math inline">\(\mathbb{E}[S] = \theta \cdot a_n\)</span>, hvor <span class="math inline">\(\theta = 2N\mu\)</span> og <span class="math inline">\(a_n = \sum_{k=1}^{n-1} 1/k\)</span>. Jeg undersøger, om <span class="math inline">\(\mathbb{E}[S]\)</span> fra den diskrete fase-type model stemmer overens med dette.</li>
 </ul>
-<div id="1d2878e2" class="cell" data-execution_count="20">
+<div id="1d2878e2" class="cell" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Optional</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> mutation_rate_fn(state: np.ndarray, mutation_rate: <span class="bu">float</span>):</span>
@@ -1114,7 +1161,7 @@ theta * a_n (theta=2N*mu, N=1) = 0.366667</code></pre>
 </div>
 </div>
 <p>Tre uafhængige beregninger giver identisk svar. Det bekræfter at Wattersons estimator er korrekt implementeret: <span class="math inline">\(\mathbb{E}[S] = \theta \cdot a_n = 2 \cdot 1 \cdot 0.1 \cdot 1.833 = 0.367\)</span></p>
-<div id="cell-fig-pmf-mutationer" class="cell" data-execution_count="21">
+<div id="cell-fig-pmf-mutationer" class="cell" data-execution_count="16">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># PMF for antal adskilte sites under forskellige (N, mu)</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>g_mut <span class="op">=</span> Graph(coalescent_param)</span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1167,7 +1214,7 @@ Figure&nbsp;3.5: PMF for antal segregerende sites under forskellige N og mu.
 <ul>
 <li>Hvordan ser fordelingen af linjer ud over tid og hvornår er det mest sandsynligt at have præcis <span class="math inline">\(k\)</span> linjer tilbage?</li>
 </ul>
-<div id="cell-fig-tilstandsdynamik" class="cell" data-execution_count="22">
+<div id="cell-fig-tilstandsdynamik" class="cell" data-execution_count="17">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>times <span class="op">=</span> np.arange(<span class="dv">0</span>, <span class="dv">5</span>, <span class="fl">0.04</span>)</span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>state_probs <span class="op">=</span> np.array([graph.state_probability(t) <span class="op">*</span> graph.states().T <span class="cf">for</span> t <span class="kw">in</span> times])</span>
@@ -1209,7 +1256,7 @@ Figure&nbsp;3.6: Tilstandssandsynligheder som funktion af tid.
 <ul>
 <li>Ændrer forholdet mellem SFS-komponenterne sig med prøvestørrelse? Konvergerer <span class="math inline">\(E[L]/E[H]\)</span> mod en fast grænse?</li>
 </ul>
-<div id="a2187aeb" class="cell" data-execution_count="23">
+<div id="a2187aeb" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Prøvestørrelse effekt: SFS og E[H]/E[L] for n=2..10</span></span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
@@ -1261,7 +1308,7 @@ n
 <p><span class="math inline">\(n=8:  E[H]=1.75, E[L]=4.9\)</span>, singleton-andel=41%</p>
 <p><span class="math inline">\(n=10: E[H]→2.0, E[L]\to \infty\)</span>, singleton-andel→faldende</p>
 <p>E[H] konvergerer mod 2 når <span class="math inline">\(n \to \infty\)</span> (grænsen <span class="math inline">\(2(1-1/n) \to 2\)</span>. Det betyder at tilføjelse af en ekstra prøve til et allerede stort sample bidrager meget lidt til træhøjden. E[L] vokser logaritmisk med <span class="math inline">\(n\)</span> via Wattersons <span class="math inline">\(a_n = \sum 1/k\)</span> Singleton-andelen falder monotont i et lille sample er næsten al grenlængde singletons, men for store <span class="math inline">\(n\)</span> udgøres en voksende del af højere-ordens varianter.</p>
-<div id="cell-fig-n-effekt" class="cell" data-execution_count="24">
+<div id="cell-fig-n-effekt" class="cell" data-execution_count="19">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">11</span>, <span class="dv">4</span>))</span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].plot(df_n.index, df_n[<span class="st">'E[H]'</span>], <span class="st">'o-'</span>, label<span class="op">=</span><span class="st">'E[H]'</span>)</span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].plot(df_n.index, df_n[<span class="st">'E[L]'</span>], <span class="st">'s-'</span>, label<span class="op">=</span><span class="st">'E[L]'</span>)</span>
@@ -1289,7 +1336,7 @@ Figure&nbsp;3.7: Effekt af prøvestørrelse n på E[H], E[L] og singleton-andel.
 <section id="optimal-n-til-bavian-analyse" class="level3">
 <h3 class="anchored" data-anchor-id="optimal-n-til-bavian-analyse">Optimal n til bavian-analyse</h3>
 <p>Jeg sammenligner E[H], singleton-andel og beregningstid for <span class="math inline">\(n \in \{2, 4, 6, 8, 10\}\)</span>. For bavian-data har jeg op til 60 individer per population, her finder jeg den bedste balance.</p>
-<div id="tbl-n-sammenligning" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="25">
+<div id="tbl-n-sammenligning" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="20">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-n-sammenligning-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Table&nbsp;3.6: Sammenligning af prøvestørrelser n i {2,4,6,8,10}.
@@ -1336,11 +1383,11 @@ Table&nbsp;3.6: Sammenligning af prøvestørrelser n i {2,4,6,8,10}.
 <div class="cell-output cell-output-stdout">
 <pre><code>Sammenligning af n for bavian-analyse:
  n  Tilstande    E[H]  Singleton procent   E[L]  Tid (ms)
- 2          3 1.00000              100.0 2.0000       0.4
- 4          6 1.50000               54.5 3.6667       0.2
- 6         12 1.66667               43.8 4.5667       0.4
+ 2          3 1.00000              100.0 2.0000       0.8
+ 4          6 1.50000               54.5 3.6667       0.3
+ 6         12 1.66667               43.8 4.5667       0.5
  8         23 1.75000               38.6 5.1857       1.0
-10         43 1.80000               35.3 5.6579       2.5
+10         43 1.80000               35.3 5.6579       2.3
 
 Anbefaling: n=4 er god balance (hurtig beregning, tilstrækkelig information)</code></pre>
 </div>
@@ -1357,7 +1404,7 @@ Anbefaling: n=4 er god balance (hurtig beregning, tilstrækkelig information)</c
 <li><strong>SIM</strong>: Sub-Intensitetsmatrix <span class="math inline">\(\mathbf{S}\)</span>: beskriver overgangsrater mellem transiente tilstande</li>
 <li><strong>states</strong>: Tilstandsvektoren for hver transient tilstand</li>
 </ul>
-<div id="241cfaf9" class="cell" data-execution_count="26">
+<div id="241cfaf9" class="cell" data-execution_count="21">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Matrixrepræsentation</span></span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>mats <span class="op">=</span> graph.as_matrices()</span>
 <span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Initial Probability Vector (IPV):"</span>)</span>
@@ -1406,7 +1453,7 @@ States som DataFrame:
 <section id="tilstandsdynamik-state-probability-over-tid" class="level2">
 <h2 class="anchored" data-anchor-id="tilstandsdynamik-state-probability-over-tid">Tilstandsdynamik: State probability over tid</h2>
 <p><em>graph.state_probability(t)</em> giver sandsynlighedsfordelingen over alle tilstande til tid <span class="math inline">\(t\)</span>. Dette viser, hvor i processen jeg befinder mig på et givet tidspunkt.</p>
-<div id="45672de0" class="cell" data-execution_count="27">
+<div id="45672de0" class="cell" data-execution_count="22">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># State probability til et specifikt tidspunkt</span></span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Tilstandssandsynligheder til t=0.2:"</span>)</span>
 <span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>probs_02 <span class="op">=</span> graph.state_probability(<span class="fl">0.2</span>)</span>
@@ -1438,7 +1485,7 @@ Tilstandssandsynligheder til t=1.0:
 </div>
 </div>
 <p>Til t=0.2 er man typisk i de tidlige tilstande processen er kun kommet lidt i gang. Til t=1.0 dominerer tilstanden (1,0,1,0) som er det næstsidste trin inden MRCA. Den absorberende tilstand vises som 0 det er fordi state_probability kun returnerer sandsynligheder for de transiente tilstande.</p>
-<div id="cell-fig-aktive-linjer" class="cell" data-execution_count="30">
+<div id="cell-fig-aktive-linjer" class="cell" data-execution_count="23">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Forventet antal aktive linjer over tid</span></span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>times_dyn <span class="op">=</span> np.arange(<span class="dv">0</span>, <span class="dv">5</span>, <span class="fl">0.05</span>)</span>
 <span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>expected_lineages <span class="op">=</span> [</span>
@@ -1486,104 +1533,100 @@ Figure&nbsp;3.8: Forventet antal aktive linjer over tid.
 <section id="msprime-validering-af-enkelt-populations-koalescent" class="level2">
 <h2 class="anchored" data-anchor-id="msprime-validering-af-enkelt-populations-koalescent">msprime-validering af enkelt-populations koalescent</h2>
 <p>For at verificere at koalescentmodellen er korrekt implementeret sammenlignes SVGD-estimater med data simuleret under kendte parametre via <em>msprime</em>. Hvis modellen er korrekt implementeret bør SVGD estimere de sande parametre tilbage inden for posterior-usikkerheden.</p>
-<div id="4433ad98" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">"CUDA_VISIBLE_DEVICES"</span>] <span class="op">=</span> <span class="st">"0"</span>   </span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">"XLA_FLAGS"</span>] <span class="op">=</span> <span class="st">"--xla_force_host_platform_device_count=1"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div id="cell-fig-msprime-validering-enkelt" class="cell" data-execution_count="31">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> msprime</span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv, DataPrior, Adam</span>
-<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> simulate_tmrca_msprime(Ne, n_loci<span class="op">=</span><span class="dv">5000</span>, n_samples<span class="op">=</span><span class="dv">4</span>, mu<span class="op">=</span><span class="fl">0.9e-8</span>, g<span class="op">=</span><span class="dv">11</span>):</span>
-<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Simuler TMRCA-proxy observationer via msprime."""</span></span>
-<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Konverter Ne til koalescentenheder</span></span>
-<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># msprime arbejder i generationer; theta = 1/(2*Ne)</span></span>
-<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>    demography <span class="op">=</span> msprime.Demography()</span>
-<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>    demography.add_population(initial_size<span class="op">=</span>Ne)</span>
-<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a>    tmrca_obs <span class="op">=</span> []</span>
-<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a>    ts_list <span class="op">=</span> msprime.sim_ancestry(</span>
-<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a>        samples<span class="op">=</span>n_samples <span class="op">//</span> <span class="dv">2</span>,  <span class="co"># diploide individer</span></span>
-<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a>        demography<span class="op">=</span>demography,</span>
-<span id="cb36-17"><a href="#cb36-17" aria-hidden="true" tabindex="-1"></a>        num_replicates<span class="op">=</span>n_loci,</span>
-<span id="cb36-18"><a href="#cb36-18" aria-hidden="true" tabindex="-1"></a>        sequence_length<span class="op">=</span><span class="dv">1000</span>,</span>
-<span id="cb36-19"><a href="#cb36-19" aria-hidden="true" tabindex="-1"></a>        recombination_rate<span class="op">=</span><span class="dv">0</span>,</span>
-<span id="cb36-20"><a href="#cb36-20" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb36-21"><a href="#cb36-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ts <span class="kw">in</span> ts_list:</span>
-<span id="cb36-22"><a href="#cb36-22" aria-hidden="true" tabindex="-1"></a>        ts_mut <span class="op">=</span> msprime.sim_mutations(ts, rate<span class="op">=</span>mu)</span>
-<span id="cb36-23"><a href="#cb36-23" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> var <span class="kw">in</span> ts_mut.variants():</span>
-<span id="cb36-24"><a href="#cb36-24" aria-hidden="true" tabindex="-1"></a>            g_arr <span class="op">=</span> var.genotypes</span>
-<span id="cb36-25"><a href="#cb36-25" aria-hidden="true" tabindex="-1"></a>            k <span class="op">=</span> <span class="bu">int</span>(g_arr.<span class="bu">sum</span>())</span>
-<span id="cb36-26"><a href="#cb36-26" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="dv">0</span> <span class="op">&lt;</span> k <span class="op">&lt;</span> n_samples:</span>
-<span id="cb36-27"><a href="#cb36-27" aria-hidden="true" tabindex="-1"></a>                tmrca_obs.append(k)</span>
-<span id="cb36-28"><a href="#cb36-28" aria-hidden="true" tabindex="-1"></a>                <span class="cf">break</span></span>
-<span id="cb36-29"><a href="#cb36-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.array(tmrca_obs)</span>
-<span id="cb36-30"><a href="#cb36-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-31"><a href="#cb36-31" aria-hidden="true" tabindex="-1"></a><span class="co"># Test over bavian-realistiske Ne-værdier</span></span>
-<span id="cb36-32"><a href="#cb36-32" aria-hidden="true" tabindex="-1"></a>Ne_values <span class="op">=</span> [<span class="dv">10_000</span>, <span class="dv">25_000</span>, <span class="dv">50_000</span>, <span class="dv">100_000</span>]</span>
-<span id="cb36-33"><a href="#cb36-33" aria-hidden="true" tabindex="-1"></a>n_sub <span class="op">=</span> <span class="dv">4</span></span>
-<span id="cb36-34"><a href="#cb36-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-35"><a href="#cb36-35" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([n_sub] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> (n_sub <span class="op">-</span> <span class="dv">1</span>))</span>
-<span id="cb36-36"><a href="#cb36-36" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_val(state):</span>
-<span id="cb36-37"><a href="#cb36-37" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb36-38"><a href="#cb36-38" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
-<span id="cb36-39"><a href="#cb36-39" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
-<span id="cb36-40"><a href="#cb36-40" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb36-41"><a href="#cb36-41" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
-<span id="cb36-42"><a href="#cb36-42" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
-<span id="cb36-43"><a href="#cb36-43" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb36-44"><a href="#cb36-44" aria-hidden="true" tabindex="-1"></a>            new[i <span class="op">+</span> j <span class="op">+</span> <span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb36-45"><a href="#cb36-45" aria-hidden="true" tabindex="-1"></a>            transitions.append((new, [state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same)]))</span>
-<span id="cb36-46"><a href="#cb36-46" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb36-47"><a href="#cb36-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-48"><a href="#cb36-48" aria-hidden="true" tabindex="-1"></a>results_val <span class="op">=</span> []</span>
-<span id="cb36-49"><a href="#cb36-49" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> Ne_true <span class="kw">in</span> Ne_values:</span>
-<span id="cb36-50"><a href="#cb36-50" aria-hidden="true" tabindex="-1"></a>    theta_true <span class="op">=</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> Ne_true)</span>
-<span id="cb36-51"><a href="#cb36-51" aria-hidden="true" tabindex="-1"></a>    g_val <span class="op">=</span> Graph(coalescent_val)</span>
-<span id="cb36-52"><a href="#cb36-52" aria-hidden="true" tabindex="-1"></a>    g_val.update_weights([theta_true])</span>
-<span id="cb36-53"><a href="#cb36-53" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb36-54"><a href="#cb36-54" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Simuler data med msprime</span></span>
-<span id="cb36-55"><a href="#cb36-55" aria-hidden="true" tabindex="-1"></a>    data_ms <span class="op">=</span> simulate_tmrca_msprime(Ne_true, n_loci<span class="op">=</span><span class="dv">5000</span>, n_samples<span class="op">=</span>n_sub)</span>
-<span id="cb36-56"><a href="#cb36-56" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(data_ms) <span class="op">&lt;</span> <span class="dv">100</span>:</span>
-<span id="cb36-57"><a href="#cb36-57" aria-hidden="true" tabindex="-1"></a>        data_ms <span class="op">=</span> g_val.sample(<span class="dv">5000</span>)  <span class="co"># fallback hvis msprime giver for lidt data</span></span>
-<span id="cb36-58"><a href="#cb36-58" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb36-59"><a href="#cb36-59" aria-hidden="true" tabindex="-1"></a>    prior <span class="op">=</span> DataPrior(g_val, data_ms)</span>
-<span id="cb36-60"><a href="#cb36-60" aria-hidden="true" tabindex="-1"></a>    sv <span class="op">=</span> g_val.svgd(data_ms, prior<span class="op">=</span>prior, optimizer<span class="op">=</span>Adam(<span class="fl">0.25</span>),</span>
-<span id="cb36-61"><a href="#cb36-61" aria-hidden="true" tabindex="-1"></a>                    n_particles<span class="op">=</span><span class="dv">60</span>, n_iterations<span class="op">=</span><span class="dv">300</span>)</span>
-<span id="cb36-62"><a href="#cb36-62" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> sv.get_results()</span>
-<span id="cb36-63"><a href="#cb36-63" aria-hidden="true" tabindex="-1"></a>    th_est <span class="op">=</span> res[<span class="st">'theta_mean'</span>].item()</span>
-<span id="cb36-64"><a href="#cb36-64" aria-hidden="true" tabindex="-1"></a>    th_std <span class="op">=</span> res[<span class="st">'theta_std'</span>].item()</span>
-<span id="cb36-65"><a href="#cb36-65" aria-hidden="true" tabindex="-1"></a>    Ne_est <span class="op">=</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> th_est) <span class="cf">if</span> th_est <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> np.nan</span>
-<span id="cb36-66"><a href="#cb36-66" aria-hidden="true" tabindex="-1"></a>    Ne_low <span class="op">=</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> (th_est <span class="op">+</span> <span class="fl">1.96</span> <span class="op">*</span> th_std)) <span class="cf">if</span> (th_est <span class="op">+</span> <span class="fl">1.96</span> <span class="op">*</span> th_std) <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> np.nan</span>
-<span id="cb36-67"><a href="#cb36-67" aria-hidden="true" tabindex="-1"></a>    Ne_hi  <span class="op">=</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> (th_est <span class="op">-</span> <span class="fl">1.96</span> <span class="op">*</span> th_std)) <span class="cf">if</span> (th_est <span class="op">-</span> <span class="fl">1.96</span> <span class="op">*</span> th_std) <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> np.nan</span>
-<span id="cb36-68"><a href="#cb36-68" aria-hidden="true" tabindex="-1"></a>    results_val.append({</span>
-<span id="cb36-69"><a href="#cb36-69" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Ne_sand'</span>: Ne_true, <span class="st">'Ne_est'</span>: Ne_est,</span>
-<span id="cb36-70"><a href="#cb36-70" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Ne_low'</span>: Ne_low, <span class="st">'Ne_hi'</span>: Ne_hi,</span>
-<span id="cb36-71"><a href="#cb36-71" aria-hidden="true" tabindex="-1"></a>        <span class="st">'n_obs'</span>: <span class="bu">len</span>(data_ms)</span>
-<span id="cb36-72"><a href="#cb36-72" aria-hidden="true" tabindex="-1"></a>    })</span>
-<span id="cb36-73"><a href="#cb36-73" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Ne_sand=</span><span class="sc">{</span>Ne_true<span class="sc">:&gt;7,}</span><span class="ss">  Ne_est=</span><span class="sc">{</span>Ne_est<span class="sc">:&gt;8,.0f}</span><span class="ss">  "</span></span>
-<span id="cb36-74"><a href="#cb36-74" aria-hidden="true" tabindex="-1"></a>          <span class="ss">f"95 procent-CI [</span><span class="sc">{</span>Ne_low<span class="sc">:&gt;8,.0f}</span><span class="ss"> - </span><span class="sc">{</span>Ne_hi<span class="sc">:&gt;8,.0f}</span><span class="ss">]  n_obs=</span><span class="sc">{</span><span class="bu">len</span>(data_ms)<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb36-75"><a href="#cb36-75" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-76"><a href="#cb36-76" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot</span></span>
-<span id="cb36-77"><a href="#cb36-77" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="dv">5</span>))</span>
-<span id="cb36-78"><a href="#cb36-78" aria-hidden="true" tabindex="-1"></a>Ne_sand <span class="op">=</span> [r[<span class="st">'Ne_sand'</span>] <span class="cf">for</span> r <span class="kw">in</span> results_val]</span>
-<span id="cb36-79"><a href="#cb36-79" aria-hidden="true" tabindex="-1"></a>Ne_ests <span class="op">=</span> [r[<span class="st">'Ne_est'</span>] <span class="cf">for</span> r <span class="kw">in</span> results_val]</span>
-<span id="cb36-80"><a href="#cb36-80" aria-hidden="true" tabindex="-1"></a>Ne_errs <span class="op">=</span> [[r[<span class="st">'Ne_est'</span>] <span class="op">-</span> r[<span class="st">'Ne_low'</span>] <span class="cf">for</span> r <span class="kw">in</span> results_val],</span>
-<span id="cb36-81"><a href="#cb36-81" aria-hidden="true" tabindex="-1"></a>           [r[<span class="st">'Ne_hi'</span>] <span class="op">-</span> r[<span class="st">'Ne_est'</span>] <span class="cf">for</span> r <span class="kw">in</span> results_val]]</span>
-<span id="cb36-82"><a href="#cb36-82" aria-hidden="true" tabindex="-1"></a>ax.errorbar(Ne_sand, Ne_ests, yerr<span class="op">=</span>Ne_errs, fmt<span class="op">=</span><span class="st">'o'</span>, capsize<span class="op">=</span><span class="dv">5</span>, label<span class="op">=</span><span class="st">'SVGD estimat +/- 95 procent-CI'</span>)</span>
-<span id="cb36-83"><a href="#cb36-83" aria-hidden="true" tabindex="-1"></a>ax.plot([<span class="bu">min</span>(Ne_sand), <span class="bu">max</span>(Ne_sand)], [<span class="bu">min</span>(Ne_sand), <span class="bu">max</span>(Ne_sand)],</span>
-<span id="cb36-84"><a href="#cb36-84" aria-hidden="true" tabindex="-1"></a>        <span class="st">'k--'</span>, label<span class="op">=</span><span class="st">'Sand Ne (1:1 linje)'</span>)</span>
-<span id="cb36-85"><a href="#cb36-85" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'Sand Ne'</span>)</span>
-<span id="cb36-86"><a href="#cb36-86" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'Estimeret Ne'</span>)</span>
-<span id="cb36-87"><a href="#cb36-87" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'msprime-validering: enkelt-populations koalescent'</span>)</span>
-<span id="cb36-88"><a href="#cb36-88" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
-<span id="cb36-89"><a href="#cb36-89" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb36-90"><a href="#cb36-90" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="cell-fig-msprime-validering-enkelt" class="cell" data-execution_count="2">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> msprime</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv, DataPrior, Adam</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> simulate_tmrca_msprime(Ne, n_loci<span class="op">=</span><span class="dv">5000</span>, n_samples<span class="op">=</span><span class="dv">4</span>):</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>    demography <span class="op">=</span> msprime.Demography()</span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>    demography.add_population(initial_size<span class="op">=</span>Ne)</span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>    tmrca_obs <span class="op">=</span> []</span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>    ts_list <span class="op">=</span> msprime.sim_ancestry(</span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>        samples<span class="op">=</span>n_samples <span class="op">//</span> <span class="dv">2</span>,</span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>        demography<span class="op">=</span>demography,</span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>        num_replicates<span class="op">=</span>n_loci,</span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>        sequence_length<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a>        recombination_rate<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ts <span class="kw">in</span> ts_list:</span>
+<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a>        tree <span class="op">=</span> ts.first()</span>
+<span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a>        tmrca_gen  <span class="op">=</span> tree.time(tree.root)   <span class="co"># generationer</span></span>
+<span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a>        tmrca_coal <span class="op">=</span> tmrca_gen <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> Ne)   <span class="co"># koalescentenheder</span></span>
+<span id="cb35-22"><a href="#cb35-22" aria-hidden="true" tabindex="-1"></a>        tmrca_obs.append(tmrca_coal)</span>
+<span id="cb35-23"><a href="#cb35-23" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb35-24"><a href="#cb35-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.array(tmrca_obs, dtype<span class="op">=</span><span class="bu">float</span>)</span>
+<span id="cb35-25"><a href="#cb35-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-26"><a href="#cb35-26" aria-hidden="true" tabindex="-1"></a><span class="co"># coalescentgraf for n=4</span></span>
+<span id="cb35-27"><a href="#cb35-27" aria-hidden="true" tabindex="-1"></a>n_sub <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb35-28"><a href="#cb35-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-29"><a href="#cb35-29" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([n_sub] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> (n_sub <span class="op">-</span> <span class="dv">1</span>))</span>
+<span id="cb35-30"><a href="#cb35-30" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_val(state):</span>
+<span id="cb35-31"><a href="#cb35-31" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb35-32"><a href="#cb35-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
+<span id="cb35-33"><a href="#cb35-33" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
+<span id="cb35-34"><a href="#cb35-34" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb35-35"><a href="#cb35-35" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb35-36"><a href="#cb35-36" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb35-37"><a href="#cb35-37" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb35-38"><a href="#cb35-38" aria-hidden="true" tabindex="-1"></a>            new[i <span class="op">+</span> j <span class="op">+</span> <span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb35-39"><a href="#cb35-39" aria-hidden="true" tabindex="-1"></a>            transitions.append((new, [state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same)]))</span>
+<span id="cb35-40"><a href="#cb35-40" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb35-41"><a href="#cb35-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-42"><a href="#cb35-42" aria-hidden="true" tabindex="-1"></a><span class="co"># Test over bavian-realistiske Ne-vaerdier</span></span>
+<span id="cb35-43"><a href="#cb35-43" aria-hidden="true" tabindex="-1"></a>Ne_values <span class="op">=</span> [<span class="dv">10_000</span>, <span class="dv">25_000</span>, <span class="dv">50_000</span>, <span class="dv">100_000</span>]</span>
+<span id="cb35-44"><a href="#cb35-44" aria-hidden="true" tabindex="-1"></a>results_val <span class="op">=</span> []</span>
+<span id="cb35-45"><a href="#cb35-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-46"><a href="#cb35-46" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> Ne_true <span class="kw">in</span> Ne_values:</span>
+<span id="cb35-47"><a href="#cb35-47" aria-hidden="true" tabindex="-1"></a>    theta_true <span class="op">=</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> Ne_true)</span>
+<span id="cb35-48"><a href="#cb35-48" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb35-49"><a href="#cb35-49" aria-hidden="true" tabindex="-1"></a>    g_val <span class="op">=</span> Graph(coalescent_val)</span>
+<span id="cb35-50"><a href="#cb35-50" aria-hidden="true" tabindex="-1"></a>    g_val.update_weights([theta_true])</span>
+<span id="cb35-51"><a href="#cb35-51" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb35-52"><a href="#cb35-52" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Simuler TMRCA i koalescentenheder</span></span>
+<span id="cb35-53"><a href="#cb35-53" aria-hidden="true" tabindex="-1"></a>    data_ms <span class="op">=</span> simulate_tmrca_msprime(Ne_true, n_loci<span class="op">=</span><span class="dv">5000</span>, n_samples<span class="op">=</span>n_sub)</span>
+<span id="cb35-54"><a href="#cb35-54" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb35-55"><a href="#cb35-55" aria-hidden="true" tabindex="-1"></a>    prior <span class="op">=</span> DataPrior(g_val, data_ms)</span>
+<span id="cb35-56"><a href="#cb35-56" aria-hidden="true" tabindex="-1"></a>    sv <span class="op">=</span> g_val.svgd(data_ms, prior<span class="op">=</span>prior, optimizer<span class="op">=</span>Adam(<span class="fl">0.25</span>),</span>
+<span id="cb35-57"><a href="#cb35-57" aria-hidden="true" tabindex="-1"></a>                    n_particles<span class="op">=</span><span class="dv">60</span>, n_iterations<span class="op">=</span><span class="dv">300</span>)</span>
+<span id="cb35-58"><a href="#cb35-58" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> sv.get_results()</span>
+<span id="cb35-59"><a href="#cb35-59" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb35-60"><a href="#cb35-60" aria-hidden="true" tabindex="-1"></a>    th_est <span class="op">=</span> res[<span class="st">'theta_mean'</span>].item()</span>
+<span id="cb35-61"><a href="#cb35-61" aria-hidden="true" tabindex="-1"></a>    th_std <span class="op">=</span> res[<span class="st">'theta_std'</span>].item()</span>
+<span id="cb35-62"><a href="#cb35-62" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb35-63"><a href="#cb35-63" aria-hidden="true" tabindex="-1"></a>    Ne_est <span class="op">=</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> th_est) <span class="cf">if</span> th_est <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> np.nan</span>
+<span id="cb35-64"><a href="#cb35-64" aria-hidden="true" tabindex="-1"></a>    Ne_low <span class="op">=</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> (th_est <span class="op">+</span> <span class="fl">1.96</span> <span class="op">*</span> th_std)) <span class="cf">if</span> (th_est <span class="op">+</span> <span class="fl">1.96</span> <span class="op">*</span> th_std) <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> np.nan</span>
+<span id="cb35-65"><a href="#cb35-65" aria-hidden="true" tabindex="-1"></a>    Ne_hi  <span class="op">=</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> (th_est <span class="op">-</span> <span class="fl">1.96</span> <span class="op">*</span> th_std)) <span class="cf">if</span> (th_est <span class="op">-</span> <span class="fl">1.96</span> <span class="op">*</span> th_std) <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> np.nan</span>
+<span id="cb35-66"><a href="#cb35-66" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb35-67"><a href="#cb35-67" aria-hidden="true" tabindex="-1"></a>    results_val.append({</span>
+<span id="cb35-68"><a href="#cb35-68" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Ne_sand'</span>: Ne_true, <span class="st">'Ne_est'</span>: Ne_est,</span>
+<span id="cb35-69"><a href="#cb35-69" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Ne_low'</span>: Ne_low, <span class="st">'Ne_hi'</span>: Ne_hi,</span>
+<span id="cb35-70"><a href="#cb35-70" aria-hidden="true" tabindex="-1"></a>        <span class="st">'n_obs'</span>: <span class="bu">len</span>(data_ms)</span>
+<span id="cb35-71"><a href="#cb35-71" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb35-72"><a href="#cb35-72" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Ne_sand=</span><span class="sc">{</span>Ne_true<span class="sc">:&gt;7,}</span><span class="ss">  Ne_est=</span><span class="sc">{</span>Ne_est<span class="sc">:&gt;8,.0f}</span><span class="ss">  "</span></span>
+<span id="cb35-73"><a href="#cb35-73" aria-hidden="true" tabindex="-1"></a>          <span class="ss">f"95%-CI [</span><span class="sc">{</span>Ne_low<span class="sc">:&gt;8,.0f}</span><span class="ss"> - </span><span class="sc">{</span>Ne_hi<span class="sc">:&gt;8,.0f}</span><span class="ss">]  n_obs=</span><span class="sc">{</span><span class="bu">len</span>(data_ms)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb35-74"><a href="#cb35-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-75"><a href="#cb35-75" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot</span></span>
+<span id="cb35-76"><a href="#cb35-76" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="dv">5</span>))</span>
+<span id="cb35-77"><a href="#cb35-77" aria-hidden="true" tabindex="-1"></a>Ne_sand <span class="op">=</span> [r[<span class="st">'Ne_sand'</span>] <span class="cf">for</span> r <span class="kw">in</span> results_val]</span>
+<span id="cb35-78"><a href="#cb35-78" aria-hidden="true" tabindex="-1"></a>Ne_ests <span class="op">=</span> [r[<span class="st">'Ne_est'</span>] <span class="cf">for</span> r <span class="kw">in</span> results_val]</span>
+<span id="cb35-79"><a href="#cb35-79" aria-hidden="true" tabindex="-1"></a>Ne_errs <span class="op">=</span> [[r[<span class="st">'Ne_est'</span>] <span class="op">-</span> r[<span class="st">'Ne_low'</span>] <span class="cf">for</span> r <span class="kw">in</span> results_val],</span>
+<span id="cb35-80"><a href="#cb35-80" aria-hidden="true" tabindex="-1"></a>           [r[<span class="st">'Ne_hi'</span>]  <span class="op">-</span> r[<span class="st">'Ne_est'</span>] <span class="cf">for</span> r <span class="kw">in</span> results_val]]</span>
+<span id="cb35-81"><a href="#cb35-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-82"><a href="#cb35-82" aria-hidden="true" tabindex="-1"></a>ax.errorbar(Ne_sand, Ne_ests, yerr<span class="op">=</span>Ne_errs, fmt<span class="op">=</span><span class="st">'o'</span>, capsize<span class="op">=</span><span class="dv">5</span>,</span>
+<span id="cb35-83"><a href="#cb35-83" aria-hidden="true" tabindex="-1"></a>            label<span class="op">=</span><span class="st">'SVGD estimat ± 95%-CI'</span>)</span>
+<span id="cb35-84"><a href="#cb35-84" aria-hidden="true" tabindex="-1"></a>ax.plot([<span class="bu">min</span>(Ne_sand), <span class="bu">max</span>(Ne_sand)], [<span class="bu">min</span>(Ne_sand), <span class="bu">max</span>(Ne_sand)],</span>
+<span id="cb35-85"><a href="#cb35-85" aria-hidden="true" tabindex="-1"></a>        <span class="st">'k--'</span>, label<span class="op">=</span><span class="st">'Sand Ne (1:1 linje)'</span>)</span>
+<span id="cb35-86"><a href="#cb35-86" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'Sand Ne'</span>)</span>
+<span id="cb35-87"><a href="#cb35-87" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'Estimeret Ne'</span>)</span>
+<span id="cb35-88"><a href="#cb35-88" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'msprime-validering: enkelt-populations koalescent'</span>)</span>
+<span id="cb35-89"><a href="#cb35-89" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
+<span id="cb35-90"><a href="#cb35-90" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb35-91"><a href="#cb35-91" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Ne_sand=100,000  Ne_est=       1  95 procent-CI [       1 -        1]  n_obs=4813</code></pre>
+<pre><code>Ne_sand=100,000  Ne_est=       0  95%-CI [       0 -        1]  n_obs=5000</code></pre>
 </div>
 <div class="cell-output cell-output-display">
 <div id="fig-msprime-validering-enkelt" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -1598,19 +1641,19 @@ Figure&nbsp;3.9: msprime-validering: SVGD-estimater af Ne sammenlignet med sande
 </div>
 </div>
 </div>
-<div class="cell" data-execution_count="32">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>df_val <span class="op">=</span> pd.DataFrame(results_val)</span>
-<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>df_val[<span class="st">'Bias (procent)'</span>] <span class="op">=</span> ((df_val[<span class="st">'Ne_est'</span>] <span class="op">-</span> df_val[<span class="st">'Ne_sand'</span>]) <span class="op">/</span> df_val[<span class="st">'Ne_sand'</span>] <span class="op">*</span> <span class="dv">100</span>).<span class="bu">round</span>(<span class="dv">1</span>)</span>
-<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>df_val.columns <span class="op">=</span> [<span class="st">'Ne sand'</span>, <span class="st">'Ne estimat'</span>, <span class="st">'Ne 95 procent lav'</span>, <span class="st">'Ne 95 procent høj'</span>, <span class="st">'n obs'</span>, <span class="st">'Bias (procent)'</span>]</span>
-<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>df_val[[<span class="st">'Ne sand'</span>, <span class="st">'Ne estimat'</span>, <span class="st">'Bias (procent)'</span>, <span class="st">'n obs'</span>]].<span class="bu">round</span>(<span class="dv">0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div id="tbl-msprime-validering-enkelt" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="32">
+<div class="cell" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>df_val <span class="op">=</span> pd.DataFrame(results_val)</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>df_val[<span class="st">'Bias (procent)'</span>] <span class="op">=</span> ((df_val[<span class="st">'Ne_est'</span>] <span class="op">-</span> df_val[<span class="st">'Ne_sand'</span>]) <span class="op">/</span> df_val[<span class="st">'Ne_sand'</span>] <span class="op">*</span> <span class="dv">100</span>).<span class="bu">round</span>(<span class="dv">1</span>)</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>df_val.columns <span class="op">=</span> [<span class="st">'Ne sand'</span>, <span class="st">'Ne estimat'</span>, <span class="st">'Ne 95 procent lav'</span>, <span class="st">'Ne 95 procent høj'</span>, <span class="st">'n obs'</span>, <span class="st">'Bias (procent)'</span>]</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>df_val[[<span class="st">'Ne sand'</span>, <span class="st">'Ne estimat'</span>, <span class="st">'Bias (procent)'</span>, <span class="st">'n obs'</span>]].<span class="bu">round</span>(<span class="dv">0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="tbl-msprime-validering-enkelt" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="3">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-msprime-validering-enkelt-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Table&nbsp;3.7: msprime-validering: SVGD-estimater sammenlignet med sande Ne-værdier.
 </figcaption>
 <div aria-describedby="tbl-msprime-validering-enkelt-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="cell-output cell-output-display" data-execution_count="32">
+<div class="cell-output cell-output-display" data-execution_count="3">
 <div>
 
 
@@ -1628,30 +1671,30 @@ Table&nbsp;3.7: msprime-validering: SVGD-estimater sammenlignet med sande Ne-væ
 <tr class="odd">
 <th data-quarto-table-cell-role="th">0</th>
 <td>10000</td>
-<td>1.0</td>
+<td>0.0</td>
 <td>-100.0</td>
-<td>2213</td>
+<td>5000</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">1</th>
 <td>25000</td>
 <td>1.0</td>
 <td>-100.0</td>
-<td>3573</td>
+<td>5000</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">2</th>
 <td>50000</td>
-<td>1.0</td>
+<td>0.0</td>
 <td>-100.0</td>
-<td>4395</td>
+<td>5000</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">3</th>
 <td>100000</td>
-<td>1.0</td>
+<td>0.0</td>
 <td>-100.0</td>
-<td>4813</td>
+<td>5000</td>
 </tr>
 </tbody>
 </table>
