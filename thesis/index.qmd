@@ -307,7 +307,6 @@ Fordobling af $N_e$ fordobler $\mathbb{E}[H]$ men firedobler $\text{Var}[H]$. Fo
 
 {{< embed ../notebooks/01_koalescent_basics.ipynb#fig-skalering >}}
 
-{{< embed ../notebooks/01_koalescent_basics.ipynb#tbl-bavian-tmrca >}}
 
 Via graph.discretize() tilføjes Poisson-mutationer med rate $\mu$ langs grenene, og PMF-plottet viser den resulterende højreskæve fordeling over antal segregerende sites.
 
@@ -320,109 +319,88 @@ Fra den systematiske sammenligning af $n \in \{2, 4, 6, 8, 10\}$ er $n = 4$ valg
 
 ## Bayesiansk inferens med SVGD
 
-SVGD repræsenterer posterioren med $M$ partikler der opdateres via en kernelbaseret regel der kombinerer gradient-information fra log-posterior med en frastødende kraft der forhindrer partikelkollaps. Log-posterioren er $\log p(\theta \mid \mathbf{t}) = \sum_i \log f(t_i;\theta) + \log \pi(\theta)$, hvor $f(t;\theta) = \alpha\exp(\mathbf{T}(\theta)\,t)(-\mathbf{T})\mathbf{e}$ er den analytisk beregnede fase-type PDF eksakt, ikke approksimativ.
+SVGD repræsenterer posterioren $p(\theta \mid \mathbf{data})$ med $M$ partikler der opdateres iterativt via en kernelbaseret regel der kombinerer gradient-information fra log-posterior med en frastødende kraft der forhindrer partikelkollaps [@liu2016svgd]. Log-posterioren er
+$$
+\log p(\theta \mid \mathbf{t}) =
+\sum_i \log f(t_i;\theta) + \log \pi(\theta),
+$$
 
-Fire prior-strategier sammenlignes systematisk: vag GaussPrior. informativ centreret GaussPrior, HalfCauchyPrior og DataPrior. En forkert centreret prior dominerer stærkt ved $n_\text{obs} < 300$: ved $n_\text{obs} = 50$ estimeres $\hat{\theta} \approx 4{,}1$ frem for sand $\theta = 7{,}0$, og biasset er stadig tydeligt ved $n_\text{obs} = 500$. HalfCauchyPrior er velegnet til skalaparametre som migrationsrate fordi den er positiv og har en tung hale. DataPrior konstruerer automatisk en MoM-baseret prior fra data og giver den laveste posterior-std for bavian-realistiske $\theta \in [3, 20]$.
+hvor $f(t;\theta) =\alpha\exp(\mathbf{S}(\theta)\,t) (-\mathbf{S})\mathbf{e}$ er den analytisk beregnede fase-type PDF — eksakt, ikke
+approksimativ. Alle SVGD-analyser er implementeret via *phasic*'s *graph.svgd()* interface.
 
-{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-priors >}}
+### Prior-strategi
 
-{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-prior-dominans >}}
+Fire prior-strategier er sammenlignet systematisk over theta-værdier der svarer til de populationsstørrelser der er relevante for bavian-populationer ($\theta \in \{3, 7, 15, 20\}$, svarende til $N_e \approx 5.000$–$200.000$ med $\mu = 0{,}9 \times 10^{-8}$): en bred GaussPrior, en smal GaussPrior, en HalfCauchyPrior og en DataPrior der automatisk konstrueres fra data via method of moments. Bias og posterior-std er rapporteret for alle kombinationer.
 
 {{< embed ../notebooks/02_svgd_inferens_basis.ipynb#tbl-prior-bav >}}
 
-En god posterior er bred og flad og trækker ud mod siderne; en peaked posterior med høj kurtosis indikerer at SVGD er kollapset og undervurderer usikkerheden. Adam(0.25) giver konsistent flade posteriors over bavian-realistiske $\theta$-værdier og er valgt som standardoptimizer: $\hat{\theta} = 7{,}206 \pm 0{,}076$ (sand $\theta = 7{,}0$) over 300 iterationer med 60 partikler. For høje læringsrater giver peaked posteriors der undervurderer usikkerheden.
+DataPrior giver konsistent lavest bias over hele theta-intervallet og vælges som standardprior til enkelt-populations inferens. HalfCauchyPrior er velegnet til migrationsraten $\theta_1$ fordi den er positiv-støttet og har en tung hale der undgår systematisk bias mod nul ved lav migration. Den brede GaussPrior er ustabil ved $\theta > 10$: ved $\theta = 15$ estimeres $\hat{\theta} \approx 38$ med std $\approx 26$, et direkte resultat af at prioren ikke er centreret i et biologisk realistisk interval.
+
+Forkert centrerede priors dominerer stærkt ved $n_\text{obs} < 500$: ved $n = 50$ med en prior centreret ved $\mu = 1$ estimeres $\hat{\theta} \approx 3{,}9$ frem for sand $\theta = 7{,}0$. Biasset aftager gradvist og er stadig tydeligt ved $n = 1000$, hvilket viser at prior-valget er kritisk ved de stikprøvestørrelser der er realistiske for bavian-genomdata.
+
+{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-prior-dominans >}}
+
+### Optimizer og læringsrate
+
+Fem optimizer-konfigurationer er testet over bavian-realistiske theta-værdier med DataPrior og $n_\text{obs} = 3000$: Adam(0.1), Adam(0.25), Adam(0.5) og to ExponentialStepSize-schedules. Posterior-std er brugt som primært evalueringskriterium.
+
+Adam(0.1) giver lavest gennemsnitlig posterior-std over alle theta-værdier og vælges som standardoptimizer til bavian-analysen. ExponentialStepSize-schedules fejler ved lav $\theta$ (std $= 0$, dvs. partikelkollaps) og er uegnede som generel strategi. Forskellen mellem Adam(0.1) og Adam(0.25) er marginal ved $\theta \leq 10$, men Adam(0.1) er mere stabil ved $\theta = 20$.
+
+### Posterior-form og diagnostik
+
+En veldefineret posterior er bred og unimodal — partiklerne fordeler sig jævnt omkring posterior-koncentrationen. En peaked posterior med høj kurtosis indikerer at SVGD er kollapset mod et enkelt punkt og undervurderer usikkerheden. Kurtosis beregnes som
+$$
+\kappa = \frac{\mathbb{E}[(\theta - \mu)^4]}{\sigma^4} - 3,
+$$
+
+og posteriors med $\kappa > 2$ betragtes som peaked og potentielt underdisperserede.
 
 {{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-posterior-form >}}
 
-{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-konvergens >}}
+For høj læringsrate (Adam med $lr = 2{,}0$) giver peaked posteriors fordi partiklerne oscillerer og ikke finder posterior-koncentrationen. For lav læringsrate ($lr = 0{,}001$) giver bred men langsomt konvergerende posterior. Adam(0.25) og Adam(0.1) giver konsistent flade, unimodale posteriors og er de anbefalede konfigurationer.
 
-{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-heatmap-lr >}}
+### Partikler og iterationer
 
-Aftagende regularisering (ExpRegularization) kan stabilisere konvergens i tidlige iterationer, men stærk konstant regularisering giver bredere posterior fordi partiklerne forhindres i at finde posterior-koncentrationen. Modelfit valideres via sammenligning af model-CDF med empirisk ECDF, og coverage-analysen viser 94 % dækning ved $n_\text{obs} = 100$ og korrekt prior, men faldende dækning ved store $n$ som følge af variationel inferens' tendens til at undervurdere posterior-bredde.
-
-{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-ppc >}}
-
-{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-coverage >}}
-
-Grid-søgning over $(n_\text{part}, n_\text{iter}) \in \{20, 40, 60, 80, 120\} \times \{100, 200, 300, 500\}$ identificerer $M = 60$ partikler og $T = 300$ iterationer (enkelt-parameter) og $T = 400$ (to-parameter) som optimal konfiguration. Overgangen fra 40 til 60 partikler reducerer posterior-std med $\approx 15\%$; yderligere forøgelse giver $< 5\%$ forbedring.
+En grid-søgning over $(n_\text{part}, n_\text{iter}) \in \{20, 40, 60, 80, 120\} \times \{100, 200, 300, 500\}$ med Adam(0.1) og DataPrior ved $\theta = 5{,}0$ identificerer den optimale konfiguration til bavian-analysen.
 
 {{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-grid-svgd >}}
 
-## To-ø modellen og IM-modellen
+40 partikler og 300 iterationer giver std $= 0{,}029$ og bias $= 0{,}068$ en god balance mellem præcision og beregningstid. Øgning til 60 partikler reducerer std med under 5\% og udgør ikke en meningsfuld forbedring relativt til den øgede beregningstid.
 
-To-ø modellen udvider standardkoalescenten til to populationer med symmetrisk migration og parametre $\theta_0 = 1/N$ og $\theta_1 = 2Nm$. Tilstandsrummet konstrueres via StateIndexer og Property-klasser der tracker populationstilhørsforhold for hver linje, og koalescens er kun mulig inden for samme population. Modellen er direkte motiveret af det veldokumenterede genflow mellem bavian-populationer [@rogers2019; @sorensen2023].
+### Standardkonfiguration
 
-{{< embed ../notebooks/03_svgd_two_island.ipynb#fig-two-island-graf >}}
-
-For lav migration ($\theta_1 < 0{,}5$) viser den parvise posterior bred, negativt korreleret joint-fordeling — parametrene er konfunderede. For moderat og høj migration er identifikationen markant bedre, og minimum $N_\text{obs} = 5000$ sikrer $\text{std}(\hat{\theta}_1) < 0{,}3$. PDF-formen ændrer sig systematisk med migrationsraten: lav migration giver en bred tunghaletfordeling mens høj migration nærmer sig standardkoalescentens eksponentielle form. Iso-linjerne for $\mathbb{E}[\text{TMRCA}]$ viser den fundamentale konfundering: parametre langs samme kurve giver identisk TMRCA-fordeling, og konfunderingen reduceres ved at inkludere joint SFS frem for blot TMRCA-observationer.
-
-{{< embed ../notebooks/03_svgd_two_island.ipynb#fig-pairwise-scenarier >}}
-
-{{< embed ../notebooks/03_svgd_two_island.ipynb#tbl-identification >}}
-
-{{< embed ../notebooks/03_svgd_two_island.ipynb#fig-migration-tmrca >}}
-
-MoM-estimater for $\theta_1$ er ustabile ved $n_\text{obs} \leq 1000$ — ved $n_\text{obs} = 300$ estimeres $\hat{\theta}_1 = 2{,}13$ frem for sand $1{,}0$ — og MoM er kun tilstrækkelig i 2 af 5 bavian-scenarier ved $n_\text{obs} = 3000$. HalfCauchyPrior er nødvendig til migrationsraten for at undgå systematisk bias: GaussPrior giver $\hat{\theta}_1 = 2{,}51$ (sand $= 0{,}9$) mod HalfCauchyPrior's $0{,}863 \pm 0{,}287$. Den asymmetriske model med separate rater $m_{12}$ og $m_{21}$ viser stærk negativ korrelation i den parvise posterior for $n = 2$: summen af migrationraterne men ikke de individuelle retninger er identificerbar, og $n = 4$ er nødvendigt for bedre adskillelse.
-
-{{< embed ../notebooks/03_svgd_two_island.ipynb#fig-mom-vs-svgd >}}
-
-{{< embed ../notebooks/03_svgd_two_island.ipynb#fig-asym-pairwise >}}
-
-To-ø modellen valideres med msprime-simulationer under tre scenarier med kendte $(\theta_0, \theta_1)$-værdier og bekræfter at implementeringen er korrekt.
-
-{{< embed ../notebooks/03_svgd_two_island.ipynb#fig-msprime-validering-island >}}
-
-{{< embed ../notebooks/03_svgd_two_island.ipynb#tbl-msprime-validering-island >}}
-
-Numerisk er 64-bit aritmetik tilstrækkelig for alle bavian-parametre ($\theta_0 \in [0{,}01, 5{,}0]$, $\theta_1 \in [0{,}1, 10{,}0]$), og MPFR aktiveres ikke i nogen af analyserne. Grid-søgning for to-ø konfigurationen bekræfter $M = 60$ partikler og $T = 400$ iterationer som optimal.
-
-{{< embed ../notebooks/04_numerical_precision_and_scaling.ipynb#fig-grid-island >}}
-
-IM-modellen implementeres som en tidsinhomogen to-ø model med epoch-skift ved $t_s$ med rate $r_\text{switch} = 15/t_{s,\text{coal}}$. $\mathbb{E}[\text{TMRCA}]$ er systematisk højere end i to-ø uden split fordi linjer der overlever til $t_s$ koalescerer i den ancestrale population, og kendte bavian split-tider ($\approx 1{,}0$ Mya for *P. anubis*/*P. cynocephalus*) er i det identificerbare interval. Populationsflaskehalse er kun detekterbare i SFS når flaskehalsen er tidlig ($t_\text{start} \approx 0$) og dyb ($N_\text{bot} < N/50$); moderate flaskehalse sent i koalescenten er nærmest usynlige. Fra PSMC-profilet i @sorensen2023 er tre epoker ved $0$, $50.000$ og $200.000$ år valgt. IM-modellen valideres med msprime-simulationer med eksplicit split-tidspunkt og bekræfter
-korrekt estimering af alle tre parametre.
-
-{{< embed ../notebooks/05_time_inhomogeneous.ipynb#fig-im-tmrca >}}
-
-{{< embed ../notebooks/05_time_inhomogeneous.ipynb#fig-bottleneck-cdf >}}
-
-{{< embed ../notebooks/05_time_inhomogeneous.ipynb#fig-msprime-validering-im >}}
-
-{{< embed ../notebooks/05_time_inhomogeneous.ipynb#tbl-msprime-validering-im >}}
-
-## Joint sandsynligheder og databehandling
-
-joint_prob_graph beregner den fælles sandsynlighed for observerede mutations-kombinationer $(z_1, z_2, \ldots)$, og log-likelihood for en observation $\mathbf{k}$ er $\log p(\mathbf{k} \mid theta) = \log P_\mathbf{k}(\theta)$ beregnet eksakt fra absorptionssandsynligheder. Parameteren tot_reward_limit sætter en øvre grænse; observationer ud over denne grænse giver deficit der bør holdes under 5 %.$\mu = 1{,}0$ og tot_reward_limit = 3 er valgt til bavian-analyser (deficit $= 0{,}7\%$). Total grenlængde giver lavest posterior-std ved moderate $\theta$, mens joint SFS giver gevinst ved $\theta > 8$ og $n_\text{obs} > 3000$. En fejl på $2\times$ i $\mu$ giver en fejl på $2$–$3\times$ i $\hat{\theta}$ der ikke aftager med større datasæt, og sensitivitetsanalyse over $\mu \in \{0{,}7, 1{,}0, 1{,}5\}$ rapporteres for alle bavian-populationer.
-
-{{< embed ../notebooks/06_joint_probability_inferens.ipynb#fig-deficit >}}
-
-{{< embed ../notebooks/06_joint_probability_inferens.ipynb#fig-heatmap-joint >}}
-
-{{< embed ../notebooks/06_joint_probability_inferens.ipynb#fig-arg-pairwise >}}
-
-Koalescentenheder omregnes til biologiske enheder via $t_\text{år} = t_\text{coal} \times 2N_e \times g$, $N_e = \hat{\pi}/(4\mu)$ og $m_\text{per generation} = \theta_1/(2N_e)$. Nukleotiddiversitet beregnes som $\hat{\pi} = L^{-1}\sum_l 2p_l(1-p_l)n_l/(n_l-1)$ og Tajima's $D$ beregnes med tæller $\hat{\pi}_\text{total} - S/a_1$ i absolutte enheder (ikke per site) for at sikre korrekt standardfejlestimering. Observationer til SVGD genereres via hypergeometrisk subsampling $k \sim \text{Hypergeometrisk}(n_l, a_l, n_\text{sub})$ for hvert SNP, og $k$ bruges som TMRCA-proxy hvis $0 < k < n_\text{sub}$. Alle analyser er udført på kromosom 20 i VCZ-datasættet fra @sorensen2023: $2.665.269$ varianter på tværs af $227$ diploide individer fra seks *Papio*-arter.
-
-Standardkonfigurationen til bavian-analyserne er opsummeret i @tbl-config.
-
-| Parameter | Valg | Begrundelse |
-|---|---|---|
-| $n$ (enkelt-pop.) | 4 | 35 tilstande, $< 1$ min, 3 SFS-komponenter |
-| $n$ (to-ø / IM) | 6 | 140 tilstande, 5–15 min, bedre migration-signal |
-| Optimizer | Adam(0.25) | Lavest bias over bavian-$\boldsymbol{\theta}$ |
-| Iterationer (enkelt) | 300 | Konvergeret inden 200 for de fleste modeller |
-| Iterationer (to-param.) | 400 | Ekstra iterationer til migration-identifikation |
-| Partikler | 60 | Diminishing returns over 60 |
-| Prior (enkelt-pop.) | DataPrior | Automatisk, data-informeret |
-| Prior (migration) | HalfCauchyPrior | Positiv-støttet, undgår bias |
-| tot_reward_limit | 3 | Deficit $< 1\%$ for $\mu = 1{,}0$ |
-| $\mu$ | $0{,}9 \times 10^{-8}$ | Per site per generation [@sorensen2023] |
-| $g$ | 11 år | Generationstid [@sorensen2023] |
-
-: Standardkonfiguration til bavian-analyser. {#tbl-config}
+Alle ovenstående valg er opsummeret i @tbl-config der angiver
+standardkonfigurationen anvendt i bavian-analyserne (NB07A og NB07B).
 
 
+# Resultater
 
-# Resultater 
+## SVGD validering og metodiske egenskaber
 
+### Prior-dominans og stikprøvestørrelse
+
+Prior-dominansanalysen viser at likelihood overtager fra prioren ved
+$n_\text{obs} \approx 500$–$1000$ for en korrekt centreret prior. Med en forkert centreret prior ($\mu_\text{prior} = 1$, sand $\theta = 7$) er estimatet stadig biased ved $n = 1000$ ($\hat{\theta} \approx 6{,}1$, bias $= 0{,}9$), og kun ved $n = 10{,}000$ konvergerer de to priors til samme estimat.
+
+{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-prior-dominans >}}
+
+Dette har direkte konsekvenser for bavian-analysen: med $n_\text{obs} \approx 2000$–$5000$ SNP-observationer per population er prior-valget ikke neutralt. DataPrior anbefales som standardvalg fordi den er data-informeret og ikke kræver forhåndsviden om $\theta$.
+
+### Coverage og posterior-kalibrering
+
+Coverage-analysen viser at SVGD med korrekt centreret prior giver empirisk $95\%$-CI dækning tæt på det nominelle niveau ved $n_\text{obs} = 100$, men at dækningen falder med stigende stikprøvestørrelse. Dette er ikke en fejl i SVGD det er en velkendt egenskab ved variationel inferens: med mange data bliver posterioren meget smal, og $\pm 1{,}96 \times \text{std}$ undervurderer det sande konfidensinterval (underdispersion).
+
+{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-coverage >}}
+
+Konsekvensen for bavian-analysen er at posterior-std bør rapporteres direkte frem for at fortolkes som et klassisk $95\%$-konfidensinterval. En forkert centreret prior giver lav dækning ved $n = 100$ ($24\%$) fordi prioren dominerer og trækker estimatet væk fra sand $\theta$, og dækningen stiger gradvist mod det nominelle niveau efterhånden som likelihood overtager.
+
+### Posterior predictive check
+
+Posterior predictive check bekræfter at koalescentmodellen med det estimerede $\hat{\theta}$ reproducerer de observerede TMRCA-tider: empirisk CDF og model-CDF ligger tæt på hinanden over hele fordelingsforløbet, og model-PDF matcher histogrammet af observerede tider.
+
+{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-ppc >}}
+
+Et godt PPC er en nødvendig men ikke tilstrækkelig betingelse for korrekt modelspecifikation det bekræfter at enkelt-populations koalescentmodellen er passende for de simulerede data, og at SVGD finder det korrekte posterior-centrum.
 
 # Diskussion
 
