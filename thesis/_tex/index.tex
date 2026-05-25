@@ -668,395 +668,376 @@ historie med genudveksling mellem arter. \par
 \mainmatter
 \chapter{Introduktion}\label{introduktion}
 
-I populationsgenetik vil man gerne forstå, hvordan genetisk variation
-opstår og ændrer sig over tid. Variation opstår på grund af processer
-som genetisk drift, mutation, rekombination og selektion (Hobolth et al.
-2019) og de påvirker tilsammen, hvilke mønstre man ser i DNA-sekvenser.
-Når man analyserer DNA-sekvenser fra flere individer, indeholder dataene
-information om deres fælles evolutionære historie (Hobolth et al. 2019).
-Denne historie beskrives typisk som et genealogisk træ, hvor grenene
-svarer til de observerede sekvenser og de indre knuder til fælles
-forfædre. Traditionelt har man ofte beskrevet evolution som et grenende
-træ, hvor populationer adskilles og gradvist udvikler genetiske
-forskelle i isolation. Nyere studier har vist, at relationer mellem
-populationer ofte er mere komplekse end et simpelt træ kan beskrive.
-Processer som hybridisering og genflow kan for eksempel føre til
-komplekse strukturer frem for simple træer ({Erik F. Sørensen et al.}
-2023; {Rogers et al.} 2019; {Vilgalys et al.} 2022). Evolutionære
-relationer kan derfor i mange tilfælde være mere komplekse strukturer
-end træformede.
+Hvordan kan man rekonstruere en populations evolutionære historie fra
+DNA-sekvenser? Det er det centrale spørgsmål i demografisk inferens, og
+svaret kræver matematiske modeller der forbinder observerede genetiske
+mønstre med de underliggende processer: genetisk drift, mutation,
+rekombination og migration. Dette speciale undersøger, hvordan
+koalescentteorien formuleret som fase-type fordelinger giver en eksakt
+analytisk ramme til dette formål, og hvordan Bayesiansk inferens via
+Stein Variational Gradient Descent (SVGD) kan bruges til at estimere
+demografiske parametre fra genomdata.
 
-Denne kompleksistet stiller større krav til de modeller og metoder der
-bruges til at rekonsturere populationshistorie. For at kunne undersøge
-størrelser som effektive populationsstørrelse \(N_e\), migrationsratet
-\(m\) og historiske split-tidspunkter \(t_s\) krævles modeller, som kan
-håndtere populationsstruktur og genflow. Det matematiske fundament for
-dette speciale er Markov-processer og fase-type fordelinger. En
-stokastisk proces \(\{X_t\}_{t \geq 0}\) er en Markov-proces hvis den
-fremtidige udvikling kun afhænger af den nuværende tilstand og ikke af
-processens historie: \[
-P(X_{t+s} = j \mid X_u, u \leq t) = P(X_{t+s} = j \mid X_t).
+\section{Markovprocesser}\label{markovprocesser}
+
+Det matematiske fundament for modellerne i dette speciale er
+Markov-processer. En stokastisk proces \(\{X_t\}_{t \geq 0}\) er en
+Markov-proces hvis den fremtidige udvikling kun afhænger af den
+nuværende tilstand og ikke af processens tidligere forløb: \[
+P(X_{t+s} = j \mid X_u,\, u \leq t) = P(X_{t+s} = j \mid X_t).
 \]
 
-En kontinuert Markov-kæde (CTMC) er en Markov-proces med diskret
-tilstandsrum og kontinuert tid: processen befinder sig i tilstand \(i\)
-i en eksponentielt fordelt tid med rate \(\lambda_i\) og springer til
-tilstand \(j \neq i\) med sandsynlighed \(p_{ij}\). Overgangene
-beskrives via intensitetsmatricen \(\mathbf{Q}\) med indgange
+En kontinuert Markov-kæde (CTMC) er karakteriseret ved et diskret
+tilstandsrum og kontinuert tid. Processen befinder sig i tilstand \(i\)
+i en eksponentielt fordelt ventetid med rate \(\lambda_i\) og springer
+til tilstand \(j \neq i\) med sandsynlighed \(p_{ij}\). Overgangene
+samles i intensitetsmatricen \(\mathbf{Q}\) med indgange
 \(Q_{ij} = \lambda_i p_{ij}\) for \(i \neq j\) og
-\(Q_{ii} = -\lambda_i\), og sandsynlighedsfordelingen over tilstande
-følger \(\mathbf{P}(t) = e^{\mathbf{Q}t}\) (Kemeny and Snell 1976). En
-absorptionsmarkov-kæde opdeler tilstandsrummet i transiente tilstande
-\(\mathcal{T}\) og absorberende tilstande \(\mathcal{A}\);
-intensitetsmatricen skrives som \[
+\(Q_{ii} = -\lambda_i\), og sandsynlighedsfordelingen over tilstande til
+tid \(t\) er givet ved matrixeksponentialet
+\(\mathbf{P}(t) = e^{\mathbf{Q}t}\) (Kemeny and Snell 1976).
+
+En absorptions-Markov-kæde opdeler tilstandsrummet i transiente
+tilstande \(\mathcal{T}\) og absorberende tilstande \(\mathcal{A}\).
+Intensitetsmatricen kan da skrives på blokform \[
 \mathbf{Q} = \begin{pmatrix} \mathbf{S} & \mathbf{s} \\ \mathbf{0} & \mathbf{0} \end{pmatrix},
 \]
 
-hvor \(\mathbf{S}\) er sub-intensitetsmatricen og
-\(\mathbf{s} = -\mathbf{S}\mathbf{e}\) er absorptionsraten.
-Absorptionstidspunktet \(\tau \sim \text{PH}(\alpha, \mathbf{S})\) er
-fase-type fordelt med fordelingsfunktion
-\(F(t) = 1 - \alpha e^{\mathbf{S}t}\mathbf{e}\), tæthed
-\(f(t) = \alpha e^{\mathbf{S}t}\mathbf{s}\) og momenter
-\(\mathbb{E}[\tau^n] = n!\,\alpha(-\mathbf{S})^{-n}\mathbf{e}\) (Bladt
-and Nielsen 2017; Hobolth et al. 2024).
+hvor \(\mathbf{S}\) er sub-intensitetsmatricen for de transiente
+tilstande og \(\mathbf{s} = -\mathbf{S}\mathbf{e}\) er absorptionsraten.
+Sub-intensitetsmatricen er invertibel, og den centrale størrelse
+\(\mathbf{U} = (-\mathbf{S})^{-1}\) kaldes Green-matricen: \(U_{ij}\) er
+den forventede tid processen tilbringer i tilstand \(j\) givet start i
+tilstand \(i\) (Bladt and Nielsen 2017).
 
-\section{Coalescentteorien}\label{coalescentteorien}
+\section{Koalescentteorien}\label{koalescentteorien}
 
-Coalescentteorien bygger på at man følger genetiske linjer bagud i tid
-og ser på, hvornår de mødes i fælles forfædre. Hvis to genkopier kan
-spores tilbage til den samme forfader, siger man, at de coalescerer
-(Wakeley 2009).
+Koalescentteorien beskriver de genealogiske relationer mellem
+DNA-sekvenser ved at følge genetiske linjer bagud i tid til fælles
+forfædre (Wakeley 2009). Udgangspunktet er Wright-Fisher-modellen: en
+diploid population af konstant størrelse \(N\) individer, hvor hvert
+individ uafhængigt vælger sin forfader uniformt. Sandsynligheden for at
+to linjer deler forfasder i samme generation er \(1/(2N)\), og i grænsen
+\(N \to \infty\) med tidsskalering \(t \to t/(2N)\) generationer
+konvergerer de diskrete slægtsskabsprocesser til Kingmans koalescent
+(Kingman 1982).
 
-Udgangspunktet er Wright-Fisher-modellen, der beskriver en diploid
-population af konstant størrelse \(N\) individer over diskrete
-generationer, hvor hvert individ vælger sin forælder uniformt og
-uafhængigt (Wakeley 2009). I grænsen \(N \to \infty\) med tidsskalering
-\(t \to t/(2N)\) konvergerer de diskrete slægtsskabsprocesser til
-Kingmans koalescent (Kingman 1982) en kontinuert Markov-kæde baglæns i
-tid, der beskriver, hvordan \(n\) samtidige genetiske linjer smelter
-sammen til en fælles forfader. Med \(k\) aktive linjer sker den næste
-koalescens med rate \(\binom{k}{2}\), og processen absorberes i
-MRCA-tilstanden. Kingmans koalescent er eksakt en fase-type fordeling:
-sub-intensitetsmatricen \(\mathbf{S}\) indeholder koalescensraterne
-\(-\binom{k}{2}\) på diagonalen for tilstande med \(k\) linjer, og alle
-centrale størrelser er analytisk tilgængelige. Den forventede tid til
-MRCA og dens varians er \[
-\mathbb{E}[H] = 2\left(1 - \frac{1}{n}\right), \qquad
-\text{Var}[H] = 4\sum_{k=2}^{n}\frac{1}{k^2(k-1)^2/4},
+Kingmans koalescent er en kontinuert Markov-kæde baglæns i tid. Med
+\(k\) aktive linjer sker den næste koalescenshændelse med rate
+\(\binom{k}{2} = k(k-1)/2\), og processen absorberes i MRCA-tilstanden
+(Most Recent Common Ancestor) når alle linjer er smeltet sammen. For en
+stikprøve af størrelse \(n\) repræsenteres tilstanden ved vektoren
+\(\mathbf{a} = (a_1, a_2, \ldots, a_n)\), hvor \(a_i\) angiver antallet
+af linjer med præcis \(i\) efterkommere i stikprøven, og starttilstanden
+er \((n, 0, \ldots, 0)\) Figure~\ref{fig-graf}.
+
+\begin{figure}[H]
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-01_koalescent_basics-fig-graf-output-1.pdf}}
+
+}
+
+\caption{\label{fig-graf}Coalescentgrafens tilstandsrum for n=4}
+
+\end{figure}%
+
+Koalescentens centrale analytiske egenskaber er givet ved: \[
+\mathbb{E}[H] = 2\!\left(1 - \frac{1}{n}\right), \qquad
+\text{Var}[H] = 4\sum_{k=2}^{n}\frac{1}{k^2(k-1)^2},
 \]
 
-og den forventede sojourn-tid i tilstanden med \(k\) linjer er
-\(2/[k(k-1)]\) den reciprokke koalescensrate (Hobolth et al. 2024).
-Variansen skalerer kvadratisk med \(N\): store populationer giver ikke
-blot langsommere koalescens men også markant mere variabel koalescens
-fra locus til locus, hvilket indebærer at estimater af \(N_e\) baseret
-på et enkelt locus er behæftet med stor stokastisk usikkerhed.
+hvor \(H\) er den totale træhøjde (TMRCA). Den forventede sojourn-tid i
+fasen med \(k\) linjer er \(2/[k(k-1)]\), den reciprokke af
+koalescensraten (Hobolth et al. 2024). Variansen skalerer kvadratisk med
+den effektive populationsstørrelse \(N_e\): en fordobling af \(N_e\)
+fordobler \(\mathbb{E}[H]\) men firedobler \(\text{Var}[H]\), hvilket
+betyder at koalescenstiden varierer markant fra locus til locus selv i
+en stor population.
+
+\section{Fase-type fordelinger}\label{fase-type-fordelinger}
+
+En fase-type fordeling er absorptionstiden \(\tau\) i en kontinuert
+absorptions-Markov-kæde med sub-intensitetsmatrix \(\mathbf{S}\) og
+initial sandsynlighedsvektor \(\alpha\) (Bladt and Nielsen 2017): \[
+\tau \sim \text{PH}(\alpha, \mathbf{S}).
+\]
+
+Fordelingsfunktion, tæthedsfunktion og alle momenter udtrykkes via
+matrixoperationer: \[
+F(t) = 1 - \alpha, e^{\mathbf{S}t}\mathbf{e}, \qquad
+f(t) = \alpha, e^{\mathbf{S}t}\mathbf{s}, \qquad
+\mathbb{E}[\tau^n] = n!\,\alpha(-\mathbf{S})^{-n}\mathbf{e},
+\] h vor \(\mathbf{e}\) er en søjlevektor af etaller og
+\(\mathbf{s} = -\mathbf{S}\mathbf{e}\).
+
+Kingmans koalescent er eksakt en fase-type fordeling: de transiente
+tilstande er alle mulige konfigurationer af aktive linjer,
+absorptionstilstanden er MRCA, og \(\alpha = (1, 0, \ldots, 0)\) fordi
+processen starter i tilstanden med \(n\) singletons.
+Sub-intensitetsmatricen \(\mathbf{S}\) indeholder koalescensraterne
+\(-\binom{k}{2}\) på diagonalen og overgange til tilstande med færre
+linjer på off-diagonalen. For \(n = 4\) er matricen \[
+\mathbf{S} =
+\begin{pmatrix}
+-6 & 6 & 0 & 0 \\
+0 & -3 & 1 & 2 \\
+0 & 0 & -1 & 0 \\
+0 & 0 & 0 & -1
+\end{pmatrix},
+\]
+
+hvor rækkerne svarer til tilstandene \((4,0,0,0)\), \((2,1,0,0)\),
+\((0,2,0,0)\) og \((1,0,1,0)\). Den høje rate ud af starttilstanden
+\((-6 = -\binom{4}{2})\) afspejler at der er seks mulige par der kan
+koalescere. Alle centrale størrelser --- \(\mathbb{E}[H]\),
+\(\text{Var}[H]\), PDF og CDF --- er dermed tilgængelige analytisk uden
+simulering.
+
+\section{Reward-transformationer og Site Frequency
+Spectrum}\label{reward-transformationer-og-site-frequency-spectrum}
 
 Reward-transformationer forbinder koalescentmodellen med observerede
 genetiske data (Hobolth et al. 2021). En reward-funktion
-\(r: \mathcal{T} \to \mathbb{R}_+\) tildeler en vægt til hvert transient
-tilstand, og den forventede akkumulerede reward frem til absorption er
-\(\mathbb{E}[Y] = \alpha(-\mathbf{S})^{-1}\mathbf{r}\). Ved at vælge
-\(\mathbf{r}_k\) til at tælle linjer med \(k\) efterkommere er den
-forventede grenlængde for frekvensklasse \(k\) i Site Frequency Spectrum
-(SFS) givet ved
-\(\mathbb{E}[B_k] = \alpha(-\mathbf{S})^{-1}\mathbf{r}_k\), og det
-forventede antal \(k\)-ton mutationer under infinite-sites modellen er
-\(\mathbb{E}[\xi_k] = \theta \cdot \mathbb{E}[B_k]\) (Hobolth et al.
-2024). Den multivariate kovarians beregnes analytisk via \[
+\(r: \mathcal{T} \to \mathbb{R}_+\) tildeler en ikke-negativ vægt til
+hvert transient tilstand, og den akkumulerede reward frem til absorption
+er \[
+Y = \int_0^\tau r(X_t)\, dt.
+\]
+
+Den akkumulerede reward \(Y\) er igen fase-type fordelt med forventning
+\[
+\mathbb{E}[Y] = \alpha(-\mathbf{S})^{-1}\mathbf{r},
+\]
+
+hvor \(\mathbf{r}\) er reward-vektoren (Hobolth et al. 2024). Lad
+\(\mathbf{r}_k\) være den reward-vektor der tæller antallet af linjer
+med præcis \(k\) efterkommere i tilstand \(\mathbf{a}\). Den forventede
+grenlængde for frekvensklasse \(k\) i Site Frequency Spectrum (SFS) er
+da \[
+\mathbb{E}[B_k] = \alpha(-\mathbf{S})^{-1}\mathbf{r}_k,
+\]
+
+og det forventede antal \(k\)-ton mutationer under infinite-sites
+modellen er \(\mathbb{E}[\xi_k] = \theta \cdot \mathbb{E}[B_k]\), hvor
+\(\theta = 2N_e\mu\) er Wattersons parameter (Hobolth et al. 2024). Den
+forventede totale grenlængde er
+\(\mathbb{E}[L] = 2\sum_{k=1}^{n-1} 1/k\), og Wattersons estimator er
+\(\hat{\theta}_W = S / a_n\), hvor \(S\) er det observerede antal
+segregerende sites og \(a_n = \sum_{k=1}^{n-1} 1/k\).
+
+\begin{figure}[H]
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-01_koalescent_basics-fig-sfs-output-1.pdf}}
+
+}
+
+\caption{\label{fig-sfs}Site Frequency Spectrum for n=4 beregnet via
+reward-transformationer.}
+
+\end{figure}%
+
+Den multivariate fase-type ramme giver desuden adgang til
+kovariansstrukturen i SFS. Kovariansen mellem grenlængderne \(B_i\) og
+\(B_j\) er (Hobolth et al. 2021): \[
 \text{Cov}(B_i, B_j) =
 \alpha(-\mathbf{S})^{-1}\Delta(\mathbf{r}_i)(-\mathbf{S})^{-1}\mathbf{r}_j
 + \alpha(-\mathbf{S})^{-1}\Delta(\mathbf{r}_j)(-\mathbf{S})^{-1}\mathbf{r}_i
 - \mathbb{E}[B_i]\mathbb{E}[B_j],
 \]
 
-hvilket viser at singletons og doubletons er negativt korrelerede fordi
-de konkurrerer om grenlængdebudgettet (Hobolth et al. 2021). Under
-infinite-sites modellen er antallet af segregerende sites \(S\) diskret
-fase-type fordelt, og joint-sandsynligheder for specifikke SFS-mønstre
-er eksakt beregneligt (Neuts 1981). Fase-type teorien er implementeret i
+hvor \(\Delta(\mathbf{r})\) er diagonalmatricen med reward-vektoren på
+diagonalen. Denne kovariansstruktur har direkte konsekvenser for
+inferens: en naiv antagelse om uafhængighed mellem SFS-komponenter
+undervurderer usikkerheden på demografiske estimater.
+
+Under infinite-sites modellen er det samlede antal segregerende sites
+\(S\) diskret fase-type fordelt, og joint-sandsynligheder for specifikke
+SFS-mønstre er eksakt beregneligt via diskrete fase-type metoder (Neuts
+1981; Hobolth et al. 2024). Fase-type teorien er implementeret i
 \emph{phasic}-biblioteket (Røikjer et al. 2022), der konstruerer
-tilstandsrummet automatisk via en callback-funktion og udfører alle
-beregninger via Gaussisk elimination størrelsesordener hurtigere end
-matrixbaserede tilgange for store, sparsomme tilstandsrum.
+tilstandsrummet automatisk fra en callback-funktion og udfører alle
+beregninger via grafbaserede algoritmer der er størrelseordener
+hurtigere end matrixbaserede tilgange for store, sparsomme yilstandsrum.
 
 \section{Populationsstruktur og struktureret
 koalescent}\label{populationsstruktur-og-struktureret-koalescent}
 
-I den klassiske koalescent antager man, at populationen er homogen. I
-virkeligheden er populationer dog ofte opdelt i mindre subpopulationer
-med begrænset migration og derfor er denne antagelse ikke altid
-realistisk (Wakeley 2009). I den strukturerede koalescent følger man
-stadig linjer bagud i tid, men nu kan de også skifte mellem
-subpopulation via migration. Man skelner typisk mellem koalescenstiden
-for to sekvenser, der er samplet fra samme subpopulation (\emph{within},
-\(T_w\)) og fra forskellige subpopulationer (\emph{between}, \(T_b\)). I
-en symmetrisk model med \(D\) subpopulationer og migrationsrate \(M\)
-kan man udlede (Wakeley 2009): \[
-\mathbb{E}[T_w] = D, \qquad \mathbb{E}[T_b] = D\left(1 + \frac{D-1}{MD}\right).
+I den klassiske koalescent antages en homogen population. I
+virkeligheden er populationer ofte opdelt i subpopulationer med
+begrænset migration, og genealogiske linjer kan skifte subpopulation
+bagud i tid (Wakeley 2009). I den strukturerede koalescent skelner man
+typisk mellem koalescenstiden for to sekvenser samplet fra samme
+subpopulation (\(T_w\), \emph{within}) og fra forskellige
+subpopulationer (\(T_b\), \emph{between}). I en symmetrisk model med
+\(D\) subpopulationer af størrelse \(N\) og total migrationsrate \(M\)
+er: \[
+\mathbb{E}[T_w] = D, \qquad
+\mathbb{E}[T_b] = D\!\left(1 + \frac{D-1}{MD}\right),
 \]
 
-Hvor \(T_w\) er uafhængig af migrationsraten, mens \(T_b\) i høj grad
-gør. Hvis migrationen er lav, bliver koalescenstiden mellem
-subpopulationer markant længere. Det samme gør sig gældende for
-variansen, som også vokser kraftigt for små værdier af \(M\): \[
-\mathrm{Var}[T_w] = D^2 + \frac{2(D-1)^2}{M}, \qquad \mathrm{Var}[T_b] = D^2 + \frac{2(D-1)^2}{M} + \frac{(D-1)^2}{M^2}.
+og varianserne er: \[
+\text{Var}[T_w] = D^2 + \frac{2(D-1)^2}{M}, \qquad
+\text{Var}[T_b] = D^2 + \frac{2(D-1)^2}{M} + \frac{(D-1)^2}{M^2}.
 \]
 
-I grænsen \(M \to \infty\) forsvinder populationsstrukturen og modellen
-reduceres til den klassiske koalescent med \(N_e = DN\). Omvendt vil
-\(\mathbb{E}[T_b]\) vokse uden grænse, når \(M \to 0\) (Wakeley 2009). I
-mere generelle modeller hvor populationer er geografisk strukturerede,
-beskrives migration ved en backward migration matrix \(m_{ij}\), som
-angiver sandsynligheden for, at en linje i subpopulationen \(i\) stammer
-fra \(j\) i forrige generation (Wakeley 2009). Den samlede
-migrationsrate ud af subpopulation \(i\) er givet ved: \[
-m_i = \sum_{j \neq i} m_{ij}.
+For \(M \to \infty\) forsvinder strukturen og modellen reduceres til en
+panmiktisk population med \(N_e = DN\), mens
+\(\mathbb{E}[T_b] \to \infty\) for \(M \to 0\).
+
+I mere generelle modeller beskrives migration ved en backward migration
+matrix \(m_{ij}\), der angiver sandsynligheden for at en linje i
+subpopulation \(i\) stammer fra subpopulation \(j\) i forrige generation
+(Wakeley 2009). Under \emph{konservativ migration} er den gennemsnitlige
+nettomigration nul: \[
+N_i \sum_{j \neq i} m_{ij} = \sum_{j \neq i} N_j m_{ji}.
 \]
 
-og dermed er sandsynligheden for, at en linje forbliver i samme
-subpopulation bagud i tid: \(1-m_i\). En ofte anvendt antagelse er
-\emph{conservativ migration}, hvor det gennemsnitlige antal individer,
-der forlader en subpopulation svarer til antallet der ankommer (Wakeley
-2009). Dette kan udtrykkes som \[
-N_i \sum_{j \neq i} q_{ij} = \sum_{j \neq i} N_j q_{ji},
-\]
-
-hvilket sikrer, at populationsstørrelserne forbliver konstante over tid.
-For en stikprøve af størrelse \(2\) kan genalogien beskrives som en
-Markovprocess med tre tilstande:
-
-\begin{enumerate}
-\def\labelenumi{\arabic{enumi}.}
-\tightlist
-\item
-  Begge linjer i samme subpopulation
-\item
-  Linjer i forskellige subpopulationer
-\item
-  Linjer har koalesceret
-\end{enumerate}
-
-Overgangene mellem disse tilstande bestemmes af både migration og
-koalescens. Den diskrete transitionsmatrix kan skrives som \[
-P =
-\begin{pmatrix}
-(g_{1,0} + g^{(s)}_{1,2})(1 - \tfrac{1}{N}) & g_{1,1} + g^{(d)}_{1,2} & (g_{1,0} + g^{(s)}_{1,2}) \tfrac{1}{N} \\
-(g^{(s)}_{2,1} + g^{(s)}_{2,2})(1 - \tfrac{1}{N}) & g_{2,0} + g^{(d)}_{2,1} + g^{(d)}_{2,2} & (g^{(s)}_{2,1} + g^{(s)}_{2,2}) \tfrac{1}{N} \\
-0 & 0 & 1
-\end{pmatrix}.
-\]
-
-Her beskriver \(g_{i,j}\) sandsynligheder for migrationsbegivenheder,
-mens indekserne \((s)\) og \((d)\) angiver om linjer ender i samme
-(\emph{same}) eller forskellige (\emph{different}) subpopulationer efter
-migration (Wakeley 2009). Matrixen inkluderer både simple hændelser og
-situationer hvor migration og koalescens sker i samme generation. Ved at
-tage grænsen \(N \to \infty\), og skalere tiden passende opnås en
-kontinuert Markov proces med generator (Wakeley 2009) \[
-Q = \lim_{N \to \infty} N(P - I).
-\]
-
-I den symmetriske model for prøvestørrelse \(2\) reduceres dette til en
-generator af formen \[
-Q =
-\begin{pmatrix}
-- M - 1 & M & 1 \\
-\frac{M}{D-1} & - \frac{M}{D-1} & 0 \\
-0 & 0 & 0
-\end{pmatrix},
-\]
-
-som svarer til de tre tilstande. Denne formulering viser tydeligt, at
-processen styres af to typer hændelser:
-
-\begin{itemize}
-\tightlist
-\item
-  koalescens (rate \(1\) når linjer er i samme subpopulation)
-\item
-  migration (med rate proportional med \(M\))
-\end{itemize}
-
-(Wakeley 2009).
-
-Den simpleste strukturerede model er to-ø modellen: to populationer af
-størrelse \(N\) udveksler migranter med rate \(m\) per generation, og
-koalescens er kun mulig inden for samme population (Wakeley 2009). I
+Den simpleste strukturerede model er \textbf{to-ø modellen}: to
+populationer af størrelse \(N\) udveksler migranter med rate \(m\) per
+generation, og koalescens er kun mulig inden for samme population. I
 koalescentenheder parameteriseres modellen ved \(\theta_0 = 1/N\)
-(koalescensrate) og \(\theta_1 = 2Nm\) (migrationsrate). Den forventede
-TMRCA afhænger ikke monotont af migrationsraten: ved meget lav migration
-befinder linjerne sig i isolation med sjældne migrationsbegivenheder,
-ved meget høj migration opfører systemet sig som en panmiktisk
-population, og den maksimale varians optræder ved lav til moderat
-migration (Hobolth et al. 2024). Et centralt problem er
-parameter-konfundering: høj migration reducerer TMRCA på samme måde som
-lav koalescensrate, og parametrene er ikke altid simultant
-identificerbare fra TMRCA-observationer alene.
+(koalescensrate) og \(\theta_1 = 2Nm\) (migrationsrate). Et centralt
+problem er parameter-konfundering: en lav koalescensrate og en høj
+migrationsrate kan give identisk TMRCA-fordeling, og parametrene er ikke
+altid simultant identificerbare fra TMRCA-observationer alene.
 
-IM-modellen (Isolation with Migration) er en tidsinhomogen udvidelse,
-hvor to separate populationer med migration eksisterer i \([0, t_s]\),
-hvorefter de smeltes til én ancestral population ved split-tidspunktet
-\(t_s\) (Wakeley 2009): \[
-\theta(t) = \begin{cases}
+\textbf{IM-modellen} (Isolation with Migration) er en tidsinhomogen
+udvidelse, hvor to separate populationer med migration eksisterer i
+perioden \([0, t_s]\), og herefter smeltes til én ancestral population
+ved split-tidspunktet \(t_s\): \[
+(\theta_0, \theta_1)(t) = \begin{cases}
 (\theta_0,\, \theta_1) & t < t_s \\
-(\theta_a,\, 0) & t \geq t_s
+(\theta_a,\, 0) & t \geq t_s.
 \end{cases}
 \]
 
-IM-modellen tillader, at migration kan have fortsat efter initial
-adskillelse biologisk relevant for bavianerne, der viser tegn på
-vedvarende genflow ({Rogers et al.} 2019). Den forventede TMRCA er
-systematisk højere end i en simpel to-ø model uden split, fordi linjer
-der overlever til \(t_s\) derefter koalescerer i den ancestrale
-population. Et vigtigt identifikationsproblem er konfunderingen af
-\(t_s\) og \(N_a\): et tidligt split med lille \(N_a\) kan give identisk
-TMRCA-fordeling som et sent split med stor \(N_a\) (Hobolth et al.
-2024).
-
-Koalescensraten varierer med tid når populationsstørrelsen \(N(t)\) ikke
-er konstant: \(\lambda_k(t) = \binom{k}{2}/N(t)\). En
-populationsflaskehals en periode med kraftigt reduceret \(N_e\)
-efterfulgt af recovery vises som en bule i TMRCA-fordelingen og et
-overskud af singletons i SFS ({Rogers et al.} 2019). For to loci
-medfører rekombination at genealogier kan afvige fra hinanden; dette
-beskrives ved Ancestral Recombination Graph (ARG), og
-Laplace-transformationen
-\(\mathbb{E}[e^{-\rho\tau}] = \alpha(\rho\mathbf{I} - \mathbf{S})^{-1}\mathbf{t}\)
-giver sandsynligheden for at to loci deler samme genealogi (Hobolth et
-al. 2018).
+IM-modellen tillader vedvarende migration efter initial adskillelse og
+giver systematisk højere forventet TMRCA end to-ø modellen uden split,
+fordi linjer der overlever til \(t_s\) derefter koalescerer i den
+ancestrale population med rate \(1/\theta_a\).
 
 \section{Tidsinhomogenitet og demografisk
 rekonstruktion}\label{tidsinhomogenitet-og-demografisk-rekonstruktion}
 
-Koalescensraten \(\lambda(t) = \binom{k}{2}/N(t)\) varierer med tid, når
-populationsstørrelsen \(N(t)\) ikke er konstant. En tidsinhomogen
-koalescent modellerer denne variation ved at opdele demografihistorien i
+Koalescensraten \(\lambda_k(t) = \binom{k}{2}/N(t)\) varierer med tid
+når populationsstørrelsen \(N(t)\) ikke er konstant. En tidsinhomogen
+koalescent modellere denne variation ved at opdele demografihistorien i
 epoker med stykvist konstant \(N_e\). Inden for hver epoke er
-koalescenten tidshomogen, men raten ændres ved epokeskiftet.
+koalescenten tidshomogen, men raten ændres ved epokeskift.
 
-En populationsflaskehals er en periode med kraftigt reduceret \(N_e\)
-efterfulgt af recovery. Flaskehalse manifesterer sig i TMRCA-fordelingen
-som en hump ved det tidspunkt flaskehalsen opstod, fordi mange linjer
-koalescerer parrallet under flaskehalsen. I SFS ses flaskehalse typisk
-som et overskud af singletons, fordi flaskehalsen accelererer koalescens
-og reducerer den tid der akkumuleres på interne grene ({Rogers et al.}
-2019).
+Populationsflaskehalse perioder med kraftigt reduceret \(N_e\)
+efterfulgt af restitution manifesterer sig i TMRCA-fordelingen som en
+bule ved det tidspunkt flaskehalsen opstod, fordi mange linjer
+koalescerer parallelt under flaskehalsen. I SFS ses flaskehalse typisk
+som et overskud af singletons relativt til doubletons, fordi den
+accelererede koalescens under flaskehalsen reducerer den akkumulerede
+grenlængde på interne grene ({Rogers et al.} 2019).
 
-Tidsinhomogenitet er direkte biologisk relevant for bavianerne: {Rogers
-et al.} (2019) identificerede via PSMC population-specifikke flaskehalse
-og ekspansioner for alle seks arter og {Erik F. Sørensen et al.} (2023)
-viste at demografisk historie varierer markant på tværs af populationer
-inden for samme art. En tidsinhomogen fase-type model giver direkte
-adgang til disse demografiske mønstre via eksakt analytisk beregning.
+Tidsinhomogenitet kan kombineres direkte med fase-type rammen: en
+tidsinhomogen koalescent svarende til globalt tidshomogen ved at udvide
+tilstandsrummet med en epokedimension, og momenter beregnes eksakt via
+grafbaserede algoritmer (Røikjer et al. 2022).
 
-\section{Fase-type fordelinger, SFS og
-reward-transformationer}\label{fase-type-fordelinger-sfs-og-reward-transformationer}
+\section{Ancestral Recombination
+Graph}\label{ancestral-recombination-graph}
 
-En fase-type fordeling er absorptionstiden \(\tau\) i en
-absorptionsmarkovkæde med sub-intensitetsmatrix \(\mathbf{S}\) og
-initial sandsynlighedsvektor \(\alpha\) (Bladt and Nielsen 2017): \[
-\tau \sim \text{PH}(\alpha, \mathbf{S}).
+For to loci med rekombinationsrate \(\rho/2\) per locus kan genealogien
+beskrives ved Ancestral Recombination Graph (ARG) (Hobolth et al. 2021).
+Tilstanden beskrives ved triplet \((K_{ab}, K_a, K_b)\), hvor \(K_{ab}\)
+er antallet af linjer med ancestral materiale i begge loci, \(K_a\) kun
+i locus \(a\) og \(K_b\) kun i locus \(b\). Overgange sker via
+koalescens og rekombination, og den samlede intensitetsmatrix er \[
+\mathbf{Q} = \mathbf{Q}^c + \frac{\rho}{2}\,\mathbf{Q}^r,
 \]
 
-Fordelingsfunktionen, tæthedsfunktionen og alle momenter udtrykkes via
-matrixoperationer: \[
-F(\tau) = 1 - \alpha e^{\mathbf{S}\tau} \mathbf{e}, \qquad
-f(\tau) = \alpha e^{\mathbf{S}\tau} \mathbf{s},
-\] \[
-\mathbb{E}[\tau^n] = n!\, \alpha (-\mathbf{S})^{-n} \mathbf{e},
-\]
-
-hvor \(\mathbf{e}\) er en søjlevektor af etaller og
-\(\mathbf{s} = -\mathbf{S}\mathbf{e}\) er absorptionsraten (Hobolth et
-al. 2024).
-
-Kingmans koalescent er eksakt en fase-type fordeling:
-absorptionstilstanden er MRCA, de transiente tilstande er alle mulige
-konfigurationer af aktive linjer, og sub-intensitetsmatricen
-\(\mathbf{S}\) indeholder koalescensraterne \(\binom{k}{2}\) på
-diagonalen og overgange til tilstande med færre linjer på off-diagonalen
-(Hobolth et al. 2019). Alle centrale størrelser: E{[}H{]}, Var{[}H{]},
-PDF og CDF er dermed tilgængelige analytisk.
-
-Reward-transformationer er det redskab der forbinder koalescentmodellen
-med observerede genetiske data (Hobolth et al. 2021; Munch 2023). En
-reward-funktion \(r: \mathcal{T} \to \mathbb{R}_+\) tildeler en vægt til
-hvert transient tilstand, og den akkumulerede reward frem til absorption
-er \[
-Y = \int_0^\tau r(X_t)\, dt.
-\]
-
-Den akkumulerede reward \(Y\) er igen fase-type fordelt og har
-forventning \[
-\mathbb{E}[Y] = \alpha, (-\mathbf{S})^{-1}\, \mathbf{r},
-\]
-
-hvor \(\mathbf{r}\) er reward-vektoren (Hobolth et al. 2024).
-
-For koalescenten giver reward-transformationer direkte adgang til
-SFS-komponenterne. Lad \(r_k(s)\) tælle antallet af linjer med præcis
-\(k\) efterkommere i tilstand \(s\). Den forventede total grenlængde af
-linjer med \(k\) efterkommere er da
-\(\mathbb{E}[B_k] = \alpha(-\mathbf{S})^{-1}\mathbf{r}_k\), og det
-forventede antal \(k\)-ton mutationer under infinite-sites modellen er
-\(\mathbb{E}[\xi_k] = \theta \cdot \mathbb{E}[B_k]\) (Hobolth et al.
-2024). SFS-komponenterne \((\xi_1, \xi_2, \ldots, \xi_{n-1})\) er dermed
-tilgængelige analytisk uden simulering.
-
-Den \textbf{multivariate fase-type} ramme generaliserer til den fælles
-fordeling af flere reward-transformationer simultant. Hobolth et al.
-(2021) viste at den fælles fordeling \((B_1, B_2, \ldots, B_{n-1})\)
-grenlængderne for alle SFS-komponenter er multivariate fase-type
-fordelt, og at kovariansen beregnes analytisk via \[
-\text{Cov}(Y_i, Y_j) = \alpha, (-\mathbf{S})^{-1}\,
-\Delta(\mathbf{r}_i)\, (-\mathbf{S})^{-1}\, \mathbf{r}_j +
-\alpha, (-\mathbf{S})^{-1}\, \Delta(\mathbf{r}_j)\,
-(-\mathbf{S})^{-1}\, \mathbf{r}_i - \mathbb{E}[Y_i]\mathbb{E}[Y_j],
-\]
-
-hvor \(\Delta(\mathbf{r})\) er diagonalmatricen med reward-vektoren på
-diagonalen. Denne formel viser at singleton og doubleton grenlængder
-typisk er negativt korrelerede fordi de konkurrerer om
-branchlength-budget i de tidlige stadier af koalescenten (Hobolth et al.
-2021).
-
-En diskret fase-type fordeling beskriver absorptionstiden i en diskret
-Markovkæde og anvendes til at modellere det diskrete antal mutationer
-\(S\) i en stikprøve. Under infinite-sites modellen er \(S\)
-Poisson-fordelt med parameter \(\theta L\), hvor \(L\) er total
-grenlængde. Den marginale fordeling for \(S\) er negativ-binomial, og
-joint-sandsynligheden for specifikke SFS-mønstre \((z_1, z_2, \ldots)\)
---- det observerede antal 1-ton, 2-ton, \ldots{} mutationer er eksakt
-beregneligt via diskrete fase-type metoder (Hobolth et al. 2021, 2024;
-Neuts 1981).
+hvor \(\mathbf{Q}^c\) indeholder koalescensrater og \(\mathbf{Q}^r\)
+indeholder rekombinationsrater (Hobolth et al. 2018).
+Laplace-transformationen
+\(\psi(\omega) = \mathbb{E}[e^{-\omega\tau}] = \alpha(\omega\mathbf{I} - \mathbf{S})^{-1}\mathbf{t}\)
+giver sandsynligheden for at to loci deler samme genealogi, og
+joint-fordelingen af grenlænger i de to loci er multivariate fase-type
+fordelt.
 
 \section{Bayesiansk inferens med
 SVGD}\label{bayesiansk-inferens-med-svgd}
 
-Eksisterende metoder til demografisk inferens falder i tre klasser. PSMC
-og SMC++ udnytter heterozygositetsmønstre til at rekonstruere
-demografisk historie (Liu and Wang 2016) og er anvendt direkte på
-bavian-data af {Rogers et al.} (2019) (Figure~\ref{fig-PSMC}), men er
-begrænset til en population og estimerer ikke migrationsrater direkte.
-Simuleringsbaserede metoder som fastsimcoal2 anvender SFS via
-komposit-likelihood men kræver mange simuleringer og beregningsintensiv
-bootstrapping. Den fælles begrænsning er fraværet af en eksakt analytisk
-ramme der kombinerer direkte adgang til sandsynlighedstætheder og
-momenter med fuld Bayesiansk usikkerhedskvantificering. Demografisk
-inferens fra genomdata kan opdeles i tre klasser baseret på
-observationstypen: allelfrekvens baserede metoder, identitet ved
-afstamning metoder og koalescent skjulte Markov-modeller. PSMC og SMC++
-udnytter heterozygositetsmønstre langs genomet hos et enkelt individ
-eller par til at rekonstruere demografisk historie (Liu and Wang 2016)
-og er anvendt direkte på bavian-data af {Rogers et al.} (2019)
-Figure~\ref{fig-PSMC}. Metoderne er imidlertid begrænset til en
-population ad gangen og kan ikke estimere migrationsrater eller
-split-tidspunkter direkte. Simuleringsbaserede metoder som fastsimcoal2
-og momi2 anvender SFS til inferens via komposit-likelihood og er
-fleksible, men kræver mange simuleringer og beregningstung bootstrapping
-til usikkerhedskvantificering.
+Demografisk inferens fra genomdata kan inddeles i tre klasser. PSMC og
+SMC++ (Liu and Wang 2016) udnytter heterozygositetsmønstre til
+demografisk rekonstruktion men er begrænset til en population og
+estimerer ikke migrationsrater direkte. Simuleringsbaserede metoder som
+fastsimcoal2 anvender SFS via komposit-likelihood men kræver mange
+simuleringer og beregningstung bootstrapping til
+usikkerhedskvantificering. En fælles begrænsning er fraværet af en
+eksakt analytisk ramme der kombinerer direkte adgang til
+sandsynlighedstætheder med fuld Bayesiansk usikkerhedskvantificering.
+
+I dette speciale anvendes Stein Variational Gradient Descent (SVGD) (Liu
+and Wang 2016), en partikelbaseret variationel inferensmetode der
+repræsenterer posterioren \(p(\theta \mid \mathbf{data})\) med \(M\)
+partikler opdateret iterativt: \[
+{\theta}^{(m)} \leftarrow \theta^{(m)}
++ \epsilon\,\phi^*\!\bigl({\theta}^{(m)}\bigr), \qquad
+\phi^*(\theta) = \frac{1}{M}\sum_{j=1}^M \Bigl[
+k\!\bigl(\theta^{(j)}, \theta\bigr)
+\nabla \log p\!\bigl(\theta^{(j)} \mid \mathbf{x}\bigr)
++ \nabla k\!\bigl(\theta^{(j)}, \theta\bigr)
+\Bigr],
+\]
+
+hvor \(k(\cdot, \cdot)\) er en RBF-kernel. Det første led trækker
+partiklerne mod høj posterior-tæthed; det andet led forhindrer
+partikelkollaps og bevarer diversitet. Log-posterioren er \[
+\log p(\theta \mid \mathbf{t}) =
+\sum_i \log f(t_i;\theta) + \log \pi(\theta),
+\]
+
+hvor
+\(f(t;\theta) = \alpha\exp(\mathbf{S}(\theta)\,t) (-\mathbf{S})\mathbf{e}\)
+er den analytisk beregnede fase-type PDF eksakt, ikke approksimativ. I
+kombination med \emph{phasic}'s eksakte likelihood er SVGD fundamentalt
+forskelligt fra simulationsbaserede metoder, og giver fuld posterior
+frem for et punktestimat.
+
+\section{Bavianer som modelsystem}\label{bavianer-som-modelsystem}
+
+Bavianer (\emph{Papio} spp.) er en gruppe af seks nært beslægtede
+primater udbredt i store dele af Afrika ({Rogers et al.} 2019). Slægten
+opdeles i en nordlig kladde bestående af \emph{P. hamadryas}, \emph{P.
+anubis} og \emph{P. papio} og en sydlig kladde bestående af \emph{P.
+kindae}, \emph{P. cynocephalus} og \emph{P. ursinus}, der divergerede
+fra en fælles stamfader for mere end 1 million år siden ({Rogers et al.}
+2019; {Vilgalys et al.} 2022).
+
+\begin{figure}
+
+\centering{
+
+\includegraphics[width=0.5\linewidth,height=\textheight,keepaspectratio]{illustrations/Kort.png}
+
+}
+
+\caption{\label{fig-Kort}Nuværende udbredelse af de seks
+\emph{Papio}-arter samt placeringen af tre veldokumenterede hybridzoner:
+x1 (\emph{P. hamadryas}/\emph{P. anubis}), x2 (\emph{P.
+cynocephalus}/\emph{P. anubis}) og x3 (\emph{P. kindae}/\emph{P.
+ursinus}). Billede fra {Rogers et al.} (2019).}
+
+\end{figure}%
+
+På trods af geografisk adskillelse producerer flere arter fertile
+hybrider i kontaktzoner ({Erik F. Sørensen et al.} 2023; {Jordan et al.}
+2018). {Rogers et al.} (2019) analyserede helgenomsekvenseringsdata for
+alle seks arter og dokumenterede multiple episoder af admixture og
+introgression. {Erik F. Sørensen et al.} (2023) udvidede analysen til
+225 vilde bavianer fra 19 lokaliteter og dokumenterede tre-vejs
+admixture i western yellow-populationerne --- et mønster ikke tidligere
+observeret i slægten. Selektion mod introgresserede varianter er
+stærkest på X-kromosomet, med op til syv gange højere selektionstryk
+sammenlignet med autosomer (Erik Fogh Sørensen et al. 2023).
 
 \begin{figure}
 
@@ -1067,154 +1048,62 @@ til usikkerhedskvantificering.
 }
 
 \caption{\label{fig-PSMC}Rekonstruktion af demografisk historie for de
-seks bavian populationer via PSMC. Alle populationer viser et fald i
-\(N_e\) de seneste 100.000 år samt population-specifikke flaskehalse.
-Modificeret fra {Rogers et al.} (2019).}
+seks bavianarter via PSMC. Alle populationer viser et fald i \(N_e\) de
+seneste 100.000 år samt population-specifikke flaskehalse. Modificeret
+fra {Rogers et al.} (2019).}
 
 \end{figure}%
 
-I dette speciale anvendes Stein Variational Gradient Descent (SVGD) (Liu
-and Wang 2016) en partikelbaseret variationel inferensmetode der
-repræsenterer posterioren \(p(\theta \mid \text{data})\) med \(M\)
-partikler opdateret iterativt:
-
-\[
-\theta^{(m)} \leftarrow \theta^{(m)} + \epsilon\,\phi^*\!\left(\theta^{(m)}\right), \qquad
-\phi^*(\theta) = \frac{1}{M}\sum_{j=1}^M \Bigl[
-  k\!\bigl(\theta^{(j)},\theta\bigr)
-  \nabla \log p\!\bigl(\theta^{(j)}\mid\mathbf{x}\bigr)
-  + \nabla k\!\bigl(\theta^{(j)}, \theta\bigr)
-\Bigr],
-\]
-
-hvor \(k(\cdot,\cdot)\) er en RBF-kernel. Det første led trækker
-partiklerne mod høj posterior-tæthed; det andet forhindrer
-partikelkollaps og bevarer diversitet. SVGD konvergerer hurtigere end
-MCMC fordi alle partikler opdateres simultant, og giver fuld posterior
-frem for et punktestimat. I kombination med phasic's eksakte likelihood
-er SVGD fundamentalt forskelligt fra simulationsbaserede metoder:
-likelihood-evalueringen er eksakt, ikke approksimativ.
-
-\section{Bavianer som modelsystem}\label{bavianer-som-modelsystem}
-
-Bavianer (slægten \emph{Papio}) er en gruppe af nært beslægtede
-primater, som lever i store dele af Afrika (Kopp et al. 2023). Slægten
-består af seks nulevende arter:
-
-\begin{itemize}
-\tightlist
-\item
-  Olive baboon (\emph{Papio anubis}),
-\item
-  Yellow baboon (\emph{Papio cynocephalus}),
-\item
-  chacma baboon (\emph{Papio ursinus}),
-\item
-  Guinea baboon (\emph{Papio papio}),
-\item
-  Hamadryas baboon (\emph{Papio hamadryas})
-\item
-  Kinda baboon (\emph{Papio kindae}).
-\end{itemize}
-
-Disse seks arter adskilles i to klader: en nordlig kladde bestående af
-\emph{P. hamadryas}, \emph{P. anubis} og \emph{P. papio} og en sydlig
-kladde bestående af \emph{P. kindae}, \emph{P. cynocephalus} og \emph{P.
-ursinus}, som divergerede fra en fælles stamfader for mere end 1 million
-år siden ({Rogers et al.} 2019; {Vilgalys et al.} 2022).
-
-\begin{figure}
-
-\centering{
-
-\includegraphics[width=0.5\linewidth,height=\textheight,keepaspectratio]{illustrations/Kort.png}
-
-}
-
-\caption{\label{fig-Kort}\emph{Papio} baboon arter. Nuværende udbredelse
-af hver bavianart samt placeringen af \hspace{0pt}\hspace{0pt}tre
-veldokumenterede aktive hybridzoner er også vist. x1: hybridzone mellem
-P. hamadryas og P. anubis, x2: hybridzone mellem P. cynocephalus og P.
-anubis, x3: hybridzone mellem P. kindae og P. ursinus. Billede fra
-Rogers et al., 2019.}
-
-\end{figure}%
-
-På trods af disse geografiske adskillelser kan flere arter krydse sig i
-naturen og producere fertile hybrider ({Erik F. Sørensen et al.} 2023;
-{Jordan et al.} 2018). I flere kontaktzoner er der veldokumenterede
-hybridzoner med løbende genflow. {Rogers et al.} (2019) analyserede
-helgenomsekvenseringsdata for alle seks arter og dokumenterede multiple
-episoder af admixture og introgression, herunder genetisk bidrag fra en
-uidentificeret ancestral linje til \emph{P. papio} og aktiv nuklear
-DNA-swamping ved hybridzonen mellem \emph{P. anubis} og \emph{P.
-cynocephalus}. Som det fremgår af Figure~\ref{fig-Kort}, overlapper
-arterne geografisk ved en række hybridzoner hvor aktiv genudveksling er
-dokumenteret ({Erik F. Sørensen et al.} 2023). {Erik F. Sørensen et al.}
-(2023) udvidede denne analyse til 225 vilde bavianer fra 19 lokaliteter
-og dokumenterede admixture mellem \emph{P. anubis} og \emph{P.
-cynocephalus} i det sydlige Tanzania, en tæt genealogisk forbindelse
-mellem Kinda-bavianer og western yellow-populationerne, samt tegn på
-tre-vejs admixture i western yellow-populationerne ved Mahale og Katavi,
-et mønster som ikke tidligere er observeret i denne slægt. Studier af
-hybridzonerne viser desuden, at selektion mod introgresserede genetiske
-varianter kan være stærk, særligt på X-kromosomet, hvor der er
-observeret op til syv gange stærkere selektion sammenlignet med
-autosomer (Erik Fogh Sørensen et al. 2023).
-
-Bavianernes evolutionære historie omkring samtidigt med menneskets
-evolution ({Rogers et al.} 2019). I modsætning til mennesker, hvor kun
-en art eksisterer i dag, har bavianer bevaret flere linjer. Det gør dem
-særligt velegnede som modelsystem til at studere både divergens og
-hybridisering i naturlige populationer. I dette speciale anvendes
-estimater fra Sørensen et al.~(2023), herunder en mutationsrate på
-\(\mu = 0.9 \times 10^{-8}\) per site per generation og en
-generationstid på \(g = 11\) år, til at omsætte modelparametre til
-absolutte størrelser.
+Bavianernes evolutionære historie er veldokumenteret, biologisk kompleks
+og tidsligt parallel med menneskets evolution ({Rogers et al.} 2019),
+hvilket gør dem til et ideelt modelsystem for metodeudvikling. I dette
+speciale bruges estimater fra {Erik F. Sørensen et al.} (2023):
+mutationsrate \(\mu = 0{,}9 \times 10^{-8}\) per site per generation og
+generationstid \(g = 11\) år til at omsætte modelparametre til absolutte
+biologiske enheder.
 
 \section{Formål, problemformulering og specialets
 opbygning}\label{formuxe5l-problemformulering-og-specialets-opbygning}
 
 Formålet med dette speciale er at undersøge, hvordan koalescentteorien
 og dens udvidelser til strukturerede populationer med migration og
-tidsinhomogen processer kan formuleres eksakt som fase-type fordelinger
-og hvordan Bayesiansk inferens via SVGD kan anvendes til at estimere
-parametre fra genomdata. Som konkret case anvendes
-helgenomsekvenseringsdata fra seks bavianpopulationer (\emph{P. Papio}),
-der er karakteriseret ved dokumenteret genflow og admixture mellem
-arterne ({Erik F. Sørensen et al.} 2023).
+tidsinhomogene processer kan formuleres eksakt som fase-type
+fordelinger, og hvordan Bayesiansk inferens via SVGD kan anvendes til at
+estimere demografiske parametre fra genomdata. Som konkret anvendelse
+bruges helgenomsekvenseringsdata fra seks bavianpopulationer, der er
+karakteriseret ved dokumenteret genflow og admixture ({Erik F. Sørensen
+et al.} 2023).
 
 De fire spørgsmål der undersøges er:
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
 \item
-  Kan koalescentens analytiske egenskaber \(E[H]\), sojourn times, SFS
-  og kovariansstruktur reproduceres eksakt via phasic, og hvad afslører
-  de om den genealogiske proces?
+  Kan koalescentens analytiske egenskaber --- \(\mathbb{E}[H]\),
+  sojourn-tider, SFS og kovariansstruktur reproduceres eksakt via
+  \emph{phasic}, og hvad afslører de om den genealogiske proces?
 \item
-  Hvordan påvirker valget af prior, læringsrate-schedule og
-  regularisering SVGD's posteriorestimater, og hvad er de praktiske
-  grænser for prøvestørrelse, numerisk præcision og parallelisering for
-  de modeller der undersøges?
+  Hvordan påvirker valget af prior, læringsrate og regularisering SVGD's
+  posteriorestimater, og hvad er de praktiske grænser for prøvestørrelse
+  og numerisk præcision?
 \item
-  Er \(\theta_0\) og \(\theta_1\) identificerbare i two-island og
-  IM-modellen og hvad er effekten af asymmetrisk migration,
-  ghost-populationer og split-tidspunkt på TMRCA-fordelingen?
+  Er \(\theta_0\) og \(\theta_1\) identificerbare i to-ø og IM-modellen,
+  og hvad er effekten af asymmetrisk migration, ghost-populationer og
+  split-tidspunkt på TMRCA-fordelingen?
 \item
   Indeholder diskrete joint SFS-observationer mere information om
   parametre end kontinuerte TMRCA-tider, og hvad er den kritiske
-  prøvestørrelse og mutationsrate der afgør, hvornår joint-inferens er
-  at foretrække?
+  stikprøvestørrelse og mutationsrate der afgør hvornår joint-inferens
+  er at foretrække?
 \end{enumerate}
 
 Specialet er opdelt i otte analytiske notebooks. Notebooks 01--06
-fokuserer på metodeudvikling og analyser simulerede date, hvor
-modellerne først undersøges og testes under kontrollerede forhold.
-Notebook 07A indeholder analyse af genomdata fra bavian, mens notebook
-07B anvender modellerne til inferens af populationshistorie. Alle
-analyser er implementeret i Python ved hjælp af phasic og er
-uadarbejdet, så resultaterne kan reproducerbare.
+fokuserer på metodeudvikling og analyserer simulerede data, hvor
+modellerne undersøges og valideres under kontrollerede forhold. Notebook
+07A indeholder databehandling af baviangenomet, mens notebook 07B
+anvender modellerne til inferens af populationshistorie for de seks
+bavianpopulationer. Alle analyser er implementeret i Python via
+\emph{phasic} og er designet til at være reproducerbare.
 
 \chapter{Metode}\label{metode}
 
@@ -1278,21 +1167,9 @@ henholdsvis \(1, 2, \ldots, n\) efterkommere, og starttilstanden er
 \(\mathbf{s}^{(0)} = (n, 0, \ldots, 0)\). Koalescens af to linjer med
 \(i\) og \(j\) efterkommere giver en ny linje med rate
 \(\lambda_{ij} = s_i(s_j - \delta_{ij})/(1 + \delta_{ij})\), og
-absorptionstilstanden er MRCA. Den grafbaserede implementering
-konstruerer automatisk tilstandsrummet via en callback-funktion uden
-manuel specificering af overgangsmatricen.
-
-\begin{figure}[H]
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-01_koalescent_basics-fig-graf-output-1.pdf}}
-
-}
-
-\caption{\label{fig-graf}Coalescentgrafens tilstandsrum for n=4}
-
-\end{figure}%
+absorptionstilstanden er MRCA Figure~\ref{fig-graf}. Den grafbaserede
+implementering konstruerer automatisk tilstandsrummet via en
+callback-funktion uden manuel specificering af overgangsmatricen.
 
 Korrekthed verificeres ved at sammenligne numeriske resultater fra
 phasic med analytiske formler. For \(n = 4\) giver phasic
@@ -1407,19 +1284,6 @@ akkumuleres tidligt i koalescenten.
 
 \centering{
 
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-01_koalescent_basics-fig-sfs-output-1.pdf}}
-
-}
-
-\caption{\label{fig-sfs}Site Frequency Spectrum for n=4 beregnet via
-reward-transformationer.}
-
-\end{figure}%
-
-\begin{figure}[H]
-
-\centering{
-
 \pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-01_koalescent_basics-fig-cdf-pdf-output-1.pdf}}
 
 }
@@ -1468,36 +1332,6 @@ populationsstørrelse N.}
 
 \end{figure}%
 
-\begin{verbatim}
-Forventet TMRCA for bavian-populationer (n=4):
-    N_e    theta  E[H] (gen) E[H] (år)  Std (år)
-  5,000 0.000100     15000.0   165,000   117,391
- 10,000 0.000050     30000.0   330,000   234,781
- 25,000 0.000020     75000.0   825,000   586,953
- 50,000 0.000010    150000.0 1,650,000 1,173,906
-100,000 0.000005    300000.0 3,300,000 2,347,812
-200,000 0.000003    600000.0 6,600,000 4,695,624
-\end{verbatim}
-
-\begin{table}
-
-\caption{\label{tbl-bavian-tmrca}Forventet TMRCA i biologiske enheder
-for bavian-populationer.}
-
-\centering{
-
-\subcaption{\label{tbl-bavian-tmrca-1}}
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-01_koalescent_basics-tbl-bavian-tmrca-output-2.pdf}}
-
-}
-
-}
-
-\end{table}%
-
 Via graph.discretize() tilføjes Poisson-mutationer med rate \(\mu\)
 langs grenene, og PMF-plottet viser den resulterende højreskæve
 fordeling over antal segregerende sites.
@@ -1522,93 +1356,88 @@ tilstande, 5--15 minutter). Enkelt-populations modellen valideres med
 msprime-simulationer under kendte \(N_e\)-værdier, og SVGD estimerer dem
 korrekt tilbage inden for posterior-usikkerheden.
 
+\section{Bayesiansk inferens med
+SVGD}\label{bayesiansk-inferens-med-svgd-1}
+
+SVGD repræsenterer posterioren \(p(\theta \mid \mathbf{data})\) med
+\(M\) partikler der opdateres iterativt via en kernelbaseret regel der
+kombinerer gradient-information fra log-posterior med en frastødende
+kraft der forhindrer partikelkollaps (Liu and Wang 2016).
+Log-posterioren er \[
+\log p(\theta \mid \mathbf{t}) =
+\sum_i \log f(t_i;\theta) + \log \pi(\theta),
+\]
+
+hvor
+\(f(t;\theta) =\alpha\exp(\mathbf{S}(\theta)\,t) (-\mathbf{S})\mathbf{e}\)
+er den analytisk beregnede fase-type PDF --- eksakt, ikke approksimativ.
+Alle SVGD-analyser er implementeret via \emph{phasic}'s
+\emph{graph.svgd()} interface.
+
+\subsection{Prior-strategi}\label{prior-strategi}
+
+Fire prior-strategier er sammenlignet systematisk over theta-værdier der
+svarer til de populationsstørrelser der er relevante for
+bavian-populationer (\(\theta \in \{3, 7, 15, 20\}\), svarende til
+\(N_e \approx 5.000\)--\(200.000\) med \(\mu = 0{,}9 \times 10^{-8}\)):
+en bred GaussPrior, en smal GaussPrior, en HalfCauchyPrior og en
+DataPrior der automatisk konstrueres fra data via method of moments.
+Bias og posterior-std er rapporteret for alle kombinationer.
+
 \begin{table}
 
-\caption{\label{tbl-n-sammenligning}Sammenligning af prøvestørrelser n i
-\{2,4,6,8,10\}.}
+\caption{\label{tbl-prior-bav}Prior-sammenligning over
+bavian-realistiske theta-værdier.}
 
 \centering{
 
 \begin{verbatim}
-Sammenligning af n for bavian-analyse:
- n  Tilstande    E[H]  Singleton procent   E[L]  Tid (ms)
- 2          3 1.00000              100.0 2.0000       0.4
- 4          6 1.50000               54.5 3.6667       0.3
- 6         12 1.66667               43.8 4.5667       0.5
- 8         23 1.75000               38.6 5.1857       1.0
-10         43 1.80000               35.3 5.6579       2.5
+Prior-sensitivitet ved bavian-theta:
+ Sand theta             Prior    Mean      Std    Bias  RelBias procent
+        3.0 GaussPrior (bred)  2.8957  0.02126  0.1043             3.48
+        3.0 GaussPrior (smal)  2.8935  0.04864  0.1065             3.55
+        3.0        HalfCauchy  2.8922  0.06569  0.1078             3.59
+        3.0   DataPrior (MoM)  2.8998  0.03123  0.1002             3.34
+        7.0 GaussPrior (bred)  7.9540  2.10459  0.9540            13.63
+        7.0 GaussPrior (smal)  6.9261  0.13661  0.0739             1.06
+        7.0        HalfCauchy  6.8664  0.09725  0.1336             1.91
+        7.0   DataPrior (MoM)  6.8919  0.10087  0.1081             1.54
+       15.0 GaussPrior (bred) 37.8828 26.09095 22.8828           152.55
+       15.0 GaussPrior (smal) 15.1401  0.39875  0.1401             0.93
+       15.0        HalfCauchy 14.6871  1.51290  0.3129             2.09
+       15.0   DataPrior (MoM) 14.9812  0.17808  0.0188             0.13
+       20.0 GaussPrior (bred) 64.1217 34.74118 44.1217           220.61
+       20.0 GaussPrior (smal) 20.6900  1.05152  0.6900             3.45
+       20.0        HalfCauchy 26.9238 20.29039  6.9238            34.62
+       20.0   DataPrior (MoM) 20.3792  0.10513  0.3792             1.90
 
-Anbefaling: n=4 er god balance (hurtig beregning, tilstrækkelig information)
+Bedste prior per theta (lavest bias):
+ Sand theta             Prior   Bias
+        3.0   DataPrior (MoM) 0.1002
+        7.0 GaussPrior (smal) 0.0739
+       15.0   DataPrior (MoM) 0.0188
+       20.0   DataPrior (MoM) 0.3792
 \end{verbatim}
 
 }
 
 \end{table}%
 
-\section{Bayesiansk inferens med
-SVGD}\label{bayesiansk-inferens-med-svgd-1}
+DataPrior giver konsistent lavest bias over hele theta-intervallet og
+vælges som standardprior til enkelt-populations inferens.
+HalfCauchyPrior er velegnet til migrationsraten \(\theta_1\) fordi den
+er positiv-støttet og har en tung hale der undgår systematisk bias mod
+nul ved lav migration. Den brede GaussPrior er ustabil ved
+\(\theta > 10\): ved \(\theta = 15\) estimeres
+\(\hat{\theta} \approx 38\) med std \(\approx 26\), et direkte resultat
+af at prioren ikke er centreret i et biologisk realistisk interval.
 
-SVGD repræsenterer posterioren med \(M\) partikler der opdateres via en
-kernelbaseret regel der kombinerer gradient-information fra
-log-posterior med en frastødende kraft der forhindrer partikelkollaps.
-Log-posterioren er
-\(\log p(\theta \mid \mathbf{t}) = \sum_i \log f(t_i;\theta) + \log \pi(\theta)\),
-hvor
-\(f(t;\theta) = \alpha\exp(\mathbf{T}(\theta)\,t)(-\mathbf{T})\mathbf{e}\)
-er den analytisk beregnede fase-type PDF eksakt, ikke approksimativ.
-
-Fire prior-strategier sammenlignes systematisk: vag GaussPrior.
-informativ centreret GaussPrior, HalfCauchyPrior og DataPrior. En
-forkert centreret prior dominerer stærkt ved \(n_\text{obs} < 300\): ved
-\(n_\text{obs} = 50\) estimeres \(\hat{\theta} \approx 4{,}1\) frem for
-sand \(\theta = 7{,}0\), og biasset er stadig tydeligt ved
-\(n_\text{obs} = 500\). HalfCauchyPrior er velegnet til skalaparametre
-som migrationsrate fordi den er positiv og har en tung hale. DataPrior
-konstruerer automatisk en MoM-baseret prior fra data og giver den
-laveste posterior-std for bavian-realistiske \(\theta \in [3, 20]\).
-
-\begin{figure}[H]
-
-\centering{
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-02_svgd_inferens_basis-fig-priors-output-1.pdf}}
-
-}
-
-\subcaption{\label{fig-priors-1}Posterior under fire prior-strategier
-(sand theta=7).}
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-02_svgd_inferens_basis-fig-priors-output-2.pdf}}
-
-}
-
-\subcaption{\label{fig-priors-2}}
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-02_svgd_inferens_basis-fig-priors-output-3.pdf}}
-
-}
-
-\subcaption{\label{fig-priors-3}}
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-02_svgd_inferens_basis-fig-priors-output-4.pdf}}
-
-}
-
-\subcaption{\label{fig-priors-4}}
-
-}
-
-\caption{\label{fig-priors}}
-
-\end{figure}%
+Forkert centrerede priors dominerer stærkt ved \(n_\text{obs} < 500\):
+ved \(n = 50\) med en prior centreret ved \(\mu = 1\) estimeres
+\(\hat{\theta} \approx 3{,}9\) frem for sand \(\theta = 7{,}0\). Biasset
+aftager gradvist og er stadig tydeligt ved \(n = 1000\), hvilket viser
+at prior-valget er kritisk ved de stikprøvestørrelser der er realistiske
+for bavian-genomdata.
 
 \begin{figure}[H]
 
@@ -1625,68 +1454,48 @@ prøvestørrelse.}
 
 \begin{verbatim}
     n         prior     mean      std
-   50 Korrekt prior 7.214748 0.629162
-   50 Forkert prior 3.898964 0.912293
-  100 Korrekt prior 7.566036 1.205100
-  100 Forkert prior 4.823960 0.381353
-  250 Korrekt prior 6.970494 0.484178
-  250 Forkert prior 5.351286 1.228569
-  500 Korrekt prior 6.902120 0.039612
-  500 Forkert prior 6.403990 1.323501
- 1000 Korrekt prior 6.877664 0.162761
- 1000 Forkert prior 6.149447 1.466529
- 3000 Korrekt prior 7.022381 0.031868
- 3000 Forkert prior 6.535570 1.575387
-10000 Korrekt prior 6.938227 0.073420
-10000 Forkert prior 6.907288 0.082191
+   50 Korrekt prior 8.040697 0.665939
+   50 Forkert prior 4.308981 0.165643
+  100 Korrekt prior 7.227696 0.266892
+  100 Forkert prior 4.815340 0.199500
+  250 Korrekt prior 6.953654 0.105412
+  250 Forkert prior 5.344183 1.228706
+  500 Korrekt prior 6.610553 0.102156
+  500 Forkert prior 5.890757 0.067705
+ 1000 Korrekt prior 7.292648 0.029937
+ 1000 Forkert prior 6.399838 1.473696
+ 3000 Korrekt prior 6.930915 0.146960
+ 3000 Forkert prior 6.756975 0.062585
+10000 Korrekt prior 7.031132 0.009139
+10000 Forkert prior 6.932490 0.124229
 \end{verbatim}
 
-\begin{table}
+\subsection{Optimizer og læringsrate}\label{optimizer-og-luxe6ringsrate}
 
-\caption{\label{tbl-prior-bav}Prior-sammenligning over
-bavian-realistiske theta-værdier.}
+Fem optimizer-konfigurationer er testet over bavian-realistiske
+theta-værdier med DataPrior og \(n_\text{obs} = 3000\): Adam(0.1),
+Adam(0.25), Adam(0.5) og to ExponentialStepSize-schedules. Posterior-std
+er brugt som primært evalueringskriterium.
 
-\centering{
+Adam(0.1) giver lavest gennemsnitlig posterior-std over alle
+theta-værdier og vælges som standardoptimizer til bavian-analysen.
+ExponentialStepSize-schedules fejler ved lav \(\theta\) (std \(= 0\),
+dvs. partikelkollaps) og er uegnede som generel strategi. Forskellen
+mellem Adam(0.1) og Adam(0.25) er marginal ved \(\theta \leq 10\), men
+Adam(0.1) er mere stabil ved \(\theta = 20\).
 
-\begin{verbatim}
-Prior-sensitivitet ved bavian-theta:
- Sand theta             Prior    Mean      Std    Bias  RelBias procent
-        3.0 GaussPrior (bred)  3.0426  0.03999  0.0426             1.42
-        3.0 GaussPrior (smal)  3.0422  0.03457  0.0422             1.41
-        3.0        HalfCauchy  3.0629  0.08157  0.0629             2.10
-        3.0   DataPrior (MoM)  3.0429  0.05080  0.0429             1.43
-        7.0 GaussPrior (bred)  7.8843  2.08137  0.8843            12.63
-        7.0 GaussPrior (smal)  6.8172  0.18764  0.1828             2.61
-        7.0        HalfCauchy  6.8018  0.07390  0.1982             2.83
-        7.0   DataPrior (MoM)  6.8429  0.05374  0.1571             2.24
-       15.0 GaussPrior (bred) 37.9077 26.05859 22.9077           152.72
-       15.0 GaussPrior (smal) 15.1087  0.26560  0.1087             0.72
-       15.0        HalfCauchy 14.7303  1.49894  0.2697             1.80
-       15.0   DataPrior (MoM) 14.9846  0.08690  0.0154             0.10
-       20.0 GaussPrior (bred) 64.1518 34.63223 44.1518           220.76
-       20.0 GaussPrior (smal) 20.7038  1.01148  0.7038             3.52
-       20.0        HalfCauchy 26.9537 20.29827  6.9537            34.77
-       20.0   DataPrior (MoM) 20.4302  0.24116  0.4302             2.15
+\subsection{Posterior-form og
+diagnostik}\label{posterior-form-og-diagnostik}
 
-Bedste prior per theta (lavest bias):
- Sand theta             Prior   Bias
-        3.0 GaussPrior (smal) 0.0422
-        7.0   DataPrior (MoM) 0.1571
-       15.0   DataPrior (MoM) 0.0154
-       20.0   DataPrior (MoM) 0.4302
-\end{verbatim}
+En veldefineret posterior er bred og unimodal --- partiklerne fordeler
+sig jævnt omkring posterior-koncentrationen. En peaked posterior med høj
+kurtosis indikerer at SVGD er kollapset mod et enkelt punkt og
+undervurderer usikkerheden. Kurtosis beregnes som \[
+\kappa = \frac{\mathbb{E}[(\theta - \mu)^4]}{\sigma^4} - 3,
+\]
 
-}
-
-\end{table}%
-
-En god posterior er bred og flad og trækker ud mod siderne; en peaked
-posterior med høj kurtosis indikerer at SVGD er kollapset og
-undervurderer usikkerheden. Adam(0.25) giver konsistent flade posteriors
-over bavian-realistiske \(\theta\)-værdier og er valgt som
-standardoptimizer: \(\hat{\theta} = 7{,}206 \pm 0{,}076\) (sand
-\(\theta = 7{,}0\)) over 300 iterationer med 60 partikler. For høje
-læringsrater giver peaked posteriors der undervurderer usikkerheden.
+og posteriors med \(\kappa > 2\) betragtes som peaked og potentielt
+underdisperserede.
 
 \begin{figure}[H]
 
@@ -1701,66 +1510,143 @@ posterior under varierende konfigurationer.}
 
 \end{figure}%
 
-\begin{figure}[H]
+For høj læringsrate (Adam med \(lr = 2{,}0\)) giver peaked posteriors
+fordi partiklerne oscillerer og ikke finder posterior-koncentrationen.
+For lav læringsrate (\(lr = 0{,}001\)) giver bred men langsomt
+konvergerende posterior. Adam(0.25) og Adam(0.1) giver konsistent flade,
+unimodale posteriors og er de anbefalede konfigurationer.
 
-\centering{
+\subsection{Partikler og iterationer}\label{partikler-og-iterationer}
 
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-02_svgd_inferens_basis-fig-konvergens-output-1.pdf}}
-
-}
-
-\subcaption{\label{fig-konvergens-1}Konvergensplot for otte
-læringsrate-konfigurationer.}
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-02_svgd_inferens_basis-fig-konvergens-output-2.pdf}}
-
-}
-
-\subcaption{\label{fig-konvergens-2}}
-
-}
-
-\caption{\label{fig-konvergens}}
-
-\end{figure}%
+En grid-søgning over
+\((n_\text{part}, n_\text{iter}) \in \{20, 40, 60, 80, 120\} \times \{100, 200, 300, 500\}\)
+med Adam(0.1) og DataPrior ved \(\theta = 5{,}0\) identificerer den
+optimale konfiguration til bavian-analysen.
 
 \begin{figure}[H]
 
 \centering{
 
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-02_svgd_inferens_basis-fig-heatmap-lr-output-1.pdf}}
+\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-02_svgd_inferens_basis-fig-grid-svgd-output-1.pdf}}
 
 }
 
-\caption{\label{fig-heatmap-lr}Heatmap over bias og std for
-læringsrate-strategier.}
+\caption{\label{fig-grid-svgd}Grid-søgning over partikler og
+iterationer.}
 
 \end{figure}%
 
 \begin{verbatim}
-Rangering (lav gennemsnits-std = bedst til bavian):
-Strategy
-Adam(0.1)               0.072597
-Adam(0.25)              0.104790
-Exp(0.1->0.005,t=60)    0.127720
-Adam(0.5)               0.143155
-Exp(0.1->0.005,t=30)    0.260445
 
-Anbefaling til NB07: Adam(0.1)
+Bedste kombination: 40 particles, 300 iterations
+  Std=0.02919  Bias=0.0681
+
+Anbefaling til bavian NB07:
+  optimizer = Adam(0.1)
+  n_particles = 40
+  n_iterations = 300
 \end{verbatim}
 
-Aftagende regularisering (ExpRegularization) kan stabilisere konvergens
-i tidlige iterationer, men stærk konstant regularisering giver bredere
-posterior fordi partiklerne forhindres i at finde
-posterior-koncentrationen. Modelfit valideres via sammenligning af
-model-CDF med empirisk ECDF, og coverage-analysen viser 94 \% dækning
-ved \(n_\text{obs} = 100\) og korrekt prior, men faldende dækning ved
-store \(n\) som følge af variationel inferens' tendens til at
-undervurdere posterior-bredde.
+40 partikler og 300 iterationer giver std \(= 0{,}029\) og bias
+\(= 0{,}068\) en god balance mellem præcision og beregningstid. Øgning
+til 60 partikler reducerer std med under 5\% og udgør ikke en
+meningsfuld forbedring relativt til den øgede beregningstid.
+
+\subsection{Standardkonfiguration}\label{standardkonfiguration}
+
+Alle ovenstående valg er opsummeret i \textbf{?@tbl-config} der angiver
+standardkonfigurationen anvendt i bavian-analyserne (NB07A og NB07B).
+
+\chapter{Resultater}\label{resultater}
+
+\section{SVGD validering og metodiske
+egenskaber}\label{svgd-validering-og-metodiske-egenskaber}
+
+\subsection{Prior-dominans og
+stikprøvestørrelse}\label{prior-dominans-og-stikpruxf8vestuxf8rrelse}
+
+Prior-dominansanalysen viser at likelihood overtager fra prioren ved
+\(n_\text{obs} \approx 500\)--\(1000\) for en korrekt centreret prior.
+Med en forkert centreret prior (\(\mu_\text{prior} = 1\), sand
+\(\theta = 7\)) er estimatet stadig biased ved \(n = 1000\)
+(\(\hat{\theta} \approx 6{,}1\), bias \(= 0{,}9\)), og kun ved
+\(n = 10{,}000\) konvergerer de to priors til samme estimat.
+
+\begin{figure}[H]
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-02_svgd_inferens_basis-fig-prior-dominans-output-1.pdf}}
+
+}
+
+\caption{\label{fig-prior-dominans}Prior-dominans som funktion af
+prøvestørrelse.}
+
+\end{figure}%
+
+\begin{verbatim}
+    n         prior     mean      std
+   50 Korrekt prior 8.040697 0.665939
+   50 Forkert prior 4.308981 0.165643
+  100 Korrekt prior 7.227696 0.266892
+  100 Forkert prior 4.815340 0.199500
+  250 Korrekt prior 6.953654 0.105412
+  250 Forkert prior 5.344183 1.228706
+  500 Korrekt prior 6.610553 0.102156
+  500 Forkert prior 5.890757 0.067705
+ 1000 Korrekt prior 7.292648 0.029937
+ 1000 Forkert prior 6.399838 1.473696
+ 3000 Korrekt prior 6.930915 0.146960
+ 3000 Forkert prior 6.756975 0.062585
+10000 Korrekt prior 7.031132 0.009139
+10000 Forkert prior 6.932490 0.124229
+\end{verbatim}
+
+Dette har direkte konsekvenser for bavian-analysen: med
+\(n_\text{obs} \approx 2000\)--\(5000\) SNP-observationer per population
+er prior-valget ikke neutralt. DataPrior anbefales som standardvalg
+fordi den er data-informeret og ikke kræver forhåndsviden om \(\theta\).
+
+\subsection{Coverage og
+posterior-kalibrering}\label{coverage-og-posterior-kalibrering}
+
+Coverage-analysen viser at SVGD med korrekt centreret prior giver
+empirisk \(95\%\)-CI dækning tæt på det nominelle niveau ved
+\(n_\text{obs} = 100\), men at dækningen falder med stigende
+stikprøvestørrelse. Dette er ikke en fejl i SVGD det er en velkendt
+egenskab ved variationel inferens: med mange data bliver posterioren
+meget smal, og \(\pm 1{,}96 \times \text{std}\) undervurderer det sande
+konfidensinterval (underdispersion).
+
+\begin{figure}[H]
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-02_svgd_inferens_basis-fig-coverage-output-1.pdf}}
+
+}
+
+\caption{\label{fig-coverage}Empirisk 95pct-CI dækning som funktion af
+prøvestørrelse.}
+
+\end{figure}%
+
+Konsekvensen for bavian-analysen er at posterior-std bør rapporteres
+direkte frem for at fortolkes som et klassisk
+\(95\%\)-konfidensinterval. En forkert centreret prior giver lav dækning
+ved \(n = 100\) (\(24\%\)) fordi prioren dominerer og trækker estimatet
+væk fra sand \(\theta\), og dækningen stiger gradvist mod det nominelle
+niveau efterhånden som likelihood overtager.
+
+\subsection{Posterior predictive
+check}\label{posterior-predictive-check}
+
+Posterior predictive check bekræfter at koalescentmodellen med det
+estimerede \(\hat{\theta}\) reproducerer de observerede TMRCA-tider:
+empirisk CDF og model-CDF ligger tæt på hinanden over hele
+fordelingsforløbet, og model-PDF matcher histogrammet af observerede
+tider.
 
 \begin{figure}[H]
 
@@ -1789,530 +1675,10 @@ empirisk ECDF.}
 
 \end{figure}%
 
-\begin{figure}[H]
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-02_svgd_inferens_basis-fig-coverage-output-1.pdf}}
-
-}
-
-\caption{\label{fig-coverage}Empirisk 95pct-CI dækning som funktion af
-prøvestørrelse.}
-
-\end{figure}%
-
-Grid-søgning over
-\((n_\text{part}, n_\text{iter}) \in \{20, 40, 60, 80, 120\} \times \{100, 200, 300, 500\}\)
-identificerer \(M = 60\) partikler og \(T = 300\) iterationer
-(enkelt-parameter) og \(T = 400\) (to-parameter) som optimal
-konfiguration. Overgangen fra 40 til 60 partikler reducerer
-posterior-std med \(\approx 15\%\); yderligere forøgelse giver \(< 5\%\)
-forbedring.
-
-\begin{figure}[H]
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-02_svgd_inferens_basis-fig-grid-svgd-output-1.pdf}}
-
-}
-
-\caption{\label{fig-grid-svgd}Grid-søgning over partikler og
-iterationer.}
-
-\end{figure}%
-
-\begin{verbatim}
-
-Bedste kombination: 40 particles, 300 iterations
-  Std=0.02919  Bias=0.0681
-
-Anbefaling til bavian NB07:
-  optimizer = Adam(0.1)
-  n_particles = 40
-  n_iterations = 300
-\end{verbatim}
-
-\section{To-ø modellen og
-IM-modellen}\label{to-uxf8-modellen-og-im-modellen}
-
-To-ø modellen udvider standardkoalescenten til to populationer med
-symmetrisk migration og parametre \(\theta_0 = 1/N\) og
-\(\theta_1 = 2Nm\). Tilstandsrummet konstrueres via StateIndexer og
-Property-klasser der tracker populationstilhørsforhold for hver linje,
-og koalescens er kun mulig inden for samme population. Modellen er
-direkte motiveret af det veldokumenterede genflow mellem
-bavian-populationer ({Rogers et al.} 2019; {Erik F. Sørensen et al.}
-2023).
-
-\begin{figure}[H]
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-03_svgd_two_island-fig-two-island-graf-output-1.pdf}}
-
-}
-
-\caption{\label{fig-two-island-graf}To-ø modellens tilstandsrum.}
-
-\end{figure}%
-
-For lav migration (\(\theta_1 < 0{,}5\)) viser den parvise posterior
-bred, negativt korreleret joint-fordeling --- parametrene er
-konfunderede. For moderat og høj migration er identifikationen markant
-bedre, og minimum \(N_\text{obs} = 5000\) sikrer
-\(\text{std}(\hat{\theta}_1) < 0{,}3\). PDF-formen ændrer sig
-systematisk med migrationsraten: lav migration giver en bred
-tunghaletfordeling mens høj migration nærmer sig standardkoalescentens
-eksponentielle form. Iso-linjerne for \(\mathbb{E}[\text{TMRCA}]\) viser
-den fundamentale konfundering: parametre langs samme kurve giver
-identisk TMRCA-fordeling, og konfunderingen reduceres ved at inkludere
-joint SFS frem for blot TMRCA-observationer.
-
-\begin{figure}[H]
-
-\centering{
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-03_svgd_two_island-fig-pairwise-scenarier-output-1.pdf}}
-
-}
-
-\subcaption{\label{fig-pairwise-scenarier-1}Pairwise posterior for fire
-migrations-scenarier.}
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-03_svgd_two_island-fig-pairwise-scenarier-output-2.pdf}}
-
-}
-
-\subcaption{\label{fig-pairwise-scenarier-2}}
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-03_svgd_two_island-fig-pairwise-scenarier-output-3.pdf}}
-
-}
-
-\subcaption{\label{fig-pairwise-scenarier-3}}
-
-}
-
-\caption{\label{fig-pairwise-scenarier}}
-
-\end{figure}%
-
-\begin{table}
-
-\caption{\label{tbl-identification}SVGD-estimater for fire
-migrations-scenarier.}
-
-\centering{
-
-\begin{verbatim}
-Meget høj migration: theta0=0.593+/-0.149 (sand 0.7), theta1=5.543±3.638 (sand 10.0)
-
-           Scenarie  Sand theta0  Sand theta1  Est. theta0  Est. theta1  Std theta0  Std theta1  Bias theta0  Bias theta1
-      Lav migration          0.7          0.2        0.688        0.190      0.0140      0.0100        0.012        0.010
-  Moderat migration          0.7          1.0        0.705        1.004      0.0087      0.0770        0.005        0.004
-      Høj migration          0.7          5.0        0.634        2.746      0.1397      1.4917        0.066        2.254
-Meget høj migration          0.7         10.0        0.593        5.543      0.1491      3.6380        0.107        4.457
-\end{verbatim}
-
-}
-
-\end{table}%
-
-\begin{figure}
-
-\centering{
-
-\begin{verbatim}
-Maks varians ved theta1 = 0.010
-E[TMRCA] ved theta1->0 = 2.8571
-E[TMRCA] ved theta1->uendelig = 2.8571
-\end{verbatim}
-
-}
-
-\caption{\label{fig-migration-tmrca}}
-
-\end{figure}%
-
-MoM-estimater for \(\theta_1\) er ustabile ved
-\(n_\text{obs} \leq 1000\) --- ved \(n_\text{obs} = 300\) estimeres
-\(\hat{\theta}_1 = 2{,}13\) frem for sand \(1{,}0\) --- og MoM er kun
-tilstrækkelig i 2 af 5 bavian-scenarier ved \(n_\text{obs} = 3000\).
-HalfCauchyPrior er nødvendig til migrationsraten for at undgå
-systematisk bias: GaussPrior giver \(\hat{\theta}_1 = 2{,}51\) (sand
-\(= 0{,}9\)) mod HalfCauchyPrior's \(0{,}863 \pm 0{,}287\). Den
-asymmetriske model med separate rater \(m_{12}\) og \(m_{21}\) viser
-stærk negativ korrelation i den parvise posterior for \(n = 2\): summen
-af migrationraterne men ikke de individuelle retninger er
-identificerbar, og \(n = 4\) er nødvendigt for bedre adskillelse.
-
-\begin{figure}[H]
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-03_svgd_two_island-fig-mom-vs-svgd-output-1.pdf}}
-
-}
-
-\caption{\label{fig-mom-vs-svgd}MoM vs SVGD som funktion af
-prøvestørrelse.}
-
-\end{figure}%
-
-\begin{figure}[H]
-
-\centering{
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-03_svgd_two_island-fig-asym-pairwise-output-1.pdf}}
-
-}
-
-\subcaption{\label{fig-asym-pairwise-1}Pairwise posterior for
-asymmetrisk migrationsmodel.}
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-03_svgd_two_island-fig-asym-pairwise-output-2.pdf}}
-
-}
-
-\subcaption{\label{fig-asym-pairwise-2}}
-
-}
-
-\caption{\label{fig-asym-pairwise}}
-
-\end{figure}%
-
-To-ø modellen valideres med msprime-simulationer under tre scenarier med
-kendte \((\theta_0, \theta_1)\)-værdier og bekræfter at implementeringen
-er korrekt.
-
-\begin{verbatim}
-Lille Ne, lav m: theta0=0.57046+/-0.00675 (sand 0.00002)  theta1=0.000+/-0.000 (sand 25.000)
-\end{verbatim}
-
-\begin{figure}[H]
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-03_svgd_two_island-fig-msprime-validering-island-output-2.pdf}}
-
-}
-
-\caption{\label{fig-msprime-validering-island}msprime-validering af
-two-island modellen: estimerede vs.~sande parametre.}
-
-\end{figure}%
-
-{
-
-\begin{longtable}[]{@{}lllllllll@{}}
-
-\caption{\label{tbl-msprime-validering-island}msprime-validering af
-two-island modellen.}
-
-\tabularnewline
-
-\toprule\noalign{}
-& Scenarie & theta0 sand & theta0 est & theta0 std & theta1 sand &
-theta1 est & theta1 std & n\_obs \\
-\midrule\noalign{}
-\endhead
-\bottomrule\noalign{}
-\endlastfoot
-0 & Lav migration & 0.00001 & 0.58549 & 0.00419 & 10.0 & 0.0 & 0.0 &
-4977 \\
-1 & Moderat migration & 0.00001 & 0.57937 & 0.00536 & 100.0 & 0.0 & 0.0
-& 4971 \\
-2 & Lille Ne, lav m & 0.00002 & 0.57046 & 0.00675 & 25.0 & 0.0 & 0.0 &
-4824 \\
-
-\end{longtable}
-
-}
-
-Numerisk er 64-bit aritmetik tilstrækkelig for alle bavian-parametre
-(\(\theta_0 \in [0{,}01, 5{,}0]\), \(\theta_1 \in [0{,}1, 10{,}0]\)), og
-MPFR aktiveres ikke i nogen af analyserne. Grid-søgning for to-ø
-konfigurationen bekræfter \(M = 60\) partikler og \(T = 400\)
-iterationer som optimal.
-
-\begin{figure}[H]
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-04_numerical_precision_and_scaling-fig-grid-island-output-1.pdf}}
-
-}
-
-\caption{\label{fig-grid-island}Grid-søgning over partikler og
-iterationer for to-ø modellen.}
-
-\end{figure}%
-
-IM-modellen implementeres som en tidsinhomogen to-ø model med
-epoch-skift ved \(t_s\) med rate
-\(r_\text{switch} = 15/t_{s,\text{coal}}\). \(\mathbb{E}[\text{TMRCA}]\)
-er systematisk højere end i to-ø uden split fordi linjer der overlever
-til \(t_s\) koalescerer i den ancestrale population, og kendte bavian
-split-tider (\(\approx 1{,}0\) Mya for \emph{P. anubis}/\emph{P.
-cynocephalus}) er i det identificerbare interval. Populationsflaskehalse
-er kun detekterbare i SFS når flaskehalsen er tidlig
-(\(t_\text{start} \approx 0\)) og dyb (\(N_\text{bot} < N/50\));
-moderate flaskehalse sent i koalescenten er nærmest usynlige. Fra
-PSMC-profilet i {Erik F. Sørensen et al.} (2023) er tre epoker ved
-\(0\), \(50.000\) og \(200.000\) år valgt. IM-modellen valideres med
-msprime-simulationer med eksplicit split-tidspunkt og bekræfter korrekt
-estimering af alle tre parametre.
-
-\begin{figure}[H]
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-05_time_inhomogeneous-fig-im-tmrca-output-1.pdf}}
-
-}
-
-\caption{\label{fig-im-tmrca}E{[}TMRCA{]} som funktion af
-split-tidspunkt i IM-modellen.}
-
-\end{figure}%
-
-\begin{verbatim}
-Two-island uden split:  E[TMRCA] = 2.8571
-IM-model ved t_s=0.1:   E[TMRCA] = 6.5259
-IM-model ved t_s=5.0:   E[TMRCA] = 4.4719
-\end{verbatim}
-
-\begin{figure}[H]
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-05_time_inhomogeneous-fig-bottleneck-cdf-output-1.pdf}}
-
-}
-
-\caption{\label{fig-bottleneck-cdf}CDF og PDF under
-populationsflaskehals for varierende dybde.}
-
-\end{figure}%
-
-\begin{verbatim}
- Dybde f=N/N_b  N_bottle  E[TMRCA]
-           1.0      1.00    1.5000
-           2.0      0.50    1.5000
-           5.0      0.20    1.5000
-          10.0      0.10    1.4992
-          50.0      0.02    1.0033
-\end{verbatim}
-
-\begin{verbatim}
- SVGD-estimater:
-  theta0 = 0.00008 +/- 0.00020  (sand 0.00001)
-  theta1 = 0.4476 +/- 0.2626  (sand 100.0000)
-  r_switch = 18.1910 +/- 60.6268  (sand 33.0004)
-\end{verbatim}
-
-\begin{figure}[H]
-
-\centering{
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-05_time_inhomogeneous-fig-msprime-validering-im-output-2.pdf}}
-
-}
-
-\subcaption{\label{fig-msprime-validering-im-1}msprime-validering af
-IM-modellen: estimerede vs.~sande parametre.}
-
-\centering{
-
-\begin{verbatim}
-<Figure size 1000x400 with 0 Axes>
-\end{verbatim}
-
-}
-
-\subcaption{\label{fig-msprime-validering-im-2}}
-
-}
-
-\caption{\label{fig-msprime-validering-im}}
-
-\end{figure}%
-
-{
-
-\begin{longtable}[]{@{}llllll@{}}
-
-\caption{\label{tbl-msprime-validering-im}msprime-validering af
-IM-modellen: estimerede vs.~sande parametre.}
-
-\tabularnewline
-
-\toprule\noalign{}
-& Parameter & Sand & Estimat & Std & Bias (procent) \\
-\midrule\noalign{}
-\endhead
-\bottomrule\noalign{}
-\endlastfoot
-0 & theta0 (koalescensrate) & 0.00001 & 0.00008 & 0.0002 & 674.4 \\
-1 & theta1 (migrationsrate) & 100.00000 & 0.44760 & 0.2626 & -99.6 \\
-2 & r\_switch (epoch-rate) & 33.00040 & 18.19100 & 60.6268 & -44.9 \\
-
-\end{longtable}
-
-}
-
-\section{Joint sandsynligheder og
-databehandling}\label{joint-sandsynligheder-og-databehandling}
-
-joint\_prob\_graph beregner den fælles sandsynlighed for observerede
-mutations-kombinationer \((z_1, z_2, \ldots)\), og log-likelihood for en
-observation \(\mathbf{k}\) er
-\(\log p(\mathbf{k} \mid theta) = \log P_\mathbf{k}(\theta)\) beregnet
-eksakt fra absorptionssandsynligheder. Parameteren tot\_reward\_limit
-sætter en øvre grænse; observationer ud over denne grænse giver deficit
-der bør holdes under 5 \%.\(\mu = 1{,}0\) og tot\_reward\_limit = 3 er
-valgt til bavian-analyser (deficit \(= 0{,}7\%\)). Total grenlængde
-giver lavest posterior-std ved moderate \(\theta\), mens joint SFS giver
-gevinst ved \(\theta > 8\) og \(n_\text{obs} > 3000\). En fejl på
-\(2\times\) i \(\mu\) giver en fejl på \(2\)--\(3\times\) i
-\(\hat{\theta}\) der ikke aftager med større datasæt, og
-sensitivitetsanalyse over \(\mu \in \{0{,}7, 1{,}0, 1{,}5\}\)
-rapporteres for alle bavian-populationer.
-
-\begin{figure}[H]
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-06_joint_probability_inferens-fig-deficit-output-1.pdf}}
-
-}
-
-\caption{\label{fig-deficit}Deficit som funktion af tot\_reward\_limit
-og mutationsrate.}
-
-\end{figure}%
-
-\begin{figure}[H]
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-06_joint_probability_inferens-fig-heatmap-joint-output-1.pdf}}
-
-}
-
-\caption{\label{fig-heatmap-joint}Heatmap over joint sandsynligheder for
-lav, middel og høj theta.}
-
-\end{figure}%
-
-\begin{figure}[H]
-
-\centering{
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-06_joint_probability_inferens-fig-arg-pairwise-output-1.pdf}}
-
-}
-
-\subcaption{\label{fig-arg-pairwise-1}Pairwise posterior for to-locus
-ARG.}
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-06_joint_probability_inferens-fig-arg-pairwise-output-2.pdf}}
-
-}
-
-\subcaption{\label{fig-arg-pairwise-2}}
-
-}
-
-\caption{\label{fig-arg-pairwise}}
-
-\end{figure}%
-
-Koalescentenheder omregnes til biologiske enheder via
-\(t_\text{år} = t_\text{coal} \times 2N_e \times g\),
-\(N_e = \hat{\pi}/(4\mu)\) og
-\(m_\text{per generation} = \theta_1/(2N_e)\). Nukleotiddiversitet
-beregnes som \(\hat{\pi} = L^{-1}\sum_l 2p_l(1-p_l)n_l/(n_l-1)\) og
-Tajima's \(D\) beregnes med tæller \(\hat{\pi}_\text{total} - S/a_1\) i
-absolutte enheder (ikke per site) for at sikre korrekt
-standardfejlestimering. Observationer til SVGD genereres via
-hypergeometrisk subsampling
-\(k \sim \text{Hypergeometrisk}(n_l, a_l, n_\text{sub})\) for hvert SNP,
-og \(k\) bruges som TMRCA-proxy hvis \(0 < k < n_\text{sub}\). Alle
-analyser er udført på kromosom 20 i VCZ-datasættet fra {Erik F. Sørensen
-et al.} (2023): \(2.665.269\) varianter på tværs af \(227\) diploide
-individer fra seks \emph{Papio}-arter.
-
-Standardkonfigurationen til bavian-analyserne er opsummeret i
-Table~\ref{tbl-config}.
-
-\begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}@{}}
-\caption{Standardkonfiguration til
-bavian-analyser.}\label{tbl-config}\tabularnewline
-\toprule\noalign{}
-\begin{minipage}[b]{\linewidth}\raggedright
-Parameter
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Valg
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Begrundelse
-\end{minipage} \\
-\midrule\noalign{}
-\endfirsthead
-\toprule\noalign{}
-\begin{minipage}[b]{\linewidth}\raggedright
-Parameter
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Valg
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Begrundelse
-\end{minipage} \\
-\midrule\noalign{}
-\endhead
-\bottomrule\noalign{}
-\endlastfoot
-\(n\) (enkelt-pop.) & 4 & 35 tilstande, \(< 1\) min, 3
-SFS-komponenter \\
-\(n\) (to-ø / IM) & 6 & 140 tilstande, 5--15 min, bedre
-migration-signal \\
-Optimizer & Adam(0.25) & Lavest bias over
-bavian-\(\boldsymbol{\theta}\) \\
-Iterationer (enkelt) & 300 & Konvergeret inden 200 for de fleste
-modeller \\
-Iterationer (to-param.) & 400 & Ekstra iterationer til
-migration-identifikation \\
-Partikler & 60 & Diminishing returns over 60 \\
-Prior (enkelt-pop.) & DataPrior & Automatisk, data-informeret \\
-Prior (migration) & HalfCauchyPrior & Positiv-støttet, undgår bias \\
-tot\_reward\_limit & 3 & Deficit \(< 1\%\) for \(\mu = 1{,}0\) \\
-\(\mu\) & \(0{,}9 \times 10^{-8}\) & Per site per generation ({Erik F.
-Sørensen et al.} 2023) \\
-\(g\) & 11 år & Generationstid ({Erik F. Sørensen et al.} 2023) \\
-\end{longtable}
-
-\chapter{Resultater}\label{resultater}
+Et godt PPC er en nødvendig men ikke tilstrækkelig betingelse for
+korrekt modelspecifikation det bekræfter at enkelt-populations
+koalescentmodellen er passende for de simulerede data, og at SVGD finder
+det korrekte posterior-centrum.
 
 \chapter{Diskussion}\label{diskussion}
 
@@ -2346,10 +1712,6 @@ Hobolth, Asger, Arno Siri-Jegousse, and Mogens Bladt. 2018.
 Preprint arXiv:1806.01416}, ahead of print.
 https://doi.org/\url{https://doi.org/10.1016/j.tpb.2019.02.001}.
 
-\bibitem[\citeproctext]{ref-hobolth2019}
-Hobolth, Asger, Arno Siri-Jégousse, and Mogens Bladt. 2019.
-\emph{Lecture Notes: Phase-Type Distributions in Population Genetics}.
-
 \bibitem[\citeproctext]{ref-jordan2018papio}
 {Jordan, Vallmer E., Jerilyn A. Walker, Thomas O. Beckstrom, Cody J.
 Steely, Cullen L. McDaniel, et al.} 2018. {``A Computational
@@ -2366,22 +1728,11 @@ Kingman, John F. C. 1982. {``The Coalescent.''} \emph{Stochastic
 Processes and Their Applications} 13 (3): 235--48.
 \url{https://doi.org/10.1016/0304-4149(82)90011-4}.
 
-\bibitem[\citeproctext]{ref-kopp2023}
-Kopp, Gisela H., Riashna Sithaldeen, Franziska Trede, Franziska
-Grathwol, Christian Roos, and Dietmar Zinner. 2023. {``A Comprehensive
-Overview of Baboon Phylogenetic History.''} \emph{Genes} 14: 614.
-\url{https://doi.org/10.3390/genes14030614}.
-
 \bibitem[\citeproctext]{ref-liu2016svgd}
 Liu, Qiang, and Dilin Wang. 2016. {``Stein Variational Gradient Descent:
 A General Purpose Bayesian Inference Algorithm.''} \emph{Advances in
 Neural Information Processing Systems} 29.
 \url{https://arxiv.org/abs/1608.04471}.
-
-\bibitem[\citeproctext]{ref-munchphasic}
-Munch, Kasper. 2023. \emph{Introduction to Phase-Type Distributions with
-Phasic}.
-\url{https://munch-group.github.io/phasic/pages/tutorial/introduction.html}.
 
 \bibitem[\citeproctext]{ref-Neuts1981}
 Neuts, Marcel F. 1981. \emph{Matrix-Geometric Solutions in Stochastic
