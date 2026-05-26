@@ -180,6 +180,14 @@ $$
 
 IM-modellen tillader vedvarende migration efter initial adskillelse og giver systematisk højere forventet TMRCA end to-ø modellen uden split, fordi linjer der overlever til $t_s$ derefter koalescerer i den ancestrale population med rate $1/\theta_a$.
 
+### Parameter-confunding og identifiablity i to-ø modellen
+
+Et centralt problem i to-ø modellen er at $\theta_0$ og $\theta_1$ er confunding høj migration ($\theta_1 \to \infty$) reducerer TMRCA på identisk vis som lav koalescensrate, fordi linjer der migrerer hurtigt opfører sig som en panmiktisk population. Figur @fig-migration-tmrca viser at $\mathbb{E}[\text{TMRCA}]$ er identisk ved $\theta_1 \to 0$ og $\theta_1 \to \infty$ (begge $\approx 2{,}857$ koalescentenheder for $n=2$), og at variansen har et maksimum ved meget lav migration ($\theta_1 \approx 0{,}01$) — ikke ved moderat migration som man intuitivt kunne forvente. Maksimal varians ved lav migration skyldes at koalescenstiden er afhængig af sjældne migrationsbegivenheder: hvis migration aldrig sker koalescerer linjerne aldrig på tværs af populationer, men fluktuationer i hvornår den sjældne migration sker giver stor spredning.
+
+{{< embed ../notebooks/03_svgd_two_island.ipynb#fig-migration-tmrca >}}
+
+Dette identifikationsproblem manifesterer sig direkte i SVGD-posterior: for $\theta_1 < 0{,}5$ er den parvise posterior bred og negativt korreleret — en høj $\theta_1$ kompenseres af lav $\theta_0$ — og posterioren er praktisk talt ikke identificeret. For moderat og høj migration adskilles parametrene bedre. Asymmetrisk migration $m_{12} \neq m_{21}$ er slet ikke identificerbar fra $n=2$ observationer: summen $m_{12} + m_{21}$ er identificerbar men ikke de individuelle retninger. Med $n=4$ forbedres adskillelsen markant [@Hobolth2024].
+
 ## Tidsinhomogenitet og demografisk rekonstruktion
 
 Koalescensraten $\lambda_k(t) = \binom{k}{2}/N(t)$ varierer med tid når populationsstørrelsen $N(t)$ ikke er konstant. En tidsinhomogen koalescent modellere denne variation ved at opdele demografihistorien i epoker med stykvist konstant $N_e$. Inden for hver epoke er koalescenten tidshomogen, men raten ændres ved epokeskift.
@@ -366,9 +374,74 @@ En grid-søgning over $(n_\text{part}, n_\text{iter}) \in \{20, 40, 60, 80, 120\
 Alle ovenstående valg er opsummeret i @tbl-config der angiver
 standardkonfigurationen anvendt i bavian-analyserne (NB07A og NB07B).
 
+## To-ø modellen og IM-modellen
+
+To-ø modellen udvider standardkoalescenten til to populationer med symmetrisk migration og parametre $\theta_0 = 1/N$ (koalescensrate) og $\theta_1 = 2Nm$ (migrationsrate). Tilstandsrummet konstrueres via `StateIndexer` og `Property`-klasser der tracker populationstilhørsforhold for hver linje, og koalescens er kun mulig inden for samme population. Modellen er direkte motiveret af det veldokumenterede genflow mellem bavian-populationer [@rogers2019; @sorensen2023].
+
+{{< embed ../notebooks/03_svgd_two_island.ipynb#fig-two-island-graf >}}
+
+### Prior-valg til to-ø modellen
+
+`DataPrior` er ikke velegnet til to-parameter modeller fordi den internt tilføjer en ekstra parameter og forårsager `Theta length mismatch`-fejl i JAX. I stedet bruges `GaussPrior` til $\theta_0$ og `HalfCauchyPrior` til $\theta_1$. `HalfCauchyPrior` er nødvendig til migrationsraten fordi den er positiv-støttet og har en tung hale der ikke afskærer sandsynlighed ved lave rater. En bred `GaussPrior` til migrationsraten giver systematisk bias mod høje $\theta_1$-værdier fordi prioren tillader negative værdier og trækker posterior opad:
+
+{{< embed ../notebooks/03_svgd_two_island.ipynb#tbl-prior-migration >}}
+
+### Identifikation og stikprøvestørrelse
+
+For lav migration ($\theta_1 < 0{,}5$) er $\theta_0$ og $\theta_1$ konfunderede og posterioren er bred og negativt korreleret. Minimum $N_\text{obs} = 5000$ kombineret med `HalfCauchyPrior` sikrer $\text{std}(\hat{\theta}_1) < 0{,}3$ ved moderat migration. `Adam(0.1)` vælges som optimizer til to-ø modellen da Adam(0.25) giver ustabile estimater ved lav $\theta_1$.
+
+{{< embed ../notebooks/03_svgd_two_island.ipynb#tbl-identifiability >}}
+
+Method of Moments er kun tilstrækkelig i 3 af 5 bavian-scenarier ved $N_\text{obs} = 3000$ og afviger systematisk ved lav migration. SVGD tilføjer primær værdi via korrekt usikkerhedskvantificering og robusthed ved dårlig identifikation.
+
+{{< embed ../notebooks/03_svgd_two_island.ipynb#tbl-mom-bavian >}}
+
+### Asymmetrisk migration
+
+Den asymmetriske model med separate rater $m_{12}$ og $m_{21}$ viser stærk negativ korrelation i den parvise posterior ved $n=2$: kun summen $m_{12} + m_{21}$ er identificerbar, ikke de individuelle retninger. Med $n=4$ reduceres biasset fra $\sim 150\%$ til $< 5\%$ for begge rater, og asymmetriforholdet $m_{12}/m_{21}$ er identificerbart.
+
+{{< embed ../notebooks/03_svgd_two_island.ipynb#fig-asym4-pairwise >}}
+
+### msprime-validering
+
+To-ø modellen valideres med msprime-simulationer under tre scenarier med kendte $(\theta_0, \theta_1)$-værdier. SVGD estimerer begge parametre korrekt tilbage inden for posterior-usikkerheden for lav og moderat migration.
+
+{{< embed ../notebooks/03_svgd_two_island.ipynb#tbl-msprime-validering-ø >}}
+
+### IM-modellen
+
+IM-modellen implementeres som en tidsinhomogen to-ø model med epoch-skift ved $t_s$ via `add_epoch`. Split-tidspunktet er fast og sættes til den kendte bavian-værdi $t_s \approx 1{,}3$ Ma for *P. anubis*/*P. cynocephalus* fra @rogers2019. Modellen estimerer $\theta_0$ og $\theta_1$ under split; $\mathbb{E}[\text{TMRCA}]$ er systematisk højere end i to-ø uden split fordi linjer der overlever til $t_s$ koalescerer i den ancestrale population.
+
+{{< embed ../notebooks/05_time_inhomogeneous.ipynb#fig-im-tmrca >}}
+
+{{< embed ../notebooks/05_time_inhomogeneous.ipynb#tbl-msprime-validering-im >}}
 
 
 # Resultater
+
+## To-ø modellen: identifikation og konfundering
+
+### Pairwise posterior og identifikationsproblem
+
+Den parvise posterior for $(\theta_0, \theta_1)$ afslører tre klart forskellige regimer. Ved lav migration ($\theta_1 = 0{,}2$) er posterioren bred og negativt korreleret — iso-kurverne for $\mathbb{E}[\text{TMRCA}]$ er næsten parallelle med posterior-koncentrationen, og parametrene er i praksis ikke adskillelige. Ved moderat migration ($\theta_1 = 1{,}0$) er adskillelsen markant bedre, og ved høj migration ($\theta_1 = 5{,}0$) er $\theta_0$ præcist estimeret mens
+$\theta_1$ stadig har en bred posterior som følge af den stærke skalering af TMRCA med migrationsraten.
+
+{{< embed ../notebooks/03_svgd_two_island.ipynb#fig-pairwise-scenarier >}}
+
+Dette er direkte relevant for bavian-analysen: populationspar med lav migration vil give brede, negativt korrelerede posteriors for $(\theta_0, \theta_1)$, og konfidensintervallerne bør fortolkes med forsigtighed.
+
+### MoM vs. SVGD
+
+MoM-estimater for $\theta_1$ er ustabile ved $N_\text{obs} \leq 1000$: ved $N_\text{obs} = 300$ estimeres $\hat{\theta}_1 = 3{,}92$ frem for sand $1{,}0$. SVGD-posterior-mean er konsekvent tættere på sandhed og standardafvigelsen afspejler den reelle estimationsusikkerhed. Ved $N_\text{obs} = 10000$
+konvergerer begge metoder og SVGD giver std $\approx 0{,}05$ mod MoM's punktestimat uden usikkerhedskvantificering.
+
+{{< embed ../notebooks/03_svgd_two_island.ipynb#fig-mom-vs-svgd >}}
+
+### Asymmetrisk migration
+
+For $n=2$ er $m_{12}$ og $m_{21}$ ikke individuelt identificerbare: std$(m_{12}) = 8{,}27$ (sand $= 2{,}0$). Med $n=4$ og $N_\text{obs} = 10000$ reduceres bias til under 5% for begge rater: $\hat{m}_{12} = 2{,}015 \pm 0{,}627$ og $\hat{m}_{21} = 0{,}285 \pm 0{,}039$. Asymmetriforholdet $m_{12}/m_{21} = 1{,}59$ i de rigtige bavian-data er dermed identificerbart med $n=4$.
+
+{{< embed ../notebooks/03_svgd_two_island.ipynb#fig-asym-pairwise >}}
 
 ## SVGD validering og metodiske egenskaber
 
