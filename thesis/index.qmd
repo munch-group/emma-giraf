@@ -281,7 +281,7 @@ Verificeringen sker i to trin. Første trin sammenligner phasics beregnede $\mat
 
 {{< embed ../notebooks/01_coalescent_basics.ipynb#tbl-verificering >}}
 
-Afvigelsen er nul for alle prøvestørrelser. Det bekræfter at den grafbaserede Gauss-eliminering i phasic giver eksakte resultater og at tilstandsrummet er bygget korrekt. Det er et godt første skridt, men ikke tilstrækkeligt alene. Andet trin sammenligner den analytiske fase-type PDF direkte med TMRCA-fordelinger simuleret fra msprime [@kelleher2016msprime], som er et uafhængigt program skrevet på en helt anden måde @fig-msprime-val-nb01.
+Afvigelsen er nul for alle prøvestørrelser. Det bekræfter at den grafbaserede Gauss-eliminering i phasic giver eksakte resultater og at tilstandsrummet er bygget korrekt. Det er et godt første skridt, men ikke tilstrækkeligt alene. Andet trin sammenligner den analytiske fase-type PDF direkte med TMRCA-fordelinger simuleret fra msprime, som er et uafhængigt program skrevet på en helt anden måde @fig-msprime-val-nb01.
 
 {{< embed ../notebooks/01_coalescent_basics.ipynb#fig-msprime-val-nb01 >}}
 
@@ -290,7 +290,7 @@ Dernæst undersøges kovariansen mellem SFS-elementerne analytisk via den multiv
 
 {{< embed ../notebooks/01_coalescent_basics.ipynb#tbl-kovarians >}}
 
-Korrelationskoefficienten mellem singleton- og doubleton-grenlængderne er $-0{,}4$ for $n=4$, som vist i @tbl-kovarians. Det lyder måske ikke af meget, men det er faktisk en ret stor effekt. Det betyder at når der er mange lange singleton-grene i et træ, er der typisk kortere doubleton-grene de to størrelser trækker i hver sin retning. En metode der bare antager at SFS-elementerne er uafhængige, som en simpel Poisson-approksimation gør, vil systematisk undervurdere usikkerheden i estimaterne. For bavian-analysen, hvor hele SFS-vektoren bruges til at estimere $\theta$, er det vigtigt at bruge den eksakte kovariansstruktur frem for en approksimation. 
+Korrelationskoefficienten mellem singleton- og doubleton-grenlængderne er $-0{,}2$ for $n=4$, som vist i @tbl-kovarians. Det lyder måske ikke af meget, men det er faktisk en ret stor effekt. Det betyder at når der er mange lange singleton-grene i et træ, er der typisk kortere doubleton-grene de to størrelser trækker i hver sin retning. En metode der bare antager at SFS-elementerne er uafhængige, som en simpel Poisson-approksimation gør, vil systematisk undervurdere usikkerheden i estimaterne. For bavian-analysen, hvor hele SFS-vektoren bruges til at estimere $\theta$, er det vigtigt at bruge den eksakte kovariansstruktur frem for en approksimation. 
 Endelig undersøges, hvad man faktisk vinder ved at bruge en større stikprøve @tbl-n-sammenligning.
 
 {{< embed ../notebooks/01_coalescent_basics.ipynb#tbl-n-sammenligning >}}
@@ -314,24 +314,24 @@ De fire priors repræsenterer situationer man møder i praksis. Den vage Gaussis
 
 @fig-lr-schedules viser effekten af forskellige læringsrate-strategier. En konstant læringsrate kan give svininger sent i forløbet, mens en eksponentielt faldende læringsrate giver stabil konvergens. Adam-optimizeren, der tilpasser læringsraten individuelt per parameter, viser sig at være den mest robuste strategi særligt for bavian-realistiske theta-værdier der spænder over mere end en størrelsesorden. Adam vælges derfor som standard-optimizer i alle efterfølgende analyser.
 
-Et centralt spørgsmål er om SVGD's konfidensintervaller faktisk er troværdige dvs. om et 95%-CI faktisk dækker den sande parameterværdi i 95% af tilfældene. Dette testes ved at køre SVGD over 50 replikater med kendte sande parametre og tælle, hvor ofte den sande værdi falder inden for intervallet @fig-coverage.
+Et centralt spørgsmål er om SVGD's konfidensintervaller faktisk er troværdige — dvs. om et nominelt 95%-CI faktisk dækker den sande parameterværdi i 95% af tilfældene. Dette testes ved at køre SVGD over 50 replikater med kendte sande parametre og tælle, hvor ofte den sande værdi falder inden for intervallet @fig-coverage.
 
 {{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-coverage >}}
 
-Med korrekt prior og tilstrækkelig datamængde ($n \geq 500$) er den empiriske dækning tæt på $95\%$. Ved lav datamængde ($n < 200$) er CI'erne for smalle og dækker for sjældent, særligt med en forkert prior. Det bekræfter at SVGD's usikkerhedsintervaller er troværdige under de betingelser der bruges i bavian-analysen, men at de skal fortolkes med forsigtighed ved meget begrænsede data som for *P. ursinus* med kun 8 haploide samples. Valget af 60 partikler og 300 iterationer er begrundet i en systematisk grid-søgning @tbl-grid-svgd.
+Med korrekt prior og $n = 100$ observationer er den empiriske dækning $94\%$, tæt på den nominelle $95\%$. Med forkert prior falder dækningen til kun $14\%$ ved $n = 100$ og stiger gradvist til $46\%$ ved $n = 500$ efterhånden som likelihood overtager prioren. Det bekræfter at SVGD's usikkerhedsintervaller er troværdige med DataPrior under de betingelser der bruges i bavian-analysen, men at de skal fortolkes med forsigtighed ved meget begrænsede data som for *P. ursinus* med kun 8 haploide samples. Valget af 60 partikler og 300 iterationer er begrundet i en systematisk grid-søgning @tbl-grid-svgd.
 
 {{< embed ../notebooks/02_svgd_inferens_basis.ipynb#tbl-grid-svgd >}}
 
-Grid-søgningen viser at 60 partikler og 300 iterationer giver den bedste kombination af præcision og beregningstid. Færre partikler giver ustabile posteriors, mens flere iterationer over 300 ikke forbedrer estimaterne mærkbart ved de anvendte theta-værdier.
+Grid-søgningen viser at 20 partikler og 300 iterationer giver den bedste kombination af præcision og beregningstid med posterior-std $0{,}023$ og en beregningstid på ca. 34 sekunder. Adam(0.1) er den mest stabile optimizer over bavian-realistiske theta-værdier og vælges som standard i NB07.
 
 
 ## To-ø modellen: identifiability og asymmetrisk migration
 
-NB03 tester to-ø modellen systematisk. Det centrale spørgsmål er, om man overhovedet kan skelne coalescentraten fra migrationsraten, givet de data der er tilgængelige. Høj migration og høj coalescentrate kan begge give korte TMRCA-tider og de to situationer kan være statistisk næsten uadskillelige. En vigtig ting er at $\mathbb{E}[\text{TMRCA}]$ som funktion af migrationsraten ikke er monoton @fig-migration-tmrca.
+NB03 tester to-ø modellen systematisk. Det centrale spørgsmål er, om man overhovedet kan skelne coalescentraten fra migrationsraten, givet de data der er tilgængelige. Høj migration og høj coalescentrate kan begge give korte TMRCA-tider og de to situationer kan være statistisk næsten uadskillelige. En vigtig indsigt er at $\mathbb{E}[\text{TMRCA}]$ som funktion af migrationsraten ikke er monoton @fig-migration-tmrca.
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#fig-migration-tmrca >}}
 
-Ved meget lav migration nærmer systemet sig den isolerede population og $\mathbb{E}[\text{TMRCA}]$ er stor. Ved meget høj migration opfører systemet sig som en panmiktisk population og $\mathbb{E}[\text{TMRCA}]$ er ligeledes stor. Det er kun ved moderate migrationsrater at $\mathbb{E}[\text{TMRCA}]$ er minimal. Det betyder at data ikke kan afgøre om en given TMRCA-fordeling skyldes lav eller høj migration uden information om coalescentraten. Pairwise-posteriors over tre migrationsregimer illustrerer problemet direkte @fig-pairwise-scenarier.
+Ved meget lav migration ($\theta_1 \to 0$) nærmer systemet sig den isolerede to-populations model og $\mathbb{E}[\text{TMRCA}] = 2{,}857$. Ved meget høj migration ($\theta_1 \to \infty$) opfører systemet sig som én panmiktisk population og $\mathbb{E}[\text{TMRCA}]$ er igen $2{,}857$ — identisk med den isolerede model. Begge yderpunkter giver altså den samme forventede tid, mens standardcoalescenten for $n=2$ giver $\mathbb{E}[H] = 1{,}429$. Det er kun ved moderate migrationsrater at $\mathbb{E}[\text{TMRCA}]$ afviger fra yderpunkterne, og den maksimale varians opstår ved meget lav migration ($\theta_1 \approx 0{,}01$). Det betyder at data ikke kan afgøre om en given TMRCA-fordeling skyldes lav eller høj migration uden information om coalescentraten. Pairwise-posteriors over tre migrationsregimer illustrerer problemet direkte @fig-pairwise-scenarier.
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#fig-pairwise-scenarier >}}
 
@@ -339,11 +339,11 @@ Ved lav migration er posterioren bred og negativt korreleret data er konsistente
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#tbl-identifiability >}}
 
-Coalescentraten estimeres korrekt og præcist i alle tre scenarier. Migrationsraten estimeres godt ved moderat migration, men ved høj migration er posterior-std $6,29$ mod sand $\theta_1 = 5{,}0$ usikkerheden overstiger selve estimatets størrelse. Parameteren kan i praksis ikke bestemmes. For bavian-analysen betyder dette at $N_e$ er en pålidelig størrelse at rapportere, mens migrationsrater kun er meningsfulde at fortolke ved moderate niveauer. Valget af prior til migrationsparameteren har direkte konsekvenser for inferensens kvalitet. En sammenligning af GaussPrior og HalfCauchyPrior viser @tbl-prior-migration:
+Coalescentraten estimeres korrekt og præcist i alle tre scenarier. Migrationsraten estimeres godt ved moderat migration, men ved høj migration er posterior-std $9{,}221$ mod sand $\theta_1 = 5{,}0$ — usikkerheden overstiger selve estimatets størrelse. Parameteren kan i praksis ikke bestemmes. For bavian-analysen betyder dette at $N_e$ er en pålidelig størrelse at rapportere, mens migrationsrater kun er meningsfulde at fortolke ved moderate niveauer. Valget af prior til migrationsparameteren har direkte konsekvenser for inferensens kvalitet. En sammenligning af GaussPrior og HalfCauchyPrior viser @tbl-prior-migration:
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#tbl-prior-migration >}}
 
-GaussPrior tillader negative værdier og trækker posterioren mod for høje migrationsrater ved lave sande værdier. HalfCauchyPrior er positiv-støttet og giver lavere bias og bedre CI-dækning på tværs af alle testede scenarier. HalfCauchy vælges derfor som standardprior for migrationsparametre i alle efterfølgende analyser.
+For sand $\theta = [0{,}7, 0{,}9]$ estimerer GaussPrior $\theta_1 = 0{,}814 \pm 0{,}196$ mens HalfCauchy giver $\theta_1 = 0{,}561 \pm 0{,}354$. GaussPrior giver her smallere posterior-std, men tillader negative parameterværdier og kan trække posterioren i forkert retning ved lave sande værdier. HalfCauchyPrior er positiv-støttet, hvilket er biologisk korrekt for en migrationsrate, og er mere robust over for scenarier med lav sand migrationsrate. HalfCauchy vælges derfor som standardprior for migrationsparametre i alle efterfølgende analyser.
 Et spørgsmål om asymmetrisk migration to separate rater $m_{12} \neq m_{21}$ kan identificeres. Med $n=2$ er svaret negativt @fig-asym-n2-pairwise.
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#fig-asym-n2-pairwise >}}
@@ -352,7 +352,7 @@ Med blot to prøver er de to migrationsrater fuldstændig sammenfiltrede. Pairwi
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#fig-asym4-pairwise >}}
 
-Med $n=4$ og $5000$ observationer er begge rater identifiability. Den lave rate estimeres meget præcist fordi sjælden migration giver et klart signal i data. Den høje rate er sværere at bestemme præcist, i overensstemmelse med identifiability-analysen. Konvergensforløbet bekræfter stabiliteten i @fig-asym4-konvergens.
+Med $n=4$ og $5000$ observationer er begge rater identificerbare. Den lave rate estimeres meget præcist: $\hat{m}_{21} = 0{,}285 \pm 0{,}039$ mod sand $m_{21} = 0{,}3$, svarende til en bias på $1{,}5\%$. Den høje rate er sværere at bestemme: $\hat{m}_{12} = 2{,}015 \pm 0{,}627$ mod sand $m_{12} = 2{,}0$, med en relativ posterior-std på $31\%$. Coalescentraten estimeres til $\hat{\theta}_0 = 0{,}657 \pm 0{,}065$ mod sand $0{,}7$. Konvergensforløbet bekræfter stabiliteten i @fig-asym4-konvergens.
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#fig-asym4-konvergens >}}
 
@@ -387,6 +387,7 @@ Den vigtigste advarsel fra NB06 er sensitiviteten over for den specificerede mut
 Et faktor-2-fejl i $\mu$ giver et faktor 2–3-fejl i $\hat{\theta}$ og dermed i den estimerede $N_e$. Det er en systematisk fejl der ikke forsvinder med mere data. For bavianerne er $\mu = 0{,}9 \times 10^{-8}$ estimeret med usikkerhed [@sorensen2023] og en sensitivitetsanalyse over $\mu \in \{0{,}7, 0{,}9, 1{,}1\} \times 10^{-8}$ rapporteres i NB07B.
 
 
+
 # Resultater
 
 ## Kalibrering af prior til bavianparametre
@@ -408,7 +409,7 @@ For at validere to-ø modellen blev den sammenlignet med msprime-simuleringer ge
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#fig-two-island-msprime-val >}}
 
-Som det fremgår af @fig-two-island-msprime-val, er der en meget tæt overensstemmelse mellem den analytiske fordeling og de msprime-simulerede data. Den teoretiske tæthed følger histogrammet af de simulerede TMRCA-tider gennem hele fordelingen og de empiriske og modelbaserede fordelingsfunktioner ligger næsten oven i hinanden. Afvigelserne er små og inden for det, der forventes som følge af den stokastiske variation i simuleringerne. Efter at have verificeret selve modellen undersøges inferensprocedurens egenskaber. Konvergensforløbet for SVGD på de msprime-simulerede data er vist i @fig-two-island-msp-konvergens.
+Som det fremgår af @fig-two-island-msprime-val, er der en meget tæt overensstemmelse mellem den analytiske fordeling og de msprime-simulerede data. Den teoretiske tæthed følger histogrammet af de simulerede TMRCA-tider gennem hele fordelingen og de empiriske og modelbaserede fordelingsfunktioner ligger næsten oven i hinanden. Den relative afvigelse i $\mathbb{E}[\text{TMRCA}]$ er $0{,}73\%$ (phasic: $2{,}857$, msprime: $2{,}836$), inden for den stokastiske variation ved 3000 simuleringer. Det bekræfter at omsætningen fra phasics interne parametre til msprimes populationsstørrelse og migrationsrate er korrekt implementeret. Efter at have verificeret selve modellen undersøges inferensprocedurens egenskaber. Konvergensforløbet for SVGD på de msprime-simulerede data er vist i @fig-two-island-msp-konvergens.
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#fig-two-island-msp-konvergens >}}
 
@@ -416,7 +417,7 @@ Resultaterne viser, at begge parametre kan genfindes med høj præcision. Coales
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#tbl-mom-bavian >}}
 
-Resultaterne i @tbl-mom-bavian viser, at MoM giver estimater med bias under $10\%$ for begge parametre ved de moderate parameterscenarier $[\theta_0,\theta_1]=[0{,}7,1{,}0]$ og $[1{,}5,2{,}0]$. Ved scenarier med lave coalescentrater, $[0{,}3,0{,}5]$ og høje migrationsrater $[0{,}5,5{,}0]$ overstiger bias for migrationsparameteren $\theta_1$ $30\%$. SVGD giver gennemgående mindre bias end MoM på tværs af de fem undersøgte scenarier. For alle scenarier er bias under $5\%$ for begge parametre. Forskellen mellem metoderne er størst ved lave coalescentrater og høje migrationsrater, hvor SVGD-estimaterne ligger tættere på de sande parameterværdier end MoM-estimaterne. 
+Resultaterne i @tbl-mom-bavian viser at MoM systematisk overvurderer migrationsraten $\theta_1$ i alle fem scenarier. Ved $[\theta_0,\theta_1]=[0{,}7,1{,}0]$ estimerer MoM $\hat{\theta}_1 = 1{,}734$ mod sand $1{,}0$ — en bias på $73\%$. Ved $[0{,}5,5{,}0]$ estimerer MoM $\hat{\theta}_1 = 12{,}448$ mod sand $5{,}0$. Kun ved $[2{,}0,0{,}1]$ giver MoM et rimeligt estimat for $\theta_1$. For coalescentraten $\theta_0$ er MoM generelt mere præcis med bias under $12\%$ i fire af fem scenarier. SVGD giver gennemgående bedre estimater for $\theta_1$ på tværs af alle scenarier og er den eneste metode der giver fuld posterior med usikkerhedskvantificering. 
 
 ## Joint probability-validering mod msprime
 
@@ -424,7 +425,7 @@ Joint probability-modellen valideres ved inferens på joint SFS-data simuleret m
 
 {{< embed ../notebooks/06_joint_probability_inferens.ipynb#fig-joint-msprime-svgd >}}
 
-Det estimerede posterior-gennemsnit er $7{,}06 \pm 0{,}41$, svarende til en relativ afvigelse på $0,9\%$ fra den sande værdi $\theta = 7{,}0$. Den sande parameterværdi ligger inden for modellens $95\%$-konfidensinterval. Pairwise-posterioren viser en svag negativ korrelation mellem coalescentraten og rekombinationsraten, men posteriorfordelingerne er koncentreret omkring et velafgrænsede område i parameterrummet.
+Det estimerede posterior-gennemsnit er $9{,}58 \pm 6{,}54$, og det $95\%$-konfidensinterval strækker sig fra $5{,}81$ til $25{,}79$. Den sande parameterværdi $\theta = 7{,}0$ ligger inden for konfidensintervallet, men posterioren er bred og afspejler at joint probability-inferens med $\mu = 1{,}0$ og $\text{tot\_reward\_limit} = 3$ ikke giver en præcis punktestimering ved disse parameterværdier. Resultatet bekræfter at joint probability-pipelinen fungerer korrekt — den sande parameter dækkes — men viser samtidig at metoden har større usikkerhed end TMRCA-baseret inferens ved disse indstillinger, konsistent med sammenligningen i @tbl-multifeature-gain.
 
 ## Genetisk variation i de seks bavianpopulationer
 
@@ -445,6 +446,14 @@ De estimerede sojourn-tider for de seks populationer er vist i @fig-sojourn.
 {{< embed ../notebooks/07a_bavian_data.ipynb#fig-sojourn >}}
 
 Sojourn-tiderne varierer betydeligt mellem de genealogiske trin og mellem populationerne (figur @fig-sojourn). For alle seks populationer bidrager det sidste trin, $k=2$, med den længste forventede tid. For *P. cynocephalus* svarer den forventede sojourn-tid i dette trin til omkring $1,8$ millioner år, mens den tilsvarende tid for *P. papio* er omkring $313.000$ år. De tidligste trin i genealogien, $k=8$ og $k=7$, har væsentligt kortere sojourn-tider i alle populationer og ligger under $50.000$ år selv for de største populationer. På tværs af alle trin har *P. cynocephalus* og *P. kindae* de længste sojourn-tider, mens *P. papio* gennemgående har de korteste.
+
+Sensitivitetsanalysen over mutationsraten $\mu$ og generationstiden $g$ viser hvor følsomme $N_e$-estimaterne er over for disse antagelser @tbl-sensitivity.
+
+{{< embed ../notebooks/07a_bavian_data.ipynb#tbl-sensitivity >}}
+
+Variation i $\mu$ på $\pm 22\%$ giver en tilsvarende variation i $N_e$-estimaterne, mens rangordenen på tværs af populationer forbliver uændret ved alle kombinationer af $\mu$ og $g$. *P. papio* har konsekvent den laveste $N_e$ og *P. cynocephalus* den højeste uanset hvilke værdier der anvendes. Den forventede MRCA-tid for *P. cynocephalus* spænder fra ca. 1,5 Ma ved $\mu = 1{,}1 \times 10^{-8}$, $g = 10$ til ca. 2,1 Ma ved $\mu = 0{,}7 \times 10^{-8}$, $g = 12$.
+
+{{< embed ../notebooks/07a_bavian_data.ipynb#fig-sensitivity >}}
 
 
 ## To-ø modellen: *P. cynocephalus* og *P. kindae*
@@ -481,11 +490,17 @@ Coalescentraten $\theta_0$ er den mest stabile parameter med posterior-std under
 
 {{< embed ../notebooks/07b_bavian_modeller.ipynb#fig-im-ci >}}
 
+{{< embed ../notebooks/07b_bavian_modeller.ipynb#fig-im-ci >}}
+
 De estimerede $N_e$ for *P. anubis* i IM-modellen er $N_e \approx 56.948$. Konvergensintervallet for migrationsraten $\theta_1$ er asymmetrisk med en længere øvre hale som i to-ø modellen. CI for switch-raten $\theta_2$ er bredt. Det estimerede split-tidspunkt visualiseret sammen med de øvrige parametre ses i @fig-IM-bavian.
 
 {{< embed ../notebooks/07b_bavian_modeller.ipynb#fig-IM-bavian >}}
 
+
+
 # Diskussion
+
+
 
 
 
