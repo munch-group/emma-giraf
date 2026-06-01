@@ -314,10 +314,24 @@ De fire priors repræsenterer situationer man møder i praksis. Den vage Gaussis
 
 @fig-lr-schedules viser effekten af forskellige læringsrate-strategier. En konstant læringsrate kan give svininger sent i forløbet, mens en eksponentielt faldende læringsrate giver stabil konvergens. Adam-optimizeren, der tilpasser læringsraten individuelt per parameter, viser sig at være den mest robuste strategi særligt for bavian-realistiske theta-værdier der spænder over mere end en størrelsesorden. Adam vælges derfor som standard-optimizer i alle efterfølgende analyser.
 
+Et centralt spørgsmål er om SVGD's konfidensintervaller faktisk er troværdige dvs. om et 95%-CI faktisk dækker den sande parameterværdi i 95% af tilfældene. Dette testes ved at køre SVGD over 50 replikater med kendte sande parametre og tælle, hvor ofte den sande værdi falder inden for intervallet @fig-coverage.
+
+{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-coverage >}}
+
+Med korrekt prior og tilstrækkelig datamængde ($n \geq 500$) er den empiriske dækning tæt på $95\%$. Ved lav datamængde ($n < 200$) er CI'erne for smalle og dækker for sjældent, særligt med en forkert prior. Det bekræfter at SVGD's usikkerhedsintervaller er troværdige under de betingelser der bruges i bavian-analysen, men at de skal fortolkes med forsigtighed ved meget begrænsede data som for *P. ursinus* med kun 8 haploide samples. Valget af 60 partikler og 300 iterationer er begrundet i en systematisk grid-søgning @tbl-grid-svgd.
+
+{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#tbl-grid-svgd >}}
+
+Grid-søgningen viser at 60 partikler og 300 iterationer giver den bedste kombination af præcision og beregningstid. Færre partikler giver ustabile posteriors, mens flere iterationer over 300 ikke forbedrer estimaterne mærkbart ved de anvendte theta-værdier.
+
 
 ## To-ø modellen: identifiability og asymmetrisk migration
 
-NB03 tester to-ø modellen systematisk. Det centrale spørgsmål er, om man overhovedet kan skelne coalescentraten fra migrationsraten, givet de data der er tilgængelige. Høj migration og høj coalescentrate kan begge give korte TMRCA-tider og de to situationer kan være statistisk næsten uadskillelige. Pairwise-posteriors over tre migrationsregimer illustrerer problemet direkte @fig-pairwise-scenarier.
+NB03 tester to-ø modellen systematisk. Det centrale spørgsmål er, om man overhovedet kan skelne coalescentraten fra migrationsraten, givet de data der er tilgængelige. Høj migration og høj coalescentrate kan begge give korte TMRCA-tider og de to situationer kan være statistisk næsten uadskillelige. En vigtig ting er at $\mathbb{E}[\text{TMRCA}]$ som funktion af migrationsraten ikke er monoton @fig-migration-tmrca.
+
+{{< embed ../notebooks/03_svgd_two_island.ipynb#fig-migration-tmrca >}}
+
+Ved meget lav migration nærmer systemet sig den isolerede population og $\mathbb{E}[\text{TMRCA}]$ er stor. Ved meget høj migration opfører systemet sig som en panmiktisk population og $\mathbb{E}[\text{TMRCA}]$ er ligeledes stor. Det er kun ved moderate migrationsrater at $\mathbb{E}[\text{TMRCA}]$ er minimal. Det betyder at data ikke kan afgøre om en given TMRCA-fordeling skyldes lav eller høj migration uden information om coalescentraten. Pairwise-posteriors over tre migrationsregimer illustrerer problemet direkte @fig-pairwise-scenarier.
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#fig-pairwise-scenarier >}}
 
@@ -325,7 +339,11 @@ Ved lav migration er posterioren bred og negativt korreleret data er konsistente
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#tbl-identifiability >}}
 
-Coalescentraten estimeres korrekt og præcist i alle tre scenarier. Migrationsraten estimeres godt ved moderat migration, men ved høj migration er posterior-std $6,29$ mod sand $\theta_1 = 5{,}0$ usikkerheden overstiger selve estimatets størrelse. Parameteren kan i praksis ikke bestemmes. For bavian-analysen betyder dette at $N_e$ er en pålidelig størrelse at rapportere, mens migrationsrater kun er meningsfulde at fortolke ved moderate niveauer.
+Coalescentraten estimeres korrekt og præcist i alle tre scenarier. Migrationsraten estimeres godt ved moderat migration, men ved høj migration er posterior-std $6,29$ mod sand $\theta_1 = 5{,}0$ usikkerheden overstiger selve estimatets størrelse. Parameteren kan i praksis ikke bestemmes. For bavian-analysen betyder dette at $N_e$ er en pålidelig størrelse at rapportere, mens migrationsrater kun er meningsfulde at fortolke ved moderate niveauer. Valget af prior til migrationsparameteren har direkte konsekvenser for inferensens kvalitet. En sammenligning af GaussPrior og HalfCauchyPrior viser @tbl-prior-migration:
+
+{{< embed ../notebooks/03_svgd_two_island.ipynb#tbl-prior-migration >}}
+
+GaussPrior tillader negative værdier og trækker posterioren mod for høje migrationsrater ved lave sande værdier. HalfCauchyPrior er positiv-støttet og giver lavere bias og bedre CI-dækning på tværs af alle testede scenarier. HalfCauchy vælges derfor som standardprior for migrationsparametre i alle efterfølgende analyser.
 Et spørgsmål om asymmetrisk migration to separate rater $m_{12} \neq m_{21}$ kan identificeres. Med $n=2$ er svaret negativt @fig-asym-n2-pairwise.
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#fig-asym-n2-pairwise >}}
