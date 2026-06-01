@@ -853,7 +853,7 @@ Figure&nbsp;9: De fire prior-fordelinger brugt i analysen. Vag Gaussisk (bred og
 <div class="cell-output cell-output-stdout">
 <pre><code>HalfCauchy (mean=7.01, std=0.14)</code></pre>
 </div>
-<div id="fig-konvergens-priors" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="6" data-fig-width="6" data-fig-height="3">
+<div id="fig-konvergens-priors" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-fig-height="3" data-execution_count="6" data-fig-width="6">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-konvergens-priors-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output cell-output-display">
@@ -930,10 +930,240 @@ Figure&nbsp;11: Sammenligning af læringsrate-schedules.
 </div>
 </div>
 <p><a href="#fig-lr-schedules" class="quarto-xref">Figure&nbsp;11</a> viser effekten af forskellige læringsrate-strategier. En konstant læringsrate kan give svininger sent i forløbet, mens en eksponentielt faldende læringsrate giver stabil konvergens. Adam-optimizeren, der tilpasser læringsraten individuelt per parameter, viser sig at være den mest robuste strategi særligt for bavian-realistiske theta-værdier der spænder over mere end en størrelsesorden. Adam vælges derfor som standard-optimizer i alle efterfølgende analyser.</p>
+<p>Et centralt spørgsmål er om SVGD’s konfidensintervaller faktisk er troværdige dvs. om et 95%-CI faktisk dækker den sande parameterværdi i 95% af tilfældene. Dette testes ved at køre SVGD over 50 replikater med kendte sande parametre og tælle, hvor ofte den sande værdi falder inden for intervallet <a href="#fig-coverage" class="quarto-xref">Figure&nbsp;12</a>.</p>
+<div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/02_svgd_inferens_basis.ipynb" data-notebook-title="Notebook 2: Bayesiansk inferens med SVGD – grundlæggende egenskaber og prior-sensitivitet" data-notebook-cellid="cell-fig-coverage">
+<div id="cell-fig-coverage" class="cell" data-fig-width="5" data-fig-height="3">
+<div class="cell-output cell-output-display">
+<div id="fig-coverage" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-coverage-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/..-notebooks-02_svgd_inferens_basis-fig-coverage-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-15" title="Figure&nbsp;12: Empirisk 95%-CI dækning som funktion af prøvestørrelse over 50 replikater. Korrekt prior giver 94% dækning ved n=100 men falder til 80% ved n=2000 som følge af variationel inferens’ tendens til underdispersion. Forkert prior giver kun 14% dækning ved n=100 og stiger gradvist efterhånden som likelihood overtager."><img src="index_files/figure-html/..-notebooks-02_svgd_inferens_basis-fig-coverage-output-1.svg" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-coverage-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;12: Empirisk 95%-CI dækning som funktion af prøvestørrelse over 50 replikater. Korrekt prior giver 94% dækning ved n=100 men falder til 80% ved n=2000 som følge af variationel inferens’ tendens til underdispersion. Forkert prior giver kun 14% dækning ved n=100 og stiger gradvist efterhånden som likelihood overtager.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+<p>Med korrekt prior og tilstrækkelig datamængde (<span class="math inline">\(n \geq 500\)</span>) er den empiriske dækning tæt på <span class="math inline">\(95\%\)</span>. Ved lav datamængde (<span class="math inline">\(n &lt; 200\)</span>) er CI’erne for smalle og dækker for sjældent, særligt med en forkert prior. Det bekræfter at SVGD’s usikkerhedsintervaller er troværdige under de betingelser der bruges i bavian-analysen, men at de skal fortolkes med forsigtighed ved meget begrænsede data som for <em>P. ursinus</em> med kun 8 haploide samples. Valget af 60 partikler og 300 iterationer er begrundet i en systematisk grid-søgning <a href="#tbl-grid-svgd" class="quarto-xref">Table&nbsp;5</a>.</p>
+<div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/02_svgd_inferens_basis.ipynb" data-notebook-title="Notebook 2: Bayesiansk inferens med SVGD – grundlæggende egenskaber og prior-sensitivitet" data-notebook-cellid="cell-tbl-grid-svgd">
+<div class="cell" data-tbl-colwidths="[20,40,40]">
+<div id="tbl-grid-svgd" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-tbl-colwidths="[20,40,40]">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-grid-svgd-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;5: Grid-søgning over antal partikler og iterationer med Adam(0.1) og theta=7. Bedste kombination er 20 partikler og 300 iterationer med std=0.023 og beregningstid 34 sekunder.
+</figcaption>
+<div aria-describedby="tbl-grid-svgd-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display" data-execution_count="7">
+<div>
+
+
+<table class="dataframe cell caption-top table table-sm table-striped small" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Particles</th>
+<th data-quarto-table-cell-role="th">Iterations</th>
+<th data-quarto-table-cell-role="th">Std</th>
+<th data-quarto-table-cell-role="th">Bias</th>
+<th data-quarto-table-cell-role="th">Tid_s</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">0</th>
+<td>20</td>
+<td>100</td>
+<td>0.11687</td>
+<td>0.1610</td>
+<td>5.17</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">1</th>
+<td>20</td>
+<td>200</td>
+<td>0.08645</td>
+<td>0.1570</td>
+<td>7.95</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">2</th>
+<td>20</td>
+<td>300</td>
+<td>0.09979</td>
+<td>0.1409</td>
+<td>11.37</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">3</th>
+<td>20</td>
+<td>500</td>
+<td>0.05089</td>
+<td>0.1287</td>
+<td>19.28</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">4</th>
+<td>40</td>
+<td>100</td>
+<td>0.09778</td>
+<td>0.1194</td>
+<td>9.65</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">5</th>
+<td>40</td>
+<td>200</td>
+<td>0.06380</td>
+<td>0.1644</td>
+<td>17.13</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">6</th>
+<td>40</td>
+<td>300</td>
+<td>0.07331</td>
+<td>0.1211</td>
+<td>20.70</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">7</th>
+<td>40</td>
+<td>500</td>
+<td>0.08713</td>
+<td>0.1270</td>
+<td>36.23</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">8</th>
+<td>60</td>
+<td>100</td>
+<td>0.07910</td>
+<td>0.1476</td>
+<td>13.19</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">9</th>
+<td>60</td>
+<td>200</td>
+<td>0.10846</td>
+<td>0.1458</td>
+<td>20.93</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">10</th>
+<td>60</td>
+<td>300</td>
+<td>0.09097</td>
+<td>0.1389</td>
+<td>30.25</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">11</th>
+<td>60</td>
+<td>500</td>
+<td>0.08855</td>
+<td>0.1272</td>
+<td>51.82</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">12</th>
+<td>80</td>
+<td>100</td>
+<td>0.11862</td>
+<td>0.1389</td>
+<td>17.74</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">13</th>
+<td>80</td>
+<td>200</td>
+<td>0.08809</td>
+<td>0.1225</td>
+<td>27.98</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">14</th>
+<td>80</td>
+<td>300</td>
+<td>0.12994</td>
+<td>0.1448</td>
+<td>42.18</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">15</th>
+<td>80</td>
+<td>500</td>
+<td>0.11493</td>
+<td>0.1457</td>
+<td>72.05</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">16</th>
+<td>120</td>
+<td>100</td>
+<td>0.11577</td>
+<td>0.1449</td>
+<td>24.93</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">17</th>
+<td>120</td>
+<td>200</td>
+<td>0.12732</td>
+<td>0.1356</td>
+<td>40.60</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">18</th>
+<td>120</td>
+<td>300</td>
+<td>0.15177</td>
+<td>0.1235</td>
+<td>61.45</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">19</th>
+<td>120</td>
+<td>500</td>
+<td>0.14469</td>
+<td>0.1192</td>
+<td>106.38</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</figure>
+</div>
+</div>
+</div>
+<p>Grid-søgningen viser at 60 partikler og 300 iterationer giver den bedste kombination af præcision og beregningstid. Færre partikler giver ustabile posteriors, mens flere iterationer over 300 ikke forbedrer estimaterne mærkbart ved de anvendte theta-værdier.</p>
 </section>
 <section id="to-ø-modellen-identifiability-og-asymmetrisk-migration" class="level2">
 <h2 class="anchored" data-anchor-id="to-ø-modellen-identifiability-og-asymmetrisk-migration">To-ø modellen: identifiability og asymmetrisk migration</h2>
-<p>NB03 tester to-ø modellen systematisk. Det centrale spørgsmål er, om man overhovedet kan skelne coalescentraten fra migrationsraten, givet de data der er tilgængelige. Høj migration og høj coalescentrate kan begge give korte TMRCA-tider og de to situationer kan være statistisk næsten uadskillelige. Pairwise-posteriors over tre migrationsregimer illustrerer problemet direkte <a href="#fig-pairwise-scenarier" class="quarto-xref">Figure&nbsp;12</a>.</p>
+<p>NB03 tester to-ø modellen systematisk. Det centrale spørgsmål er, om man overhovedet kan skelne coalescentraten fra migrationsraten, givet de data der er tilgængelige. Høj migration og høj coalescentrate kan begge give korte TMRCA-tider og de to situationer kan være statistisk næsten uadskillelige. En vigtig ting er at <span class="math inline">\(\mathbb{E}[\text{TMRCA}]\)</span> som funktion af migrationsraten ikke er monoton <a href="#fig-migration-tmrca" class="quarto-xref">Figure&nbsp;13</a>.</p>
+<div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/03_svgd_two_island.ipynb" data-notebook-title="Notebook 3: Identifiability og inferens i to-ø modellen" data-notebook-cellid="cell-fig-migration-tmrca">
+<div id="cell-fig-migration-tmrca" class="cell" data-fig-width="5" data-fig-height="3">
+<div class="cell-output cell-output-display">
+<div id="fig-migration-tmrca" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-migration-tmrca-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-migration-tmrca-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-16" title="Figure&nbsp;13: E[TMRCA] og Var[TMRCA] som funktion af migrationsrate theta1 (log-skala, n=2). Venstre: E[TMRCA] er identisk ved theta1 nær nul og theta1 nær uendelig (begge 2.857) og afviger fra standard-koalescent E[H]=1.429. Højre: maksimal varians opstår ved meget lav migration (theta1=0.010) ikke ved moderat migration som forventet."><img src="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-migration-tmrca-output-1.svg" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-migration-tmrca-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;13: E[TMRCA] og Var[TMRCA] som funktion af migrationsrate theta1 (log-skala, n=2). Venstre: E[TMRCA] er identisk ved theta1 nær nul og theta1 nær uendelig (begge 2.857) og afviger fra standard-koalescent E[H]=1.429. Højre: maksimal varians opstår ved meget lav migration (theta1=0.010) ikke ved moderat migration som forventet.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+<p>Ved meget lav migration nærmer systemet sig den isolerede population og <span class="math inline">\(\mathbb{E}[\text{TMRCA}]\)</span> er stor. Ved meget høj migration opfører systemet sig som en panmiktisk population og <span class="math inline">\(\mathbb{E}[\text{TMRCA}]\)</span> er ligeledes stor. Det er kun ved moderate migrationsrater at <span class="math inline">\(\mathbb{E}[\text{TMRCA}]\)</span> er minimal. Det betyder at data ikke kan afgøre om en given TMRCA-fordeling skyldes lav eller høj migration uden information om coalescentraten. Pairwise-posteriors over tre migrationsregimer illustrerer problemet direkte <a href="#fig-pairwise-scenarier" class="quarto-xref">Figure&nbsp;14</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/03_svgd_two_island.ipynb" data-notebook-title="Notebook 3: Identifiability og inferens i to-ø modellen" data-notebook-cellid="cell-fig-pairwise-scenarier">
 <div id="fig-pairwise-scenarier" class="quarto-layout-panel">
 <figure class="quarto-float quarto-float-fig figure">
@@ -943,7 +1173,7 @@ Figure&nbsp;11: Sammenligning af læringsrate-schedules.
 <div id="fig-pairwise-scenarier-1" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-subfloat-fig figure">
 <div aria-describedby="fig-pairwise-scenarier-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-pairwise-scenarier-output-1.svg" class="lightbox" data-gallery="fig-pairwise-scenarier" title="Figure&nbsp;12&nbsp;(a): Lav migration (theta0=0.7, theta1=0.2)"><img src="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-pairwise-scenarier-output-1.svg" class="img-fluid figure-img" data-ref-parent="fig-pairwise-scenarier"></a>
+<a href="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-pairwise-scenarier-output-1.svg" class="lightbox" data-gallery="fig-pairwise-scenarier" title="Figure&nbsp;14&nbsp;(a): Lav migration (theta0=0.7, theta1=0.2)"><img src="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-pairwise-scenarier-output-1.svg" class="img-fluid figure-img" data-ref-parent="fig-pairwise-scenarier"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-pairwise-scenarier-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (a) Lav migration (theta0=0.7, theta1=0.2)
@@ -971,7 +1201,7 @@ Figure&nbsp;11: Sammenligning af læringsrate-schedules.
 <div id="fig-pairwise-scenarier-3" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-subfloat-fig figure">
 <div aria-describedby="fig-pairwise-scenarier-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-pairwise-scenarier-output-3.svg" class="lightbox" data-gallery="fig-pairwise-scenarier" title="Figure&nbsp;12&nbsp;(c): Høj migration (theta0=0.7, theta1=5.0)"><img src="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-pairwise-scenarier-output-3.svg" class="img-fluid figure-img" data-ref-parent="fig-pairwise-scenarier"></a>
+<a href="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-pairwise-scenarier-output-3.svg" class="lightbox" data-gallery="fig-pairwise-scenarier" title="Figure&nbsp;14&nbsp;(c): Høj migration (theta0=0.7, theta1=5.0)"><img src="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-pairwise-scenarier-output-3.svg" class="img-fluid figure-img" data-ref-parent="fig-pairwise-scenarier"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-pairwise-scenarier-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (c) Høj migration (theta0=0.7, theta1=5.0)
@@ -999,7 +1229,7 @@ Figure&nbsp;11: Sammenligning af læringsrate-schedules.
 <div id="fig-pairwise-scenarier-5" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-subfloat-fig figure">
 <div aria-describedby="fig-pairwise-scenarier-5-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-pairwise-scenarier-output-5.svg" class="lightbox" data-gallery="fig-pairwise-scenarier" title="Figure&nbsp;12&nbsp;(e): "><img src="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-pairwise-scenarier-output-5.svg" id="fig-pairwise-scenarier-5" class="img-fluid figure-img" data-ref-parent="fig-pairwise-scenarier"></a>
+<a href="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-pairwise-scenarier-output-5.svg" class="lightbox" data-gallery="fig-pairwise-scenarier" title="Figure&nbsp;14&nbsp;(e): "><img src="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-pairwise-scenarier-output-5.svg" id="fig-pairwise-scenarier-5" class="img-fluid figure-img" data-ref-parent="fig-pairwise-scenarier"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-pairwise-scenarier-5-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (e)
@@ -1024,18 +1254,18 @@ Figure&nbsp;11: Sammenligning af læringsrate-schedules.
 </div>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pairwise-scenarier-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;12: Pairwise posterior for tre migrationsscenarier. (b): Moderat migration (theta0=0.7, theta1=1.0) (d): (f):
+Figure&nbsp;14: Pairwise posterior for tre migrationsscenarier. (b): Moderat migration (theta0=0.7, theta1=1.0) (d): (f):
 </figcaption>
 </figure>
 </div>
 </div>
-<p>Ved lav migration er posterioren bred og negativt korreleret data er konsistente med mange kombinationer af høj coalescentrate og lav migration og omvendt. Det er ikke et numerisk problem; det er den statistiske realitet at disse to situationer er svære at adskille. Ved moderat migration er posterioren smallere. Ved høj migration opfører systemet sig som en enkelt panmiktisk population og migrationsraten er igen svær at identificere. Den negative korrelation i den posterior er det statistiske udtryk for dette. Konsekvenserne kvantificeres i <a href="#tbl-identifiability" class="quarto-xref">Table&nbsp;5</a>.</p>
+<p>Ved lav migration er posterioren bred og negativt korreleret data er konsistente med mange kombinationer af høj coalescentrate og lav migration og omvendt. Det er ikke et numerisk problem; det er den statistiske realitet at disse to situationer er svære at adskille. Ved moderat migration er posterioren smallere. Ved høj migration opfører systemet sig som en enkelt panmiktisk population og migrationsraten er igen svær at identificere. Den negative korrelation i den posterior er det statistiske udtryk for dette. Konsekvenserne kvantificeres i <a href="#tbl-identifiability" class="quarto-xref">Table&nbsp;6</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/03_svgd_two_island.ipynb" data-notebook-title="Notebook 3: Identifiability og inferens i to-ø modellen" data-notebook-cellid="cell-tbl-identifiability">
 <div class="cell" data-tbl-colwidths="[20,40,40]">
 <div id="tbl-identifiability" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-tbl-colwidths="[20,40,40]">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-identifiability-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;5: SVGD-estimater for tre migrationsscenarier med n=5000 observationer. Ved høj migration er theta1 std=6.29 (sand=5.0) et klart identifikationsproblem. Coalescentraten theta0 er konsekvent godt estimeret på tværs af scenarier.
+Table&nbsp;6: SVGD-estimater for tre migrationsscenarier med n=5000 observationer. Ved høj migration er theta1 std=6.29 (sand=5.0) et klart identifikationsproblem. Coalescentraten theta0 er konsekvent godt estimeret på tværs af scenarier.
 </figcaption>
 <div aria-describedby="tbl-identifiability-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output cell-output-display" data-execution_count="5">
@@ -1104,17 +1334,68 @@ Table&nbsp;5: SVGD-estimater for tre migrationsscenarier med n=5000 observatione
 </div>
 </div>
 </div>
-<p>Coalescentraten estimeres korrekt og præcist i alle tre scenarier. Migrationsraten estimeres godt ved moderat migration, men ved høj migration er posterior-std <span class="math inline">\(6,29\)</span> mod sand <span class="math inline">\(\theta_1 = 5{,}0\)</span> usikkerheden overstiger selve estimatets størrelse. Parameteren kan i praksis ikke bestemmes. For bavian-analysen betyder dette at <span class="math inline">\(N_e\)</span> er en pålidelig størrelse at rapportere, mens migrationsrater kun er meningsfulde at fortolke ved moderate niveauer. Et spørgsmål om asymmetrisk migration to separate rater <span class="math inline">\(m_{12} \neq m_{21}\)</span> kan identificeres. Med <span class="math inline">\(n=2\)</span> er svaret negativt <a href="#fig-asym-n2-pairwise" class="quarto-xref">Figure&nbsp;13</a>.</p>
+<p>Coalescentraten estimeres korrekt og præcist i alle tre scenarier. Migrationsraten estimeres godt ved moderat migration, men ved høj migration er posterior-std <span class="math inline">\(6,29\)</span> mod sand <span class="math inline">\(\theta_1 = 5{,}0\)</span> usikkerheden overstiger selve estimatets størrelse. Parameteren kan i praksis ikke bestemmes. For bavian-analysen betyder dette at <span class="math inline">\(N_e\)</span> er en pålidelig størrelse at rapportere, mens migrationsrater kun er meningsfulde at fortolke ved moderate niveauer. Valget af prior til migrationsparameteren har direkte konsekvenser for inferensens kvalitet. En sammenligning af GaussPrior og HalfCauchyPrior viser <a href="#tbl-prior-migration" class="quarto-xref">Table&nbsp;7</a>:</p>
+<div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/03_svgd_two_island.ipynb" data-notebook-title="Notebook 3: Identifiability og inferens i to-ø modellen" data-notebook-cellid="cell-tbl-prior-migration">
+<div class="cell" data-tbl-colwidths="[20,40,40]">
+<div id="tbl-prior-migration" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-tbl-colwidths="[20,40,40]">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-prior-migration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;7: Sammenligning af GaussPrior og HalfCauchyPrior til to-ø modellen (sand theta=[0.7, 0.9]). HalfCauchy giver lavere std for migrationsraten (0.261 vs.&nbsp;0.302) og er positiv-støttet hvilket undgår bias mod negative rater. HalfCauchyPrior anbefales til migrationsraten i alle to-populations modeller.
+</figcaption>
+<div aria-describedby="tbl-prior-migration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display" data-execution_count="10">
+<div>
+
+
+<table class="dataframe cell caption-top table table-sm table-striped small" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Prior</th>
+<th data-quarto-table-cell-role="th">theta0 mean</th>
+<th data-quarto-table-cell-role="th">theta0 std</th>
+<th data-quarto-table-cell-role="th">theta1 mean</th>
+<th data-quarto-table-cell-role="th">theta1 std</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">0</th>
+<td>GaussPrior (bred)</td>
+<td>0.6907</td>
+<td>0.07896</td>
+<td>0.8142</td>
+<td>0.19602</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">1</th>
+<td>HalfCauchy</td>
+<td>0.8254</td>
+<td>1.37412</td>
+<td>0.5613</td>
+<td>0.35399</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</figure>
+</div>
+</div>
+</div>
+<p>GaussPrior tillader negative værdier og trækker posterioren mod for høje migrationsrater ved lave sande værdier. HalfCauchyPrior er positiv-støttet og giver lavere bias og bedre CI-dækning på tværs af alle testede scenarier. HalfCauchy vælges derfor som standardprior for migrationsparametre i alle efterfølgende analyser. Et spørgsmål om asymmetrisk migration to separate rater <span class="math inline">\(m_{12} \neq m_{21}\)</span> kan identificeres. Med <span class="math inline">\(n=2\)</span> er svaret negativt <a href="#fig-asym-n2-pairwise" class="quarto-xref">Figure&nbsp;15</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/03_svgd_two_island.ipynb" data-notebook-title="Notebook 3: Identifiability og inferens i to-ø modellen" data-notebook-cellid="cell-fig-asym-n2-pairwise">
 <div class="cell" data-fig-width="5" data-fig-height="3">
-<div id="fig-asym-n2-pairwise" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-fig-width="5" data-fig-height="3">
+<div id="fig-asym-n2-pairwise" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-fig-height="3" data-fig-width="5">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-asym-n2-pairwise-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output cell-output-display">
 <div id="fig-asym-n2-pairwise-1" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-subfloat-fig figure">
 <div aria-describedby="fig-asym-n2-pairwise-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-asym-n2-pairwise-output-1.svg" class="lightbox" data-gallery="fig-asym-n2-pairwise" title="Figure&nbsp;13&nbsp;(a): Pairwise posterior for asymmetrisk to-ø model med n=2: m12 og m21 er confunded."><img src="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-asym-n2-pairwise-output-1.svg" class="img-fluid figure-img" data-ref-parent="fig-asym-n2-pairwise"></a>
+<a href="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-asym-n2-pairwise-output-1.svg" class="lightbox" data-gallery="fig-asym-n2-pairwise" title="Figure&nbsp;15&nbsp;(a): Pairwise posterior for asymmetrisk to-ø model med n=2: m12 og m21 er confunded."><img src="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-asym-n2-pairwise-output-1.svg" class="img-fluid figure-img" data-ref-parent="fig-asym-n2-pairwise"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-asym-n2-pairwise-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (a) Pairwise posterior for asymmetrisk to-ø model med n=2: m12 og m21 er confunded.
@@ -1126,7 +1407,7 @@ Table&nbsp;5: SVGD-estimater for tre migrationsscenarier med n=5000 observatione
 <div id="fig-asym-n2-pairwise-2" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-subfloat-fig figure">
 <div aria-describedby="fig-asym-n2-pairwise-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-asym-n2-pairwise-output-2.svg" class="lightbox" data-gallery="fig-asym-n2-pairwise" title="Figure&nbsp;13&nbsp;(b): "><img src="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-asym-n2-pairwise-output-2.svg" id="fig-asym-n2-pairwise-2" class="img-fluid figure-img" data-ref-parent="fig-asym-n2-pairwise"></a>
+<a href="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-asym-n2-pairwise-output-2.svg" class="lightbox" data-gallery="fig-asym-n2-pairwise" title="Figure&nbsp;15&nbsp;(b): "><img src="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-asym-n2-pairwise-output-2.svg" id="fig-asym-n2-pairwise-2" class="img-fluid figure-img" data-ref-parent="fig-asym-n2-pairwise"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-asym-n2-pairwise-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (b)
@@ -1136,40 +1417,40 @@ Table&nbsp;5: SVGD-estimater for tre migrationsscenarier med n=5000 observatione
 </div>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-asym-n2-pairwise-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;13
+Figure&nbsp;15
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>Med blot to prøver er de to migrationsrater fuldstændig sammenfiltrede. Pairwise-posterioren viser at alle kombinationer af <span class="math inline">\(m_{12}\)</span> og <span class="math inline">\(m_{21}\)</span> er nærmest ligeså sandsynlige posteriorens form afslører at data ikke indeholder nok information til at skelne de to rater. Det kræver mindst <span class="math inline">\(n=4\)</span> prøver per population og tilstrækkelige observationer <a href="#fig-asym4-pairwise" class="quarto-xref">Figure&nbsp;14</a>.</p>
+<p>Med blot to prøver er de to migrationsrater fuldstændig sammenfiltrede. Pairwise-posterioren viser at alle kombinationer af <span class="math inline">\(m_{12}\)</span> og <span class="math inline">\(m_{21}\)</span> er nærmest ligeså sandsynlige posteriorens form afslører at data ikke indeholder nok information til at skelne de to rater. Det kræver mindst <span class="math inline">\(n=4\)</span> prøver per population og tilstrækkelige observationer <a href="#fig-asym4-pairwise" class="quarto-xref">Figure&nbsp;16</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/03_svgd_two_island.ipynb" data-notebook-title="Notebook 3: Identifiability og inferens i to-ø modellen" data-notebook-cellid="cell-fig-asym4-pairwise">
 <div id="cell-fig-asym4-pairwise" class="cell" data-fig-width="5" data-fig-height="3">
 <div class="cell-output cell-output-display">
 <div id="fig-asym4-pairwise" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-asym4-pairwise-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-asym4-pairwise-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-20" title="Figure&nbsp;14: Pairwise posterior for asymmetrisk to-ø model med n=4. m12=2.015 pm 0.627 (sand 2.0) og m21=0.285 pm 0.039 (sand 0.3) begge rater er identificerbare med bias under 5%. Ved n=2 var de to migrationsretninger slet ikke adskillelige. n=4 er derfor minimumet for asymmetrisk migrationsanalyse."><img src="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-asym4-pairwise-output-1.svg" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-asym4-pairwise-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-22" title="Figure&nbsp;16: Pairwise posterior for asymmetrisk to-ø model med n=4. m12=2.015 pm 0.627 (sand 2.0) og m21=0.285 pm 0.039 (sand 0.3) begge rater er identificerbare med bias under 5%. Ved n=2 var de to migrationsretninger slet ikke adskillelige. n=4 er derfor minimumet for asymmetrisk migrationsanalyse."><img src="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-asym4-pairwise-output-1.svg" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-asym4-pairwise-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;14: Pairwise posterior for asymmetrisk to-ø model med n=4. m12=2.015 pm 0.627 (sand 2.0) og m21=0.285 pm 0.039 (sand 0.3) begge rater er identificerbare med bias under 5%. Ved n=2 var de to migrationsretninger slet ikke adskillelige. n=4 er derfor minimumet for asymmetrisk migrationsanalyse.
+Figure&nbsp;16: Pairwise posterior for asymmetrisk to-ø model med n=4. m12=2.015 pm 0.627 (sand 2.0) og m21=0.285 pm 0.039 (sand 0.3) begge rater er identificerbare med bias under 5%. Ved n=2 var de to migrationsretninger slet ikke adskillelige. n=4 er derfor minimumet for asymmetrisk migrationsanalyse.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 </div>
-<p>Med <span class="math inline">\(n=4\)</span> og <span class="math inline">\(5000\)</span> observationer er begge rater identifiability. Den lave rate estimeres meget præcist fordi sjælden migration giver et klart signal i data. Den høje rate er sværere at bestemme præcist, i overensstemmelse med identifiability-analysen. Konvergensforløbet bekræfter stabiliteten i <a href="#fig-asym4-konvergens" class="quarto-xref">Figure&nbsp;15</a>.</p>
+<p>Med <span class="math inline">\(n=4\)</span> og <span class="math inline">\(5000\)</span> observationer er begge rater identifiability. Den lave rate estimeres meget præcist fordi sjælden migration giver et klart signal i data. Den høje rate er sværere at bestemme præcist, i overensstemmelse med identifiability-analysen. Konvergensforløbet bekræfter stabiliteten i <a href="#fig-asym4-konvergens" class="quarto-xref">Figure&nbsp;17</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/03_svgd_two_island.ipynb" data-notebook-title="Notebook 3: Identifiability og inferens i to-ø modellen" data-notebook-cellid="cell-fig-asym4-konvergens">
 <div id="cell-fig-asym4-konvergens" class="cell" data-fig-width="5" data-fig-height="3">
 <div class="cell-output cell-output-display">
 <div id="fig-asym4-konvergens" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-asym4-konvergens-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-asym4-konvergens-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-21" title="Figure&nbsp;15: Konvergensplot for asymmetrisk to-ø model med n=4 og N_OBS=5000."><img src="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-asym4-konvergens-output-1.svg" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-asym4-konvergens-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-23" title="Figure&nbsp;17: Konvergensplot for asymmetrisk to-ø model med n=4 og N_OBS=5000."><img src="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-asym4-konvergens-output-1.svg" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-asym4-konvergens-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;15: Konvergensplot for asymmetrisk to-ø model med n=4 og N_OBS=5000.
+Figure&nbsp;17: Konvergensplot for asymmetrisk to-ø model med n=4 og N_OBS=5000.
 </figcaption>
 </figure>
 </div>
@@ -1187,27 +1468,27 @@ Figure&nbsp;15: Konvergensplot for asymmetrisk to-ø model med n=4 og N_OBS=5000
 <div id="fig-bottleneck-cdf" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-bottleneck-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-05_time_inhomogeneous-fig-bottleneck-cdf-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-22" title="Figure&nbsp;16: CDF og PDF for Kingmans coalescent under varierende flaskehals-dybde (f=N/N_{bottle}). En moderat flaskehals (f=2 til f=10) ændrer næsten ikke E[TMRCA] som forbliver 1.5 coalescentenheder. Kun en ekstrem flaskehals (f=50) reducerer E[TMRCA] mærkbart til 1.0. PDF viser en karakteristisk bule i flaskehalsperioden [0.5, 0.9] der vokser med dybden."><img src="index_files/figure-html/..-notebooks-05_time_inhomogeneous-fig-bottleneck-cdf-output-1.svg" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/..-notebooks-05_time_inhomogeneous-fig-bottleneck-cdf-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-24" title="Figure&nbsp;18: CDF og PDF for Kingmans coalescent under varierende flaskehals-dybde (f=N/N_{bottle}). En moderat flaskehals (f=2 til f=10) ændrer næsten ikke E[TMRCA] som forbliver 1.5 coalescentenheder. Kun en ekstrem flaskehals (f=50) reducerer E[TMRCA] mærkbart til 1.0. PDF viser en karakteristisk bule i flaskehalsperioden [0.5, 0.9] der vokser med dybden."><img src="index_files/figure-html/..-notebooks-05_time_inhomogeneous-fig-bottleneck-cdf-output-1.svg" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-bottleneck-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;16: CDF og PDF for Kingmans coalescent under varierende flaskehals-dybde (<span class="math inline">\(f=N/N_{bottle}\)</span>). En moderat flaskehals (<span class="math inline">\(f=2\)</span> til <span class="math inline">\(f=10\)</span>) ændrer næsten ikke E[TMRCA] som forbliver 1.5 coalescentenheder. Kun en ekstrem flaskehals (<span class="math inline">\(f=50\)</span>) reducerer E[TMRCA] mærkbart til 1.0. PDF viser en karakteristisk bule i flaskehalsperioden [<span class="math inline">\(0.5, 0.9\)</span>] der vokser med dybden.
+Figure&nbsp;18: CDF og PDF for Kingmans coalescent under varierende flaskehals-dybde (<span class="math inline">\(f=N/N_{bottle}\)</span>). En moderat flaskehals (<span class="math inline">\(f=2\)</span> til <span class="math inline">\(f=10\)</span>) ændrer næsten ikke E[TMRCA] som forbliver 1.5 coalescentenheder. Kun en ekstrem flaskehals (<span class="math inline">\(f=50\)</span>) reducerer E[TMRCA] mærkbart til 1.0. PDF viser en karakteristisk bule i flaskehalsperioden [<span class="math inline">\(0.5, 0.9\)</span>] der vokser med dybden.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 </div>
-<p><a href="#fig-bottleneck-cdf" class="quarto-xref">Figure&nbsp;16</a> viser at en moderat flaskehals ændrer meget lidt ved den forventede TMRCA. Årsagen er at mange genealogiske linjer allerede har fundet fælles forfæder inden flaskehalsen. Kun de linjer der overlever op til flaskehalsen mærker den accelererede coalescent. Det kræver en meget ekstrem flaskehals (faktor <span class="math inline">\(50\)</span> reduktion) for at ændre <span class="math inline">\(\mathbb{E}[\text{TMRCA}]\)</span> mærkbart. SFS-formen er langt mere sensitiv over for demografiske ændringer end TMRCA er. Fem demografiske scenarier sammenlignes analytisk for at forstå, hvad der kan adskilles i data <a href="#fig-multiepoch" class="quarto-xref">Figure&nbsp;17</a>.</p>
+<p><a href="#fig-bottleneck-cdf" class="quarto-xref">Figure&nbsp;18</a> viser at en moderat flaskehals ændrer meget lidt ved den forventede TMRCA. Årsagen er at mange genealogiske linjer allerede har fundet fælles forfæder inden flaskehalsen. Kun de linjer der overlever op til flaskehalsen mærker den accelererede coalescent. Det kræver en meget ekstrem flaskehals (faktor <span class="math inline">\(50\)</span> reduktion) for at ændre <span class="math inline">\(\mathbb{E}[\text{TMRCA}]\)</span> mærkbart. SFS-formen er langt mere sensitiv over for demografiske ændringer end TMRCA er. Fem demografiske scenarier sammenlignes analytisk for at forstå, hvad der kan adskilles i data <a href="#fig-multiepoch" class="quarto-xref">Figure&nbsp;19</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/05_time_inhomogeneous.ipynb" data-notebook-title="Notebook 5: Tidsinhomogen coalescent og inferens" data-notebook-cellid="cell-fig-multiepoch">
 <div id="cell-fig-multiepoch" class="cell" data-fig-width="5" data-fig-height="3">
 <div class="cell-output cell-output-display">
 <div id="fig-multiepoch" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-multiepoch-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-05_time_inhomogeneous-fig-multiepoch-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-23" title="Figure&nbsp;17: CDF og PDF for fem demografiske scenarier: konstant, ekspansion, kontraktion, flaskehals+recovery og trinvis vækst. Ekspansion giver en stejl CDF tidligt fordi den nuværende population er lille. Kontraktion giver den fladeste CDF. Flaskehals+recovery viser en S-form med knæk ved epoch-grænser. Demografisk historie former TMRCA-fordelingen tydeligt."><img src="index_files/figure-html/..-notebooks-05_time_inhomogeneous-fig-multiepoch-output-1.svg" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/..-notebooks-05_time_inhomogeneous-fig-multiepoch-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-25" title="Figure&nbsp;19: CDF og PDF for fem demografiske scenarier: konstant, ekspansion, kontraktion, flaskehals+recovery og trinvis vækst. Ekspansion giver en stejl CDF tidligt fordi den nuværende population er lille. Kontraktion giver den fladeste CDF. Flaskehals+recovery viser en S-form med knæk ved epoch-grænser. Demografisk historie former TMRCA-fordelingen tydeligt."><img src="index_files/figure-html/..-notebooks-05_time_inhomogeneous-fig-multiepoch-output-1.svg" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-multiepoch-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;17: CDF og PDF for fem demografiske scenarier: konstant, ekspansion, kontraktion, flaskehals+recovery og trinvis vækst. Ekspansion giver en stejl CDF tidligt fordi den nuværende population er lille. Kontraktion giver den fladeste CDF. Flaskehals+recovery viser en S-form med knæk ved epoch-grænser. Demografisk historie former TMRCA-fordelingen tydeligt.
+Figure&nbsp;19: CDF og PDF for fem demografiske scenarier: konstant, ekspansion, kontraktion, flaskehals+recovery og trinvis vækst. Ekspansion giver en stejl CDF tidligt fordi den nuværende population er lille. Kontraktion giver den fladeste CDF. Flaskehals+recovery viser en S-form med knæk ved epoch-grænser. Demografisk historie former TMRCA-fordelingen tydeligt.
 </figcaption>
 </figure>
 </div>
@@ -1218,17 +1499,17 @@ Figure&nbsp;17: CDF og PDF for fem demografiske scenarier: konstant, ekspansion,
 </section>
 <section id="joint-probability-inferens-og-sensitivitet-over-for-mutationsraten" class="level2">
 <h2 class="anchored" data-anchor-id="joint-probability-inferens-og-sensitivitet-over-for-mutationsraten">Joint probability-inferens og sensitivitet over for mutationsraten</h2>
-<p>NB06 tester en tilgang der bruger hele mutationsmønstret per locus antallet af singletons, doubletons og tripletons frem for kun at observere TMRCA-tider. To-locus ARG-modellen giver mulighed for simultant at estimere coalescentraten og rekombinationsraten <a href="#fig-arg-pairwise" class="quarto-xref">Figure&nbsp;18</a>.</p>
+<p>NB06 tester en tilgang der bruger hele mutationsmønstret per locus antallet af singletons, doubletons og tripletons frem for kun at observere TMRCA-tider. To-locus ARG-modellen giver mulighed for simultant at estimere coalescentraten og rekombinationsraten <a href="#fig-arg-pairwise" class="quarto-xref">Figure&nbsp;20</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/06_joint_probability_inferens.ipynb" data-notebook-title="Notebook 6: Inferens via joint sandsynligheder og diskrete SFS-observationer" data-notebook-cellid="cell-fig-arg-pairwise">
 <div class="cell" data-fig-width="5" data-fig-height="3">
-<div id="fig-arg-pairwise" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-fig-width="5" data-fig-height="3">
+<div id="fig-arg-pairwise" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-fig-height="3" data-fig-width="5">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-arg-pairwise-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output cell-output-display">
 <div id="fig-arg-pairwise-1" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-subfloat-fig figure">
 <div aria-describedby="fig-arg-pairwise-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-06_joint_probability_inferens-fig-arg-pairwise-output-1.svg" class="lightbox" data-gallery="fig-arg-pairwise" title="Figure&nbsp;18&nbsp;(a): Pairwise posterior for to-locus ARG-model: coalescensrate theta0=2.986 pm 0.688 (sand 3.0) og rekombinationsrate theta1=0.575 pm 0.533 (sand 0.5). Lav korrelation i pairwise posterior bekræfter at de to parametre er identificerbare fra joint two-locus observationer."><img src="index_files/figure-html/..-notebooks-06_joint_probability_inferens-fig-arg-pairwise-output-1.svg" class="img-fluid figure-img" data-ref-parent="fig-arg-pairwise"></a>
+<a href="index_files/figure-html/..-notebooks-06_joint_probability_inferens-fig-arg-pairwise-output-1.svg" class="lightbox" data-gallery="fig-arg-pairwise" title="Figure&nbsp;20&nbsp;(a): Pairwise posterior for to-locus ARG-model: coalescensrate theta0=2.986 pm 0.688 (sand 3.0) og rekombinationsrate theta1=0.575 pm 0.533 (sand 0.5). Lav korrelation i pairwise posterior bekræfter at de to parametre er identificerbare fra joint two-locus observationer."><img src="index_files/figure-html/..-notebooks-06_joint_probability_inferens-fig-arg-pairwise-output-1.svg" class="img-fluid figure-img" data-ref-parent="fig-arg-pairwise"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-arg-pairwise-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (a) Pairwise posterior for to-locus ARG-model: coalescensrate theta0=2.986 pm 0.688 (sand 3.0) og rekombinationsrate theta1=0.575 pm 0.533 (sand 0.5). Lav korrelation i pairwise posterior bekræfter at de to parametre er identificerbare fra joint two-locus observationer.
@@ -1240,7 +1521,7 @@ Figure&nbsp;17: CDF og PDF for fem demografiske scenarier: konstant, ekspansion,
 <div id="fig-arg-pairwise-2" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-subfloat-fig figure">
 <div aria-describedby="fig-arg-pairwise-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-06_joint_probability_inferens-fig-arg-pairwise-output-2.svg" class="lightbox" data-gallery="fig-arg-pairwise" title="Figure&nbsp;18&nbsp;(b): "><img src="index_files/figure-html/..-notebooks-06_joint_probability_inferens-fig-arg-pairwise-output-2.svg" id="fig-arg-pairwise-2" class="img-fluid figure-img" data-ref-parent="fig-arg-pairwise"></a>
+<a href="index_files/figure-html/..-notebooks-06_joint_probability_inferens-fig-arg-pairwise-output-2.svg" class="lightbox" data-gallery="fig-arg-pairwise" title="Figure&nbsp;20&nbsp;(b): "><img src="index_files/figure-html/..-notebooks-06_joint_probability_inferens-fig-arg-pairwise-output-2.svg" id="fig-arg-pairwise-2" class="img-fluid figure-img" data-ref-parent="fig-arg-pairwise"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-arg-pairwise-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (b)
@@ -1250,19 +1531,19 @@ Figure&nbsp;17: CDF og PDF for fem demografiske scenarier: konstant, ekspansion,
 </div>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-arg-pairwise-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;18
+Figure&nbsp;20
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>Pairwise-posterioren for ARG-modellen viser at coalescentraten <span class="math inline">\(\theta_0\)</span> estimeres præcist og med smal posterior. Rekombinationsraten <span class="math inline">\(\theta_1\)</span> har en bredere posterior rekombinationsraten er sværere at identificere præcist, særlig ved lave rekombinationsniveauer, fordi rekombinationssignalet i TMRCA-fordelingen er svagt ved lave rater. Den negative korrelation mellem de to parametre afspejler at de konkurrerer om den samme genealogiske information. Den vigtigste advarsel fra NB06 er sensitiviteten over for den specificerede mutationsrate <a href="#tbl-mu-bias" class="quarto-xref">Table&nbsp;6</a>.</p>
+<p>Pairwise-posterioren for ARG-modellen viser at coalescentraten <span class="math inline">\(\theta_0\)</span> estimeres præcist og med smal posterior. Rekombinationsraten <span class="math inline">\(\theta_1\)</span> har en bredere posterior rekombinationsraten er sværere at identificere præcist, særlig ved lave rekombinationsniveauer, fordi rekombinationssignalet i TMRCA-fordelingen er svagt ved lave rater. Den negative korrelation mellem de to parametre afspejler at de konkurrerer om den samme genealogiske information. Den vigtigste advarsel fra NB06 er sensitiviteten over for den specificerede mutationsrate <a href="#tbl-mu-bias" class="quarto-xref">Table&nbsp;8</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/06_joint_probability_inferens.ipynb" data-notebook-title="Notebook 6: Inferens via joint sandsynligheder og diskrete SFS-observationer" data-notebook-cellid="cell-tbl-mu-bias">
 <div class="cell" data-tbl-colwidths="[20,40,40]">
 <div id="tbl-mu-bias" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-tbl-colwidths="[20,40,40]">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-mu-bias-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;6: Systematisk bias ved forkert mutationsrate mu i joint-inferens (sand theta=7.0, sand mu=1.0, N_obs=2000). Faktor 2 fejl i mu giver faktor 2-3 fejl i theta-estimatet. Biasset er systematisk og forsvinder ikke med større n.&nbsp;Motiverer sensitivitetsanalyse over mu i bavian-analysen.
+Table&nbsp;8: Systematisk bias ved forkert mutationsrate mu i joint-inferens (sand theta=7.0, sand mu=1.0, N_obs=2000). Faktor 2 fejl i mu giver faktor 2-3 fejl i theta-estimatet. Biasset er systematisk og forsvinder ikke med større n.&nbsp;Motiverer sensitivitetsanalyse over mu i bavian-analysen.
 </figcaption>
 <div aria-describedby="tbl-mu-bias-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output cell-output-display" data-execution_count="16">
@@ -1332,13 +1613,13 @@ Table&nbsp;6: Systematisk bias ved forkert mutationsrate mu i joint-inferens (sa
 <h1>Resultater</h1>
 <section id="kalibrering-af-prior-til-bavianparametre" class="level2">
 <h2 class="anchored" data-anchor-id="kalibrering-af-prior-til-bavianparametre">Kalibrering af prior til bavianparametre</h2>
-<p>Valget af prior kan have stor betydning for Bayesiansk inferens, særligt når datamængden er begrænset. Derfor blev fire forskellige prior-strategier undersøgt for coalescentrater i det interval, der er relevant for bavianpopulationerne, <span class="math inline">\(\theta \in {3, 7, 15, 20}\)</span>. De fire priors repræsenterer henholdsvis en vag prior, en korrekt informativ prior, en forkert informativ prior og en positivt støttet HalfCauchy-prior. Resultaterne af sammenligningen er vist i <a href="#tbl-prior-bav" class="quarto-xref">Table&nbsp;7</a>.</p>
+<p>Valget af prior kan have stor betydning for Bayesiansk inferens, særligt når datamængden er begrænset. Derfor blev fire forskellige prior-strategier undersøgt for coalescentrater i det interval, der er relevant for bavianpopulationerne, <span class="math inline">\(\theta \in {3, 7, 15, 20}\)</span>. De fire priors repræsenterer henholdsvis en vag prior, en korrekt informativ prior, en forkert informativ prior og en positivt støttet HalfCauchy-prior. Resultaterne af sammenligningen er vist i <a href="#tbl-prior-bav" class="quarto-xref">Table&nbsp;9</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/02_svgd_inferens_basis.ipynb" data-notebook-title="Notebook 2: Bayesiansk inferens med SVGD – grundlæggende egenskaber og prior-sensitivitet" data-notebook-cellid="cell-tbl-prior-bav">
 <div class="cell" data-tbl-colwidths="[20,40,40]">
 <div id="tbl-prior-bav" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-tbl-colwidths="[20,40,40]">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-prior-bav-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;7: Prior-sensitivitet over bavian-realistiske theta-værdier. DataPrior giver lavest bias ved theta=3, 15 og 20. GaussPrior(bred) kollapser ved theta=15 med bias på 153% og theta=20 med 221%. DataPrior anbefales som standardprior til bavian-analysen.
+Table&nbsp;9: Prior-sensitivitet over bavian-realistiske theta-værdier. DataPrior giver lavest bias ved theta=3, 15 og 20. GaussPrior(bred) kollapser ved theta=15 med bias på 153% og theta=20 med 221%. DataPrior anbefales som standardprior til bavian-analysen.
 </figcaption>
 <div aria-describedby="tbl-prior-bav-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output cell-output-display" data-execution_count="5">
@@ -1512,17 +1793,17 @@ Table&nbsp;7: Prior-sensitivitet over bavian-realistiske theta-værdier. DataPri
 </div>
 </div>
 </div>
-<p>Resultaterne viser, at DataPrior generelt giver de mest præcise estimater. For <span class="math inline">\(\theta = 3\)</span>, <span class="math inline">\(\theta = 15\)</span> og <span class="math inline">\(\theta = 20\)</span> er bias under <span class="math inline">\(5\%\)</span>, mens alle fire prior-strategier giver næsten identiske resultater ved <span class="math inline">\(\theta = 7\)</span> med bias under <span class="math inline">\(3\%\)</span>. DataPrior fremstår dermed som den mest robuste prior på tværs af det parameterinterval, der er relevant for baviandata. Den brede GaussPrior klarer sig dårligere ved høje parameterværdier. Særligt ved <span class="math inline">\(\theta = 15\)</span> observeres en bias på over <span class="math inline">\(150\%\)</span> og konfidensintervallet indeholder ikke den sande parameterværdi. Den forkert centrerede informative GaussPrior påvirker estimaterne i retning af priorens forventning og har en negativ bias i alle fire scenarier. HalfCauchyPrior giver genemgående rimelige estimater og holder bias under <span class="math inline">\(10\%\)</span> ved de laveste undersøgte parameterværdier. På baggrund af disse resultater anvendes DataPrior som standardprior for coalescentparametre i de efterfølgende analyser, mens HalfCauchyPrior anvendes til migrationsparametre i to-ø- og IM-modellen. Som en afsluttende validering af den valgte inferensprocedure udføres et posterior predictive check, vist i <a href="#fig-ppc" class="quarto-xref">Figure&nbsp;19</a>.</p>
+<p>Resultaterne viser, at DataPrior generelt giver de mest præcise estimater. For <span class="math inline">\(\theta = 3\)</span>, <span class="math inline">\(\theta = 15\)</span> og <span class="math inline">\(\theta = 20\)</span> er bias under <span class="math inline">\(5\%\)</span>, mens alle fire prior-strategier giver næsten identiske resultater ved <span class="math inline">\(\theta = 7\)</span> med bias under <span class="math inline">\(3\%\)</span>. DataPrior fremstår dermed som den mest robuste prior på tværs af det parameterinterval, der er relevant for baviandata. Den brede GaussPrior klarer sig dårligere ved høje parameterværdier. Særligt ved <span class="math inline">\(\theta = 15\)</span> observeres en bias på over <span class="math inline">\(150\%\)</span> og konfidensintervallet indeholder ikke den sande parameterværdi. Den forkert centrerede informative GaussPrior påvirker estimaterne i retning af priorens forventning og har en negativ bias i alle fire scenarier. HalfCauchyPrior giver genemgående rimelige estimater og holder bias under <span class="math inline">\(10\%\)</span> ved de laveste undersøgte parameterværdier. På baggrund af disse resultater anvendes DataPrior som standardprior for coalescentparametre i de efterfølgende analyser, mens HalfCauchyPrior anvendes til migrationsparametre i to-ø- og IM-modellen. Som en afsluttende validering af den valgte inferensprocedure udføres et posterior predictive check, vist i <a href="#fig-ppc" class="quarto-xref">Figure&nbsp;21</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/02_svgd_inferens_basis.ipynb" data-notebook-title="Notebook 2: Bayesiansk inferens med SVGD – grundlæggende egenskaber og prior-sensitivitet" data-notebook-cellid="cell-fig-ppc">
 <div class="cell" data-fig-width="5" data-fig-height="3">
-<div id="fig-ppc" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-fig-width="5" data-fig-height="3">
+<div id="fig-ppc" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-fig-height="3" data-fig-width="5">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-ppc-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output cell-output-display">
 <div id="fig-ppc-1" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-subfloat-fig figure">
 <div aria-describedby="fig-ppc-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-02_svgd_inferens_basis-fig-ppc-output-1.svg" class="lightbox" data-gallery="fig-ppc" title="Figure&nbsp;19&nbsp;(a): Posterior predictive check: modellen med estimeret theta reproducerer de observerede TMRCA-tider. Venstre: histogram af observerede tider (blå) og model-PDF ved posterior-mean (orange). Højre: empirisk CDF og model-CDF er visuelt uadskillelige hvilket bekræfter god modelfit."><img src="index_files/figure-html/..-notebooks-02_svgd_inferens_basis-fig-ppc-output-1.svg" class="img-fluid figure-img" data-ref-parent="fig-ppc"></a>
+<a href="index_files/figure-html/..-notebooks-02_svgd_inferens_basis-fig-ppc-output-1.svg" class="lightbox" data-gallery="fig-ppc" title="Figure&nbsp;21&nbsp;(a): Posterior predictive check: modellen med estimeret theta reproducerer de observerede TMRCA-tider. Venstre: histogram af observerede tider (blå) og model-PDF ved posterior-mean (orange). Højre: empirisk CDF og model-CDF er visuelt uadskillelige hvilket bekræfter god modelfit."><img src="index_files/figure-html/..-notebooks-02_svgd_inferens_basis-fig-ppc-output-1.svg" class="img-fluid figure-img" data-ref-parent="fig-ppc"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-ppc-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (a) Posterior predictive check: modellen med estimeret theta reproducerer de observerede TMRCA-tider. Venstre: histogram af observerede tider (blå) og model-PDF ved posterior-mean (orange). Højre: empirisk CDF og model-CDF er visuelt uadskillelige hvilket bekræfter god modelfit.
@@ -1534,7 +1815,7 @@ Table&nbsp;7: Prior-sensitivitet over bavian-realistiske theta-værdier. DataPri
 <div id="fig-ppc-2" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-subfloat-fig figure">
 <div aria-describedby="fig-ppc-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-02_svgd_inferens_basis-fig-ppc-output-2.svg" class="lightbox" data-gallery="fig-ppc" title="Figure&nbsp;19&nbsp;(b): "><img src="index_files/figure-html/..-notebooks-02_svgd_inferens_basis-fig-ppc-output-2.svg" id="fig-ppc-2" class="img-fluid figure-img" data-ref-parent="fig-ppc"></a>
+<a href="index_files/figure-html/..-notebooks-02_svgd_inferens_basis-fig-ppc-output-2.svg" class="lightbox" data-gallery="fig-ppc" title="Figure&nbsp;21&nbsp;(b): "><img src="index_files/figure-html/..-notebooks-02_svgd_inferens_basis-fig-ppc-output-2.svg" id="fig-ppc-2" class="img-fluid figure-img" data-ref-parent="fig-ppc"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-ppc-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (b)
@@ -1544,57 +1825,57 @@ Table&nbsp;7: Prior-sensitivitet over bavian-realistiske theta-værdier. DataPri
 </div>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-ppc-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;19
+Figure&nbsp;21
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>Det posterior predictive check viser en tæt overensstemmelse mellem de observerede data og den estimerede model (<a href="#fig-ppc" class="quarto-xref">Figure&nbsp;19</a>). Den teoretiske fordeling baseret på posterior-gennemsnittet følger histogrammet af de observerede TMRCA-tider gennem hele fordelingen, både ved korte og lange tider. Tilsvarende ligger den empiriske og den modelbaserede fordelingsfunktion næsten oven i hinanden uden synlige afvigelser. Det estimerede posterior-gennemsnit er <span class="math inline">\(\hat{\theta}=7{,}02\)</span>, hvilket ligger meget tæt på den sande værdi <span class="math inline">\(\theta=7{,}0\)</span> og svarer til en relativ afvigelse på under <span class="math inline">\(0,3\%\)</span>. Resultatet viser, at inferensproceduren kan genfinde den korrekte parameterværdi med høj præcision og at den estimerede model giver en god beskrivelse af de observerede data.</p>
+<p>Det posterior predictive check viser en tæt overensstemmelse mellem de observerede data og den estimerede model (<a href="#fig-ppc" class="quarto-xref">Figure&nbsp;21</a>). Den teoretiske fordeling baseret på posterior-gennemsnittet følger histogrammet af de observerede TMRCA-tider gennem hele fordelingen, både ved korte og lange tider. Tilsvarende ligger den empiriske og den modelbaserede fordelingsfunktion næsten oven i hinanden uden synlige afvigelser. Det estimerede posterior-gennemsnit er <span class="math inline">\(\hat{\theta}=7{,}02\)</span>, hvilket ligger meget tæt på den sande værdi <span class="math inline">\(\theta=7{,}0\)</span> og svarer til en relativ afvigelse på under <span class="math inline">\(0,3\%\)</span>. Resultatet viser, at inferensproceduren kan genfinde den korrekte parameterværdi med høj præcision og at den estimerede model giver en god beskrivelse af de observerede data.</p>
 </section>
 <section id="validering-af-to-ø-modellen-mod-msprime" class="level2">
 <h2 class="anchored" data-anchor-id="validering-af-to-ø-modellen-mod-msprime">Validering af to-ø modellen mod msprime</h2>
-<p>For at validere to-ø modellen blev den sammenlignet med msprime-simuleringer genereret under kendte parameterværdier. Da de sande parametre er kendte i dette scenarie, giver sammenligningen mulighed for direkte at vurdere, hvor godt den analytiske fase-type model beskriver den underliggende TMRCA-fordeling. Resultaterne ses i <a href="#fig-two-island-msprime-val" class="quarto-xref">Figure&nbsp;20</a>.</p>
+<p>For at validere to-ø modellen blev den sammenlignet med msprime-simuleringer genereret under kendte parameterværdier. Da de sande parametre er kendte i dette scenarie, giver sammenligningen mulighed for direkte at vurdere, hvor godt den analytiske fase-type model beskriver den underliggende TMRCA-fordeling. Resultaterne ses i <a href="#fig-two-island-msprime-val" class="quarto-xref">Figure&nbsp;22</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/03_svgd_two_island.ipynb" data-notebook-title="Notebook 3: Identifiability og inferens i to-ø modellen" data-notebook-cellid="cell-fig-two-island-msprime-val">
 <div id="cell-fig-two-island-msprime-val" class="cell" data-fig-width="5" data-fig-height="3" data-execution_count="6">
 <div class="cell-output cell-output-display">
 <div id="fig-two-island-msprime-val" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-two-island-msprime-val-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-two-island-msprime-val-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-28" title="Figure&nbsp;20: msprime-validering af to-ø modellen (theta0=0.7, theta1=1.0, ploidy=2): skaleret TMRCA-histogram vs.&nbsp;phasic PDF og ECDF vs.&nbsp;CDF."><img src="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-two-island-msprime-val-output-1.svg" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-two-island-msprime-val-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-30" title="Figure&nbsp;22: msprime-validering af to-ø modellen (theta0=0.7, theta1=1.0, ploidy=2): skaleret TMRCA-histogram vs.&nbsp;phasic PDF og ECDF vs.&nbsp;CDF."><img src="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-two-island-msprime-val-output-1.svg" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-two-island-msprime-val-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;20: msprime-validering af to-ø modellen (theta0=0.7, theta1=1.0, ploidy=2): skaleret TMRCA-histogram vs.&nbsp;phasic PDF og ECDF vs.&nbsp;CDF.
+Figure&nbsp;22: msprime-validering af to-ø modellen (theta0=0.7, theta1=1.0, ploidy=2): skaleret TMRCA-histogram vs.&nbsp;phasic PDF og ECDF vs.&nbsp;CDF.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 </div>
-<p>Som det fremgår af <a href="#fig-two-island-msprime-val" class="quarto-xref">Figure&nbsp;20</a>, er der en meget tæt overensstemmelse mellem den analytiske fordeling og de msprime-simulerede data. Den teoretiske tæthed følger histogrammet af de simulerede TMRCA-tider gennem hele fordelingen og de empiriske og modelbaserede fordelingsfunktioner ligger næsten oven i hinanden. Afvigelserne er små og inden for det, der forventes som følge af den stokastiske variation i simuleringerne. Efter at have verificeret selve modellen undersøges inferensprocedurens egenskaber. Konvergensforløbet for SVGD på de msprime-simulerede data er vist i <a href="#fig-two-island-msp-konvergens" class="quarto-xref">Figure&nbsp;21</a>.</p>
+<p>Som det fremgår af <a href="#fig-two-island-msprime-val" class="quarto-xref">Figure&nbsp;22</a>, er der en meget tæt overensstemmelse mellem den analytiske fordeling og de msprime-simulerede data. Den teoretiske tæthed følger histogrammet af de simulerede TMRCA-tider gennem hele fordelingen og de empiriske og modelbaserede fordelingsfunktioner ligger næsten oven i hinanden. Afvigelserne er små og inden for det, der forventes som følge af den stokastiske variation i simuleringerne. Efter at have verificeret selve modellen undersøges inferensprocedurens egenskaber. Konvergensforløbet for SVGD på de msprime-simulerede data er vist i <a href="#fig-two-island-msp-konvergens" class="quarto-xref">Figure&nbsp;23</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/03_svgd_two_island.ipynb" data-notebook-title="Notebook 3: Identifiability og inferens i to-ø modellen" data-notebook-cellid="cell-fig-two-island-msp-konvergens">
 <div id="cell-fig-two-island-msp-konvergens" class="cell" data-fig-width="5" data-fig-height="3">
 <div class="cell-output cell-output-display">
 <div id="fig-two-island-msp-konvergens" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-two-island-msp-konvergens-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-two-island-msp-konvergens-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-29" title="Figure&nbsp;21: Konvergensplot for SVGD-inferens pa msprime-simulerede to-ø-data. Theta0 konvergerer stabilt; theta1 viser storre variation."><img src="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-two-island-msp-konvergens-output-1.svg" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-two-island-msp-konvergens-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-31" title="Figure&nbsp;23: Konvergensplot for SVGD-inferens pa msprime-simulerede to-ø-data. Theta0 konvergerer stabilt; theta1 viser storre variation."><img src="index_files/figure-html/..-notebooks-03_svgd_two_island-fig-two-island-msp-konvergens-output-1.svg" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-two-island-msp-konvergens-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;21: Konvergensplot for SVGD-inferens pa msprime-simulerede to-ø-data. Theta0 konvergerer stabilt; theta1 viser storre variation.
+Figure&nbsp;23: Konvergensplot for SVGD-inferens pa msprime-simulerede to-ø-data. Theta0 konvergerer stabilt; theta1 viser storre variation.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 </div>
-<p>Resultaterne viser, at begge parametre kan genfindes med høj præcision. Coalescentraten estimeres til <span class="math inline">\(0{,}698 \pm 0{,}056\)</span>, mens migrationsraten estimeres til <span class="math inline">\(1{,}017 \pm 0{,}196\)</span>. Begge estimater ligger meget tæt på de sande parameterværdier og de tilhørende <span class="math inline">\(95\%\)</span>-konfidensintervaller indeholder den korrekte løsning. Konvergensforløbet viser samtidig en forskel i, hvor præcist de to parametre kan bestemmes. Coalescentraten konvergerer hurtigt til en smal posterior, mens migrationsraten er forbundet med større usikkerhed og en bredere posteriorfordeling. Dette stemmer overens med de tidligere identifiability-analyser, som viste, at migrationsrater generelt er vanskeligere at estimere præcist end coalescentrater ud fra de tilgængelige data. Samlet set viser resultaterne, at SVGD-inferensen både er numerisk stabil og i stand til at genfinde de sande parametre i et kontrolleret simulationsscenarie. En mere systematisk sammenligning mellem method-of-moments (MoM) og SVGD på tværs af fem bavian-realistiske parameterscenarier er vist i <a href="#tbl-mom-bavian" class="quarto-xref">Table&nbsp;8</a>.</p>
+<p>Resultaterne viser, at begge parametre kan genfindes med høj præcision. Coalescentraten estimeres til <span class="math inline">\(0{,}698 \pm 0{,}056\)</span>, mens migrationsraten estimeres til <span class="math inline">\(1{,}017 \pm 0{,}196\)</span>. Begge estimater ligger meget tæt på de sande parameterværdier og de tilhørende <span class="math inline">\(95\%\)</span>-konfidensintervaller indeholder den korrekte løsning. Konvergensforløbet viser samtidig en forskel i, hvor præcist de to parametre kan bestemmes. Coalescentraten konvergerer hurtigt til en smal posterior, mens migrationsraten er forbundet med større usikkerhed og en bredere posteriorfordeling. Dette stemmer overens med de tidligere identifiability-analyser, som viste, at migrationsrater generelt er vanskeligere at estimere præcist end coalescentrater ud fra de tilgængelige data. Samlet set viser resultaterne, at SVGD-inferensen både er numerisk stabil og i stand til at genfinde de sande parametre i et kontrolleret simulationsscenarie. En mere systematisk sammenligning mellem method-of-moments (MoM) og SVGD på tværs af fem bavian-realistiske parameterscenarier er vist i <a href="#tbl-mom-bavian" class="quarto-xref">Table&nbsp;10</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/03_svgd_two_island.ipynb" data-notebook-title="Notebook 3: Identifiability og inferens i to-ø modellen" data-notebook-cellid="cell-tbl-mom-bavian">
 <div class="cell" data-tbl-colwidths="[20,40,40]">
 <div id="tbl-mom-bavian" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-tbl-colwidths="[20,40,40]">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-mom-bavian-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;8: MoM vs.&nbsp;SVGD over fem bavian-realistiske parameterscenarier med n=3000. MoM er tilstrækkelig i 3 af 5 scenarier. Ved [0.7, 1.0] og [0.5, 5.0] fejler MoM systematisk for migrationsraten. SVGD giver konsekvent bedre estimater og fuld posterior.
+Table&nbsp;10: MoM vs.&nbsp;SVGD over fem bavian-realistiske parameterscenarier med n=3000. MoM er tilstrækkelig i 3 af 5 scenarier. Ved [0.7, 1.0] og [0.5, 5.0] fejler MoM systematisk for migrationsraten. SVGD giver konsekvent bedre estimater og fuld posterior.
 </figcaption>
 <div aria-describedby="tbl-mom-bavian-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output cell-output-display" data-execution_count="7">
@@ -1681,11 +1962,11 @@ Table&nbsp;8: MoM vs.&nbsp;SVGD over fem bavian-realistiske parameterscenarier m
 </div>
 </div>
 </div>
-<p>Resultaterne i <a href="#tbl-mom-bavian" class="quarto-xref">Table&nbsp;8</a> viser, at MoM giver estimater med bias under <span class="math inline">\(10\%\)</span> for begge parametre ved de moderate parameterscenarier <span class="math inline">\([\theta_0,\theta_1]=[0{,}7,1{,}0]\)</span> og <span class="math inline">\([1{,}5,2{,}0]\)</span>. Ved scenarier med lave coalescentrater, <span class="math inline">\([0{,}3,0{,}5]\)</span> og høje migrationsrater <span class="math inline">\([0{,}5,5{,}0]\)</span> overstiger bias for migrationsparameteren <span class="math inline">\(\theta_1\)</span> <span class="math inline">\(30\%\)</span>. SVGD giver gennemgående mindre bias end MoM på tværs af de fem undersøgte scenarier. For alle scenarier er bias under <span class="math inline">\(5\%\)</span> for begge parametre. Forskellen mellem metoderne er størst ved lave coalescentrater og høje migrationsrater, hvor SVGD-estimaterne ligger tættere på de sande parameterværdier end MoM-estimaterne.</p>
+<p>Resultaterne i <a href="#tbl-mom-bavian" class="quarto-xref">Table&nbsp;10</a> viser, at MoM giver estimater med bias under <span class="math inline">\(10\%\)</span> for begge parametre ved de moderate parameterscenarier <span class="math inline">\([\theta_0,\theta_1]=[0{,}7,1{,}0]\)</span> og <span class="math inline">\([1{,}5,2{,}0]\)</span>. Ved scenarier med lave coalescentrater, <span class="math inline">\([0{,}3,0{,}5]\)</span> og høje migrationsrater <span class="math inline">\([0{,}5,5{,}0]\)</span> overstiger bias for migrationsparameteren <span class="math inline">\(\theta_1\)</span> <span class="math inline">\(30\%\)</span>. SVGD giver gennemgående mindre bias end MoM på tværs af de fem undersøgte scenarier. For alle scenarier er bias under <span class="math inline">\(5\%\)</span> for begge parametre. Forskellen mellem metoderne er størst ved lave coalescentrater og høje migrationsrater, hvor SVGD-estimaterne ligger tættere på de sande parameterværdier end MoM-estimaterne.</p>
 </section>
 <section id="joint-probability-validering-mod-msprime" class="level2">
 <h2 class="anchored" data-anchor-id="joint-probability-validering-mod-msprime">Joint probability-validering mod msprime</h2>
-<p>Joint probability-modellen valideres ved inferens på joint SFS-data simuleret med kendte parameterværdier. Resultaterne er vist i <a href="#fig-joint-msprime-svgd" class="quarto-xref">Figure&nbsp;22</a>. Deficit er under <span class="math inline">\(1\%\)</span>, hvilket betyder, at den beregnede sandsynlighedstabel dækker langt størestedelen af de mulige observationer.</p>
+<p>Joint probability-modellen valideres ved inferens på joint SFS-data simuleret med kendte parameterværdier. Resultaterne er vist i <a href="#fig-joint-msprime-svgd" class="quarto-xref">Figure&nbsp;24</a>. Deficit er under <span class="math inline">\(1\%\)</span>, hvilket betyder, at den beregnede sandsynlighedstabel dækker langt størestedelen af de mulige observationer.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/06_joint_probability_inferens.ipynb" data-notebook-title="Notebook 6: Inferens via joint sandsynligheder og diskrete SFS-observationer" data-notebook-cellid="cell-fig-joint-msprime-svgd">
 <div class="cell" data-fig-width="5" data-fig-height="3">
 <div class="cell-output cell-output-stdout">
@@ -1695,14 +1976,14 @@ Table&nbsp;8: MoM vs.&nbsp;SVGD over fem bavian-realistiske parameterscenarier m
 
 Particles: 40, Iterations: 300</code></pre>
 </div>
-<div id="fig-joint-msprime-svgd" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-fig-width="5" data-fig-height="3">
+<div id="fig-joint-msprime-svgd" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-fig-height="3" data-fig-width="5">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-joint-msprime-svgd-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output cell-output-display">
 <div id="fig-joint-msprime-svgd-1" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-subfloat-fig figure">
 <div aria-describedby="fig-joint-msprime-svgd-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-06_joint_probability_inferens-fig-joint-msprime-svgd-output-2.svg" class="lightbox" data-gallery="fig-joint-msprime-svgd" title="Figure&nbsp;22&nbsp;(a): SVGD-inferens på joint SFS fra msprime-data."><img src="index_files/figure-html/..-notebooks-06_joint_probability_inferens-fig-joint-msprime-svgd-output-2.svg" class="img-fluid figure-img" data-ref-parent="fig-joint-msprime-svgd"></a>
+<a href="index_files/figure-html/..-notebooks-06_joint_probability_inferens-fig-joint-msprime-svgd-output-2.svg" class="lightbox" data-gallery="fig-joint-msprime-svgd" title="Figure&nbsp;24&nbsp;(a): SVGD-inferens på joint SFS fra msprime-data."><img src="index_files/figure-html/..-notebooks-06_joint_probability_inferens-fig-joint-msprime-svgd-output-2.svg" class="img-fluid figure-img" data-ref-parent="fig-joint-msprime-svgd"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-joint-msprime-svgd-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (a) SVGD-inferens på joint SFS fra msprime-data.
@@ -1724,7 +2005,7 @@ Particles: 40, Iterations: 300</code></pre>
 <div id="fig-joint-msprime-svgd-3" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-subfloat-fig figure">
 <div aria-describedby="fig-joint-msprime-svgd-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-06_joint_probability_inferens-fig-joint-msprime-svgd-output-4.svg" class="lightbox" data-gallery="fig-joint-msprime-svgd" title="Figure&nbsp;22&nbsp;(c): "><img src="index_files/figure-html/..-notebooks-06_joint_probability_inferens-fig-joint-msprime-svgd-output-4.svg" id="fig-joint-msprime-svgd-3" class="img-fluid figure-img" data-ref-parent="fig-joint-msprime-svgd"></a>
+<a href="index_files/figure-html/..-notebooks-06_joint_probability_inferens-fig-joint-msprime-svgd-output-4.svg" class="lightbox" data-gallery="fig-joint-msprime-svgd" title="Figure&nbsp;24&nbsp;(c): "><img src="index_files/figure-html/..-notebooks-06_joint_probability_inferens-fig-joint-msprime-svgd-output-4.svg" id="fig-joint-msprime-svgd-3" class="img-fluid figure-img" data-ref-parent="fig-joint-msprime-svgd"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-joint-msprime-svgd-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (c)
@@ -1746,7 +2027,7 @@ Particles: 40, Iterations: 300</code></pre>
 <div id="fig-joint-msprime-svgd-5" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-subfloat-fig figure">
 <div aria-describedby="fig-joint-msprime-svgd-5-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-06_joint_probability_inferens-fig-joint-msprime-svgd-output-6.svg" class="lightbox" data-gallery="fig-joint-msprime-svgd" title="Figure&nbsp;22&nbsp;(e): "><img src="index_files/figure-html/..-notebooks-06_joint_probability_inferens-fig-joint-msprime-svgd-output-6.svg" id="fig-joint-msprime-svgd-5" class="img-fluid figure-img" data-ref-parent="fig-joint-msprime-svgd"></a>
+<a href="index_files/figure-html/..-notebooks-06_joint_probability_inferens-fig-joint-msprime-svgd-output-6.svg" class="lightbox" data-gallery="fig-joint-msprime-svgd" title="Figure&nbsp;24&nbsp;(e): "><img src="index_files/figure-html/..-notebooks-06_joint_probability_inferens-fig-joint-msprime-svgd-output-6.svg" id="fig-joint-msprime-svgd-5" class="img-fluid figure-img" data-ref-parent="fig-joint-msprime-svgd"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-joint-msprime-svgd-5-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (e)
@@ -1766,7 +2047,7 @@ Particles: 40, Iterations: 300</code></pre>
 </div>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-joint-msprime-svgd-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;22
+Figure&nbsp;24
 </figcaption>
 </figure>
 </div>
@@ -1776,24 +2057,24 @@ Figure&nbsp;22
 </section>
 <section id="genetisk-variation-i-de-seks-bavianpopulationer" class="level2">
 <h2 class="anchored" data-anchor-id="genetisk-variation-i-de-seks-bavianpopulationer">Genetisk variation i de seks bavianpopulationer</h2>
-<p>Figur <a href="#fig-ne-tajima" class="quarto-xref">Figure&nbsp;23</a> opsummerer den genetiske variation i de seks undersøgte bavianpopulationer gennem estimater af nukleotiddiversitet (<span class="math inline">\(\pi\)</span>), Wattersons estimator (<span class="math inline">\(\hat{\theta}_W\)</span>), Tajimas <span class="math inline">\(D\)</span> og effektiv populationsstørrelse (<span class="math inline">\(N_e\)</span>).</p>
+<p>Figur <a href="#fig-ne-tajima" class="quarto-xref">Figure&nbsp;25</a> opsummerer den genetiske variation i de seks undersøgte bavianpopulationer gennem estimater af nukleotiddiversitet (<span class="math inline">\(\pi\)</span>), Wattersons estimator (<span class="math inline">\(\hat{\theta}_W\)</span>), Tajimas <span class="math inline">\(D\)</span> og effektiv populationsstørrelse (<span class="math inline">\(N_e\)</span>).</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/07a_bavian_data.ipynb" data-notebook-title="Notebook 07A – Bavian data: Databehandling" data-notebook-cellid="cell-fig-ne-tajima">
 <div id="cell-fig-ne-tajima" class="cell" data-execution_count="64">
 <div class="cell-output cell-output-display">
 <div id="fig-ne-tajima" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-ne-tajima-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-07a_bavian_data-fig-ne-tajima-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-33" title="Figure&nbsp;23: Effektiv populationsstørrelse (N_{   ext{ref}}) og Tajimas D for alle bavianpopulationer. Negativ D for P. cynocephalus og P. anubis indikerer populationsvækst eller selektion. P. papio viser det højeste positive D konsistent med flaskehals."><img src="index_files/figure-html/..-notebooks-07a_bavian_data-fig-ne-tajima-output-1.png" width="1289" height="390" class="figure-img"></a>
+<a href="index_files/figure-html/..-notebooks-07a_bavian_data-fig-ne-tajima-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-35" title="Figure&nbsp;25: Effektiv populationsstørrelse (N_{   ext{ref}}) og Tajimas D for alle bavianpopulationer. Negativ D for P. cynocephalus og P. anubis indikerer populationsvækst eller selektion. P. papio viser det højeste positive D konsistent med flaskehals."><img src="index_files/figure-html/..-notebooks-07a_bavian_data-fig-ne-tajima-output-1.png" width="1289" height="390" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-ne-tajima-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;23: Effektiv populationsstørrelse (<span class="math inline">\(N_{   ext{ref}}\)</span>) og Tajimas <span class="math inline">\(D\)</span> for alle bavianpopulationer. Negativ <span class="math inline">\(D\)</span> for <em>P. cynocephalus</em> og <em>P. anubis</em> indikerer populationsvækst eller selektion. <em>P. papio</em> viser det højeste positive <span class="math inline">\(D\)</span> konsistent med flaskehals.
+Figure&nbsp;25: Effektiv populationsstørrelse (<span class="math inline">\(N_{   ext{ref}}\)</span>) og Tajimas <span class="math inline">\(D\)</span> for alle bavianpopulationer. Negativ <span class="math inline">\(D\)</span> for <em>P. cynocephalus</em> og <em>P. anubis</em> indikerer populationsvækst eller selektion. <em>P. papio</em> viser det højeste positive <span class="math inline">\(D\)</span> konsistent med flaskehals.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 </div>
-<p>Der observeres betydelige forskelle i genetisk diversitet mellem de seks bavianpopulationer (figur <a href="#fig-ne-tajima" class="quarto-xref">Figure&nbsp;23</a>). De estimerede effektive populationsstørrelser spænder fra <span class="math inline">\(14.217\)</span> for <em>P. papio</em> til <span class="math inline">\(81.843\)</span> for <em>P. cynocephalus</em>. <em>P. kindae</em> har ligeledes en høj estimeret populationsstørrelse på <span class="math inline">\(77.584\)</span>, mens <em>P. ursinus</em>, <em>P. anubis</em> og <em>P. hamadryas</em> ligger mellem ca. <span class="math inline">\(47.000\)</span> og <span class="math inline">\(62.000\)</span> individer. Nukleotiddiversiteten følger samme mønster. Den laveste værdi observeres for <em>P. papio</em> (<span class="math inline">\(\pi = 0{,}000512\)</span>), mens <em>P. cynocephalus</em> har den højeste værdi (<span class="math inline">\(\pi = 0{,}002946\)</span>), svarende til en forskel på omtrent en faktor seks mellem de to populationer. Wattersons estimator viser tilsvarende en stigende rangorden fra <em>P. papio</em> (<span class="math inline">\(\hat{\theta}_W = 0{,}000409\)</span>) til <em>P. cynocephalus</em> (<span class="math inline">\(\hat{\theta}_W = 0{,}003571\)</span>). Tajimas <span class="math inline">\(D\)</span> varierer mellem populationerne. Negative værdier observeres for <em>P. cynocephalus</em> (<span class="math inline">\(D=-0{,}59\)</span>) og <em>P. anubis</em> (<span class="math inline">\(D=-0{,}64\)</span>), mens <em>P. papio</em> (<span class="math inline">\(D=1{,}02\)</span>), <em>P. hamadryas</em> (<span class="math inline">\(D=0{,}65\)</span>), <em>P. kindae</em> (<span class="math inline">\(D=0{,}30\)</span>) og <em>P. ursinus</em> (<span class="math inline">\(D=0{,}19\)</span>) har positive værdier. Det observerede site frequency spectrum (SFS) for de seks populationer er vist i <a href="#fig-sfs-bavian" class="quarto-xref">Figure&nbsp;24</a>.</p>
+<p>Der observeres betydelige forskelle i genetisk diversitet mellem de seks bavianpopulationer (figur <a href="#fig-ne-tajima" class="quarto-xref">Figure&nbsp;25</a>). De estimerede effektive populationsstørrelser spænder fra <span class="math inline">\(14.217\)</span> for <em>P. papio</em> til <span class="math inline">\(81.843\)</span> for <em>P. cynocephalus</em>. <em>P. kindae</em> har ligeledes en høj estimeret populationsstørrelse på <span class="math inline">\(77.584\)</span>, mens <em>P. ursinus</em>, <em>P. anubis</em> og <em>P. hamadryas</em> ligger mellem ca. <span class="math inline">\(47.000\)</span> og <span class="math inline">\(62.000\)</span> individer. Nukleotiddiversiteten følger samme mønster. Den laveste værdi observeres for <em>P. papio</em> (<span class="math inline">\(\pi = 0{,}000512\)</span>), mens <em>P. cynocephalus</em> har den højeste værdi (<span class="math inline">\(\pi = 0{,}002946\)</span>), svarende til en forskel på omtrent en faktor seks mellem de to populationer. Wattersons estimator viser tilsvarende en stigende rangorden fra <em>P. papio</em> (<span class="math inline">\(\hat{\theta}_W = 0{,}000409\)</span>) til <em>P. cynocephalus</em> (<span class="math inline">\(\hat{\theta}_W = 0{,}003571\)</span>). Tajimas <span class="math inline">\(D\)</span> varierer mellem populationerne. Negative værdier observeres for <em>P. cynocephalus</em> (<span class="math inline">\(D=-0{,}59\)</span>) og <em>P. anubis</em> (<span class="math inline">\(D=-0{,}64\)</span>), mens <em>P. papio</em> (<span class="math inline">\(D=1{,}02\)</span>), <em>P. hamadryas</em> (<span class="math inline">\(D=0{,}65\)</span>), <em>P. kindae</em> (<span class="math inline">\(D=0{,}30\)</span>) og <em>P. ursinus</em> (<span class="math inline">\(D=0{,}19\)</span>) har positive værdier. Det observerede site frequency spectrum (SFS) for de seks populationer er vist i <a href="#fig-sfs-bavian" class="quarto-xref">Figure&nbsp;26</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/07a_bavian_data.ipynb" data-notebook-title="Notebook 07A – Bavian data: Databehandling" data-notebook-cellid="cell-fig-sfs-bavian">
 <div class="cell" data-execution_count="69">
 <div id="fig-sfs-bavian" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="69">
@@ -1803,7 +2084,7 @@ Figure&nbsp;23: Effektiv populationsstørrelse (<span class="math inline">\(N_{ 
 <div id="fig-sfs-bavian-1" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-subfloat-fig figure">
 <div aria-describedby="fig-sfs-bavian-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-07a_bavian_data-fig-sfs-bavian-output-1.png" class="lightbox" data-gallery="fig-sfs-bavian" title="Figure&nbsp;24&nbsp;(a): Ufoldet SFS for alle bavianarter subsampled til n_{  ext{min}} = 8 haplotyper. P. cynocephalus og P. anubis viser overskud af singletons konsistent med negative Tajimas D-værdier. P. papio viser en relativt flad SFS konsistent med flaskehals."><img src="index_files/figure-html/..-notebooks-07a_bavian_data-fig-sfs-bavian-output-1.png" data-ref-parent="fig-sfs-bavian" width="1189" height="490" class="figure-img"></a>
+<a href="index_files/figure-html/..-notebooks-07a_bavian_data-fig-sfs-bavian-output-1.png" class="lightbox" data-gallery="fig-sfs-bavian" title="Figure&nbsp;26&nbsp;(a): Ufoldet SFS for alle bavianarter subsampled til n_{  ext{min}} = 8 haplotyper. P. cynocephalus og P. anubis viser overskud af singletons konsistent med negative Tajimas D-værdier. P. papio viser en relativt flad SFS konsistent med flaskehals."><img src="index_files/figure-html/..-notebooks-07a_bavian_data-fig-sfs-bavian-output-1.png" data-ref-parent="fig-sfs-bavian" width="1189" height="490" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-sfs-bavian-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (a) Ufoldet SFS for alle bavianarter subsampled til <span class="math inline">\(n_{  ext{min}} = 8\)</span> haplotyper. <em>P. cynocephalus</em> og <em>P. anubis</em> viser overskud af singletons konsistent med negative Tajimas <span class="math inline">\(D\)</span>-værdier. <em>P. papio</em> viser en relativt flad SFS konsistent med flaskehals.
@@ -1812,10 +2093,10 @@ Figure&nbsp;23: Effektiv populationsstørrelse (<span class="math inline">\(N_{ 
 </div>
 </div>
 <div class="cell-output cell-output-display">
-<div id="fig-sfs-bavian-2" class="quarto-float quarto-figure quarto-figure-center anchored" width="1489" height="887">
+<div id="fig-sfs-bavian-2" class="quarto-float quarto-figure quarto-figure-center anchored" height="887" width="1489">
 <figure class="quarto-float quarto-subfloat-fig figure">
 <div aria-describedby="fig-sfs-bavian-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-07a_bavian_data-fig-sfs-bavian-output-2.png" class="lightbox" data-gallery="fig-sfs-bavian" title="Figure&nbsp;24&nbsp;(b): "><img src="index_files/figure-html/..-notebooks-07a_bavian_data-fig-sfs-bavian-output-2.png" id="fig-sfs-bavian-2" data-ref-parent="fig-sfs-bavian" width="1489" height="887" class="figure-img"></a>
+<a href="index_files/figure-html/..-notebooks-07a_bavian_data-fig-sfs-bavian-output-2.png" class="lightbox" data-gallery="fig-sfs-bavian" title="Figure&nbsp;26&nbsp;(b): "><img src="index_files/figure-html/..-notebooks-07a_bavian_data-fig-sfs-bavian-output-2.png" id="fig-sfs-bavian-2" data-ref-parent="fig-sfs-bavian" width="1489" height="887" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-sfs-bavian-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (b)
@@ -1825,34 +2106,34 @@ Figure&nbsp;23: Effektiv populationsstørrelse (<span class="math inline">\(N_{ 
 </div>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-sfs-bavian-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;24
+Figure&nbsp;26
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>Der ses tydelige forskelle i SFS-mønstrene mellem populationerne (figur <a href="#fig-sfs-bavian" class="quarto-xref">Figure&nbsp;24</a>). <em>P. cynocephalus</em> og <em>P. anubis</em> har de højeste andele af singletons, omkring <span class="math inline">\(1,5–2\)</span> gange den neutrale forventning, mens andelene af doubletons og tripletons ligger tættere på de forventede værdier. I modsætning hertil har <em>P. papio</em> den laveste singleton-andel og relativt større andele af doubletons og tripletons. <em>P. kindae</em>, <em>P. ursinus</em> og <em>P. hamadryas</em> udviser SFS-profiler, der ligger tættere på den neutrale forventning, med relativt små afvigelser på tværs af frekvensklasserne. De absolutte antal segregerende sites varierer betydeligt mellem populationerne. Det højeste antal observeres for <em>P. anubis</em>, mens <em>P. ursinus</em> har det laveste antal. De estimerede sojourn-tider for de seks populationer er vist i <a href="#fig-sojourn" class="quarto-xref">Figure&nbsp;25</a>.</p>
+<p>Der ses tydelige forskelle i SFS-mønstrene mellem populationerne (figur <a href="#fig-sfs-bavian" class="quarto-xref">Figure&nbsp;26</a>). <em>P. cynocephalus</em> og <em>P. anubis</em> har de højeste andele af singletons, omkring <span class="math inline">\(1,5–2\)</span> gange den neutrale forventning, mens andelene af doubletons og tripletons ligger tættere på de forventede værdier. I modsætning hertil har <em>P. papio</em> den laveste singleton-andel og relativt større andele af doubletons og tripletons. <em>P. kindae</em>, <em>P. ursinus</em> og <em>P. hamadryas</em> udviser SFS-profiler, der ligger tættere på den neutrale forventning, med relativt små afvigelser på tværs af frekvensklasserne. De absolutte antal segregerende sites varierer betydeligt mellem populationerne. Det højeste antal observeres for <em>P. anubis</em>, mens <em>P. ursinus</em> har det laveste antal. De estimerede sojourn-tider for de seks populationer er vist i <a href="#fig-sojourn" class="quarto-xref">Figure&nbsp;27</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/07a_bavian_data.ipynb" data-notebook-title="Notebook 07A – Bavian data: Databehandling" data-notebook-cellid="cell-fig-sojourn">
 <div id="cell-fig-sojourn" class="cell" data-execution_count="79">
 <div class="cell-output cell-output-display">
 <div id="fig-sojourn" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-sojourn-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-07a_bavian_data-fig-sojourn-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-36" title="Figure&nbsp;25: Forventede sojourn-tider per fase for alle populationer (n_{ ext{sub}}=8). Venstre: sojourn-tid per k. Højre: E[TMRCA] i kalibrerede år. Det lange k=2-skridt dominerer alle populationer."><img src="index_files/figure-html/..-notebooks-07a_bavian_data-fig-sojourn-output-1.png" width="1386" height="495" class="figure-img"></a>
+<a href="index_files/figure-html/..-notebooks-07a_bavian_data-fig-sojourn-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-38" title="Figure&nbsp;27: Forventede sojourn-tider per fase for alle populationer (n_{ ext{sub}}=8). Venstre: sojourn-tid per k. Højre: E[TMRCA] i kalibrerede år. Det lange k=2-skridt dominerer alle populationer."><img src="index_files/figure-html/..-notebooks-07a_bavian_data-fig-sojourn-output-1.png" width="1386" height="495" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-sojourn-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;25: Forventede sojourn-tider per fase for alle populationer (<span class="math inline">\(n_{ ext{sub}}=8\)</span>). Venstre: sojourn-tid per <span class="math inline">\(k\)</span>. Højre: E[TMRCA] i kalibrerede år. Det lange <span class="math inline">\(k=2\)</span>-skridt dominerer alle populationer.
+Figure&nbsp;27: Forventede sojourn-tider per fase for alle populationer (<span class="math inline">\(n_{ ext{sub}}=8\)</span>). Venstre: sojourn-tid per <span class="math inline">\(k\)</span>. Højre: E[TMRCA] i kalibrerede år. Det lange <span class="math inline">\(k=2\)</span>-skridt dominerer alle populationer.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 </div>
-<p>Sojourn-tiderne varierer betydeligt mellem de genealogiske trin og mellem populationerne (figur <a href="#fig-sojourn" class="quarto-xref">Figure&nbsp;25</a>). For alle seks populationer bidrager det sidste trin, <span class="math inline">\(k=2\)</span>, med den længste forventede tid. For <em>P. cynocephalus</em> svarer den forventede sojourn-tid i dette trin til omkring <span class="math inline">\(1,8\)</span> millioner år, mens den tilsvarende tid for <em>P. papio</em> er omkring <span class="math inline">\(313.000\)</span> år. De tidligste trin i genealogien, <span class="math inline">\(k=8\)</span> og <span class="math inline">\(k=7\)</span>, har væsentligt kortere sojourn-tider i alle populationer og ligger under <span class="math inline">\(50.000\)</span> år selv for de største populationer. På tværs af alle trin har <em>P. cynocephalus</em> og <em>P. kindae</em> de længste sojourn-tider, mens <em>P. papio</em> gennemgående har de korteste.</p>
+<p>Sojourn-tiderne varierer betydeligt mellem de genealogiske trin og mellem populationerne (figur <a href="#fig-sojourn" class="quarto-xref">Figure&nbsp;27</a>). For alle seks populationer bidrager det sidste trin, <span class="math inline">\(k=2\)</span>, med den længste forventede tid. For <em>P. cynocephalus</em> svarer den forventede sojourn-tid i dette trin til omkring <span class="math inline">\(1,8\)</span> millioner år, mens den tilsvarende tid for <em>P. papio</em> er omkring <span class="math inline">\(313.000\)</span> år. De tidligste trin i genealogien, <span class="math inline">\(k=8\)</span> og <span class="math inline">\(k=7\)</span>, har væsentligt kortere sojourn-tider i alle populationer og ligger under <span class="math inline">\(50.000\)</span> år selv for de største populationer. På tværs af alle trin har <em>P. cynocephalus</em> og <em>P. kindae</em> de længste sojourn-tider, mens <em>P. papio</em> gennemgående har de korteste.</p>
 </section>
 <section id="to-ø-modellen-p.-cynocephalus-og-p.-kindae" class="level2">
 <h2 class="anchored" data-anchor-id="to-ø-modellen-p.-cynocephalus-og-p.-kindae">To-ø modellen: <em>P. cynocephalus</em> og <em>P. kindae</em></h2>
-<p>To-ø modellen med <span class="math inline">\(n = 6\)</span> haploide samples og 3000 observationer estimerer coalescentraten <span class="math inline">\(\theta_0\)</span> og migrationsrate <span class="math inline">\(\theta_1\)</span> for <em>P. cynocephalus</em> og <em>P. kindae</em>. Modellen er kalibreret med DataPrior og Adam(0.1) med <span class="math inline">\(400\)</span> iterationer og <span class="math inline">\(60\)</span> partikler, som bestemt i NB03. Konvergensforløbet og pairwise-posterioren ses i <a href="#fig-two-conv-pair" class="quarto-xref">Figure&nbsp;26</a>.</p>
+<p>To-ø modellen med <span class="math inline">\(n = 6\)</span> haploide samples og 3000 observationer estimerer coalescentraten <span class="math inline">\(\theta_0\)</span> og migrationsrate <span class="math inline">\(\theta_1\)</span> for <em>P. cynocephalus</em> og <em>P. kindae</em>. Modellen er kalibreret med DataPrior og Adam(0.1) med <span class="math inline">\(400\)</span> iterationer og <span class="math inline">\(60\)</span> partikler, som bestemt i NB03. Konvergensforløbet og pairwise-posterioren ses i <a href="#fig-two-conv-pair" class="quarto-xref">Figure&nbsp;28</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/07b_bavian_modeller.ipynb" data-notebook-title="Notebook 07B – Bavian data: Populationsstruktur og migrationsmodeller" data-notebook-cellid="cell-fig-two-conv-pair">
 <div class="cell" data-execution_count="16">
 <div id="fig-two-conv-pair" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="16">
@@ -1862,7 +2143,7 @@ Figure&nbsp;25: Forventede sojourn-tider per fase for alle populationer (<span c
 <div id="fig-two-conv-pair-1" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-subfloat-fig figure">
 <div aria-describedby="fig-two-conv-pair-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-two-conv-pair-output-1.png" class="lightbox" data-gallery="fig-two-conv-pair" title="Figure&nbsp;26&nbsp;(a): Konvergensplot og pairwise posterior for to-ø-modellen (P. cynocephalus + P. kindae)."><img src="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-two-conv-pair-output-1.png" data-ref-parent="fig-two-conv-pair" width="687" height="290" class="figure-img"></a>
+<a href="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-two-conv-pair-output-1.png" class="lightbox" data-gallery="fig-two-conv-pair" title="Figure&nbsp;28&nbsp;(a): Konvergensplot og pairwise posterior for to-ø-modellen (P. cynocephalus + P. kindae)."><img src="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-two-conv-pair-output-1.png" data-ref-parent="fig-two-conv-pair" width="687" height="290" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-two-conv-pair-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (a) Konvergensplot og pairwise posterior for to-ø-modellen (<em>P. cynocephalus</em> + <em>P. kindae</em>).
@@ -1871,10 +2152,10 @@ Figure&nbsp;25: Forventede sojourn-tider per fase for alle populationer (<span c
 </div>
 </div>
 <div class="cell-output cell-output-display">
-<div id="fig-two-conv-pair-2" class="quarto-float quarto-figure quarto-figure-center anchored" width="586" height="447">
+<div id="fig-two-conv-pair-2" class="quarto-float quarto-figure quarto-figure-center anchored" height="447" width="586">
 <figure class="quarto-float quarto-subfloat-fig figure">
 <div aria-describedby="fig-two-conv-pair-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-two-conv-pair-output-2.png" class="lightbox" data-gallery="fig-two-conv-pair" title="Figure&nbsp;26&nbsp;(b): "><img src="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-two-conv-pair-output-2.png" id="fig-two-conv-pair-2" data-ref-parent="fig-two-conv-pair" width="586" height="447" class="figure-img"></a>
+<a href="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-two-conv-pair-output-2.png" class="lightbox" data-gallery="fig-two-conv-pair" title="Figure&nbsp;28&nbsp;(b): "><img src="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-two-conv-pair-output-2.png" id="fig-two-conv-pair-2" data-ref-parent="fig-two-conv-pair" width="586" height="447" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-two-conv-pair-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (b)
@@ -1884,74 +2165,74 @@ Figure&nbsp;25: Forventede sojourn-tider per fase for alle populationer (<span c
 </div>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-two-conv-pair-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;26
+Figure&nbsp;28
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>I <a href="#fig-two-conv-pair" class="quarto-xref">Figure&nbsp;26</a> ses at coalescentraten <span class="math inline">\(\theta_0\)</span> konvergerer til en smal posterior inden <span class="math inline">\(100\)</span> iterationer med posterior-std under <span class="math inline">\(10\%\)</span> af posterior-mean. Migrationsraten <span class="math inline">\(\theta_1\)</span> har en bredere posterior med posterior-std på ca. <span class="math inline">\(20–30\%\)</span> af posterior-mean og er mere variabel i konvergensforløbet, men stabiliserer sig inden <span class="math inline">\(400\)</span> iterationer. CI for <span class="math inline">\(\theta_1\)</span> overlapper ikke nul. Pairwise-plottet viser en negativ korrelation mellem <span class="math inline">\(\theta_0\)</span> og <span class="math inline">\(\theta_1\)</span> med en korrelationskoefficient på ca. <span class="math inline">\(-0{,}4\)</span>. De estimerede CI’er for begge parametre ses i <a href="#fig-two-ci" class="quarto-xref">Figure&nbsp;27</a>.</p>
+<p>I <a href="#fig-two-conv-pair" class="quarto-xref">Figure&nbsp;28</a> ses at coalescentraten <span class="math inline">\(\theta_0\)</span> konvergerer til en smal posterior inden <span class="math inline">\(100\)</span> iterationer med posterior-std under <span class="math inline">\(10\%\)</span> af posterior-mean. Migrationsraten <span class="math inline">\(\theta_1\)</span> har en bredere posterior med posterior-std på ca. <span class="math inline">\(20–30\%\)</span> af posterior-mean og er mere variabel i konvergensforløbet, men stabiliserer sig inden <span class="math inline">\(400\)</span> iterationer. CI for <span class="math inline">\(\theta_1\)</span> overlapper ikke nul. Pairwise-plottet viser en negativ korrelation mellem <span class="math inline">\(\theta_0\)</span> og <span class="math inline">\(\theta_1\)</span> med en korrelationskoefficient på ca. <span class="math inline">\(-0{,}4\)</span>. De estimerede CI’er for begge parametre ses i <a href="#fig-two-ci" class="quarto-xref">Figure&nbsp;29</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/07b_bavian_modeller.ipynb" data-notebook-title="Notebook 07B – Bavian data: Populationsstruktur og migrationsmodeller" data-notebook-cellid="cell-fig-two-ci">
 <div id="cell-fig-two-ci" class="cell" data-execution_count="18">
 <div class="cell-output cell-output-display">
 <div id="fig-two-ci" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-two-ci-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-two-ci-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-39" title="Figure&nbsp;27: CI-plot for to-ø-modellen."><img src="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-two-ci-output-1.png" width="675" height="290" class="figure-img"></a>
+<a href="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-two-ci-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-41" title="Figure&nbsp;29: CI-plot for to-ø-modellen."><img src="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-two-ci-output-1.png" width="675" height="290" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-two-ci-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;27: CI-plot for to-ø-modellen.
+Figure&nbsp;29: CI-plot for to-ø-modellen.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 </div>
-<p>De estimerede <span class="math inline">\(N_e\)</span> for <em>P. cynocephalus</em> i to-ø modellen er <span class="math inline">\(N_e \approx 81.843\)</span>. Konfidensintervallet for <span class="math inline">\(\theta_1\)</span> er asymmetrisk og strækker sig længere mod højere værdier. De estimerede parametre er visualiseret i <a href="#fig-two-island-bavian" class="quarto-xref">Figure&nbsp;28</a>.</p>
+<p>De estimerede <span class="math inline">\(N_e\)</span> for <em>P. cynocephalus</em> i to-ø modellen er <span class="math inline">\(N_e \approx 81.843\)</span>. Konfidensintervallet for <span class="math inline">\(\theta_1\)</span> er asymmetrisk og strækker sig længere mod højere værdier. De estimerede parametre er visualiseret i <a href="#fig-two-island-bavian" class="quarto-xref">Figure&nbsp;30</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/07b_bavian_modeller.ipynb" data-notebook-title="Notebook 07B – Bavian data: Populationsstruktur og migrationsmodeller" data-notebook-cellid="cell-fig-two-island-bavian">
 <div id="cell-fig-two-island-bavian" class="cell" data-execution_count="15">
 <div class="cell-output cell-output-display" data-execution_count="15">
 <div id="fig-two-island-bavian" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-two-island-bavian-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-two-island-bavian-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-40" title="Figure&nbsp;28: parametrerummet over to-ø-modellen (P. cynocephalus + P. kindae)."><img src="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-two-island-bavian-output-1.svg" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-two-island-bavian-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-42" title="Figure&nbsp;30: parametrerummet over to-ø-modellen (P. cynocephalus + P. kindae)."><img src="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-two-island-bavian-output-1.svg" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-two-island-bavian-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;28: parametrerummet over to-ø-modellen (<em>P. cynocephalus</em> + <em>P. kindae</em>).
+Figure&nbsp;30: parametrerummet over to-ø-modellen (<em>P. cynocephalus</em> + <em>P. kindae</em>).
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 </div>
-<p>I den asymmetriske model har både <span class="math inline">\(m_{12}\)</span> (<em>P. cynocephalus</em> <span class="math inline">\(\rightarrow\)</span> <em>P. kindae</em>) og <span class="math inline">\(m_{21}\)</span> (<em>P. kindae</em> <span class="math inline">\(\rightarrow\)</span> <em>P. cynocephalus</em>) brede og overlappende konvidensintervaller, som vist i <a href="#fig-asym-pair" class="quarto-xref">Figure&nbsp;29</a>.</p>
+<p>I den asymmetriske model har både <span class="math inline">\(m_{12}\)</span> (<em>P. cynocephalus</em> <span class="math inline">\(\rightarrow\)</span> <em>P. kindae</em>) og <span class="math inline">\(m_{21}\)</span> (<em>P. kindae</em> <span class="math inline">\(\rightarrow\)</span> <em>P. cynocephalus</em>) brede og overlappende konvidensintervaller, som vist i <a href="#fig-asym-pair" class="quarto-xref">Figure&nbsp;31</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/07b_bavian_modeller.ipynb" data-notebook-title="Notebook 07B – Bavian data: Populationsstruktur og migrationsmodeller" data-notebook-cellid="cell-fig-asym-pair">
 <div id="cell-fig-asym-pair" class="cell" data-execution_count="13">
 <div class="cell-output cell-output-display">
 <div id="fig-asym-pair" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-asym-pair-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-asym-pair-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-41" title="Figure&nbsp;29: Pairwise posterior for asymmetrisk migration mellem P. cynocephalus og P. kindae. Begge migrationsretninger har brede posteriors med CI’er, der overlapper nul."><img src="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-asym-pair-output-1.png" width="787" height="677" class="figure-img"></a>
+<a href="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-asym-pair-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-43" title="Figure&nbsp;31: Pairwise posterior for asymmetrisk migration mellem P. cynocephalus og P. kindae. Begge migrationsretninger har brede posteriors med CI’er, der overlapper nul."><img src="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-asym-pair-output-1.png" width="787" height="677" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-asym-pair-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;29: Pairwise posterior for asymmetrisk migration mellem <em>P. cynocephalus</em> og <em>P. kindae</em>. Begge migrationsretninger har brede posteriors med CI’er, der overlapper nul.
+Figure&nbsp;31: Pairwise posterior for asymmetrisk migration mellem <em>P. cynocephalus</em> og <em>P. kindae</em>. Begge migrationsretninger har brede posteriors med CI’er, der overlapper nul.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 </div>
-<p>Konfidensintervallerne for <span class="math inline">\(m_{12}\)</span> og <span class="math inline">\(m_{21}\)</span> overlapper hinanden næsten fuldstændigt. Posteriorfordelingerne for de to parametre strækker sig over et bredt interval, fra værdier tæt på nul til moderate migrationsrater. Konvergensforløbet for den asymmetriske model er vist i <a href="#fig-asym-conv" class="quarto-xref">Figure&nbsp;30</a>.</p>
+<p>Konfidensintervallerne for <span class="math inline">\(m_{12}\)</span> og <span class="math inline">\(m_{21}\)</span> overlapper hinanden næsten fuldstændigt. Posteriorfordelingerne for de to parametre strækker sig over et bredt interval, fra værdier tæt på nul til moderate migrationsrater. Konvergensforløbet for den asymmetriske model er vist i <a href="#fig-asym-conv" class="quarto-xref">Figure&nbsp;32</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/07b_bavian_modeller.ipynb" data-notebook-title="Notebook 07B – Bavian data: Populationsstruktur og migrationsmodeller" data-notebook-cellid="cell-fig-asym-conv">
 <div id="cell-fig-asym-conv" class="cell" data-execution_count="15">
 <div class="cell-output cell-output-display">
 <div id="fig-asym-conv" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-asym-conv-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-asym-conv-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-42" title="Figure&nbsp;30: Konvergensplot for asymmetrisk migrationsmodel. Migrationsraterne stabiliserer sig aldrig til en fast posterior-std, hvilket bekræfter identifikationsproblemet."><img src="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-asym-conv-output-1.png" width="673" height="290" class="figure-img"></a>
+<a href="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-asym-conv-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-44" title="Figure&nbsp;32: Konvergensplot for asymmetrisk migrationsmodel. Migrationsraterne stabiliserer sig aldrig til en fast posterior-std, hvilket bekræfter identifikationsproblemet."><img src="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-asym-conv-output-1.png" width="673" height="290" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-asym-conv-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;30: Konvergensplot for asymmetrisk migrationsmodel. Migrationsraterne stabiliserer sig aldrig til en fast posterior-std, hvilket bekræfter identifikationsproblemet.
+Figure&nbsp;32: Konvergensplot for asymmetrisk migrationsmodel. Migrationsraterne stabiliserer sig aldrig til en fast posterior-std, hvilket bekræfter identifikationsproblemet.
 </figcaption>
 </figure>
 </div>
@@ -1972,7 +2253,7 @@ Figure&nbsp;30: Konvergensplot for asymmetrisk migrationsmodel. Migrationsratern
 <div id="fig-im-conv-pair-1" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-subfloat-fig figure">
 <div aria-describedby="fig-im-conv-pair-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-im-conv-pair-output-1.png" class="lightbox" data-gallery="fig-im-conv-pair" title="Figure&nbsp;31&nbsp;(a): Konvergensplot og pairwise posterior for IM-modellen (P. anubis + P. cynocephalus)."><img src="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-im-conv-pair-output-1.png" data-ref-parent="fig-im-conv-pair" width="689" height="290" class="figure-img"></a>
+<a href="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-im-conv-pair-output-1.png" class="lightbox" data-gallery="fig-im-conv-pair" title="Figure&nbsp;33&nbsp;(a): Konvergensplot og pairwise posterior for IM-modellen (P. anubis + P. cynocephalus)."><img src="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-im-conv-pair-output-1.png" data-ref-parent="fig-im-conv-pair" width="689" height="290" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-im-conv-pair-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (a) Konvergensplot og pairwise posterior for IM-modellen (<em>P. anubis</em> + <em>P. cynocephalus</em>).
@@ -1981,10 +2262,10 @@ Figure&nbsp;30: Konvergensplot for asymmetrisk migrationsmodel. Migrationsratern
 </div>
 </div>
 <div class="cell-output cell-output-display">
-<div id="fig-im-conv-pair-2" class="quarto-float quarto-figure quarto-figure-center anchored" width="787" height="677">
+<div id="fig-im-conv-pair-2" class="quarto-float quarto-figure quarto-figure-center anchored" height="677" width="787">
 <figure class="quarto-float quarto-subfloat-fig figure">
 <div aria-describedby="fig-im-conv-pair-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-im-conv-pair-output-2.png" class="lightbox" data-gallery="fig-im-conv-pair" title="Figure&nbsp;31&nbsp;(b): "><img src="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-im-conv-pair-output-2.png" id="fig-im-conv-pair-2" data-ref-parent="fig-im-conv-pair" width="787" height="677" class="figure-img"></a>
+<a href="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-im-conv-pair-output-2.png" class="lightbox" data-gallery="fig-im-conv-pair" title="Figure&nbsp;33&nbsp;(b): "><img src="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-im-conv-pair-output-2.png" id="fig-im-conv-pair-2" data-ref-parent="fig-im-conv-pair" width="787" height="677" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-im-conv-pair-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (b)
@@ -1994,23 +2275,23 @@ Figure&nbsp;30: Konvergensplot for asymmetrisk migrationsmodel. Migrationsratern
 </div>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-im-conv-pair-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;31
+Figure&nbsp;33
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>Coalescentraten <span class="math inline">\(\theta_0\)</span> er den mest stabile parameter med posterior-std under <span class="math inline">\(10\%\)</span> af posterior-mean og konvergerer inden <span class="math inline">\(50\)</span> iterationer. Migrationsraten <span class="math inline">\(\theta_1\)</span> og switch-raten <span class="math inline">\(\theta_2\)</span> har bredere posteriors med posterior-std på ca. <span class="math inline">\(25–40\%\)</span> af posterior-mean og kræver <span class="math inline">\(150–250\)</span> iterationer for at stabilisere sig, men viser ingen tegn på numerisk kollaps i form af pludselige spring eller divergens. Konvergensintervallet for migrationsraten <span class="math inline">\(\theta_1\)</span> overlapper ikke nul. Pairwise-plottet viser en negativ korrelation mellem <span class="math inline">\(\theta_0\)</span> og <span class="math inline">\(\theta_1\)</span> på ca. <span class="math inline">\(-0{,}3\)</span> og en svag negativ korrelation mellem <span class="math inline">\(\theta_1\)</span> og <span class="math inline">\(\theta_2\)</span> på ca. <span class="math inline">\(-0{,}2\)</span>. De endelige parameter estimater med <span class="math inline">\(95\%\)</span>-CI ses i <a href="#fig-im-ci" class="quarto-xref">Figure&nbsp;32</a>.</p>
+<p>Coalescentraten <span class="math inline">\(\theta_0\)</span> er den mest stabile parameter med posterior-std under <span class="math inline">\(10\%\)</span> af posterior-mean og konvergerer inden <span class="math inline">\(50\)</span> iterationer. Migrationsraten <span class="math inline">\(\theta_1\)</span> og switch-raten <span class="math inline">\(\theta_2\)</span> har bredere posteriors med posterior-std på ca. <span class="math inline">\(25–40\%\)</span> af posterior-mean og kræver <span class="math inline">\(150–250\)</span> iterationer for at stabilisere sig, men viser ingen tegn på numerisk kollaps i form af pludselige spring eller divergens. Konvergensintervallet for migrationsraten <span class="math inline">\(\theta_1\)</span> overlapper ikke nul. Pairwise-plottet viser en negativ korrelation mellem <span class="math inline">\(\theta_0\)</span> og <span class="math inline">\(\theta_1\)</span> på ca. <span class="math inline">\(-0{,}3\)</span> og en svag negativ korrelation mellem <span class="math inline">\(\theta_1\)</span> og <span class="math inline">\(\theta_2\)</span> på ca. <span class="math inline">\(-0{,}2\)</span>. De endelige parameter estimater med <span class="math inline">\(95\%\)</span>-CI ses i <a href="#fig-im-ci" class="quarto-xref">Figure&nbsp;34</a>.</p>
 <div class="quarto-embed-nb-cell" data-notebook="/Users/runner/work/emma-giraf/emma-giraf/notebooks/07b_bavian_modeller.ipynb" data-notebook-title="Notebook 07B – Bavian data: Populationsstruktur og migrationsmodeller" data-notebook-cellid="cell-fig-im-ci">
 <div id="cell-fig-im-ci" class="cell">
 <div class="cell-output cell-output-display">
 <div id="fig-im-ci" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-im-ci-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-im-ci-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-45" title="Figure&nbsp;32: CI-plot for IM-modellen."><img src="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-im-ci-output-1.png" width="689" height="290" class="figure-img"></a>
+<a href="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-im-ci-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-47" title="Figure&nbsp;34: CI-plot for IM-modellen."><img src="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-im-ci-output-1.png" width="689" height="290" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-im-ci-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;32: CI-plot for IM-modellen.
+Figure&nbsp;34: CI-plot for IM-modellen.
 </figcaption>
 </figure>
 </div>
@@ -2024,10 +2305,10 @@ Figure&nbsp;32: CI-plot for IM-modellen.
 <div id="fig-im-bavian" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-im-bavian-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-im-bavian-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-46" title="Figure&nbsp;33: parametrerummet over IM-modellen (P. anubis + P. cynocephalus)."><img src="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-im-bavian-output-1.svg" class="img-fluid figure-img"></a>
+<a href="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-im-bavian-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-48" title="Figure&nbsp;35: parametrerummet over IM-modellen (P. anubis + P. cynocephalus)."><img src="index_files/figure-html/..-notebooks-07b_bavian_modeller-fig-im-bavian-output-1.svg" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-im-bavian-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;33: parametrerummet over IM-modellen (<em>P. anubis</em> + <em>P. cynocephalus</em>).
+Figure&nbsp;35: parametrerummet over IM-modellen (<em>P. anubis</em> + <em>P. cynocephalus</em>).
 </figcaption>
 </figure>
 </div>

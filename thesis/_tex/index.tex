@@ -1665,6 +1665,83 @@ bavian-realistiske theta-værdier der spænder over mere end en
 størrelsesorden. Adam vælges derfor som standard-optimizer i alle
 efterfølgende analyser.
 
+Et centralt spørgsmål er om SVGD's konfidensintervaller faktisk er
+troværdige dvs. om et 95\%-CI faktisk dækker den sande parameterværdi i
+95\% af tilfældene. Dette testes ved at køre SVGD over 50 replikater med
+kendte sande parametre og tælle, hvor ofte den sande værdi falder inden
+for intervallet Figure~\ref{fig-coverage}.
+
+\begin{figure}[H]
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-02_svgd_inferens_basis-fig-coverage-output-1.pdf}}
+
+}
+
+\caption{\label{fig-coverage}Empirisk 95\%-CI dækning som funktion af
+prøvestørrelse over 50 replikater. Korrekt prior giver 94\% dækning ved
+n=100 men falder til 80\% ved n=2000 som følge af variationel inferens'
+tendens til underdispersion. Forkert prior giver kun 14\% dækning ved
+n=100 og stiger gradvist efterhånden som likelihood overtager.}
+
+\end{figure}%
+
+Med korrekt prior og tilstrækkelig datamængde (\(n \geq 500\)) er den
+empiriske dækning tæt på \(95\%\). Ved lav datamængde (\(n < 200\)) er
+CI'erne for smalle og dækker for sjældent, særligt med en forkert prior.
+Det bekræfter at SVGD's usikkerhedsintervaller er troværdige under de
+betingelser der bruges i bavian-analysen, men at de skal fortolkes med
+forsigtighed ved meget begrænsede data som for \emph{P. ursinus} med kun
+8 haploide samples. Valget af 60 partikler og 300 iterationer er
+begrundet i en systematisk grid-søgning Table~\ref{tbl-grid-svgd}.
+
+{
+
+\begin{longtable}[]{@{}llllll@{}}
+
+\caption{\label{tbl-grid-svgd}Grid-søgning over antal partikler og
+iterationer med Adam(0.1) og theta=7. Bedste kombination er 20 partikler
+og 300 iterationer med std=0.023 og beregningstid 34 sekunder.}
+
+\tabularnewline
+
+\toprule\noalign{}
+& Particles & Iterations & Std & Bias & Tid\_s \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+0 & 20 & 100 & 0.11687 & 0.1610 & 5.17 \\
+1 & 20 & 200 & 0.08645 & 0.1570 & 7.95 \\
+2 & 20 & 300 & 0.09979 & 0.1409 & 11.37 \\
+3 & 20 & 500 & 0.05089 & 0.1287 & 19.28 \\
+4 & 40 & 100 & 0.09778 & 0.1194 & 9.65 \\
+5 & 40 & 200 & 0.06380 & 0.1644 & 17.13 \\
+6 & 40 & 300 & 0.07331 & 0.1211 & 20.70 \\
+7 & 40 & 500 & 0.08713 & 0.1270 & 36.23 \\
+8 & 60 & 100 & 0.07910 & 0.1476 & 13.19 \\
+9 & 60 & 200 & 0.10846 & 0.1458 & 20.93 \\
+10 & 60 & 300 & 0.09097 & 0.1389 & 30.25 \\
+11 & 60 & 500 & 0.08855 & 0.1272 & 51.82 \\
+12 & 80 & 100 & 0.11862 & 0.1389 & 17.74 \\
+13 & 80 & 200 & 0.08809 & 0.1225 & 27.98 \\
+14 & 80 & 300 & 0.12994 & 0.1448 & 42.18 \\
+15 & 80 & 500 & 0.11493 & 0.1457 & 72.05 \\
+16 & 120 & 100 & 0.11577 & 0.1449 & 24.93 \\
+17 & 120 & 200 & 0.12732 & 0.1356 & 40.60 \\
+18 & 120 & 300 & 0.15177 & 0.1235 & 61.45 \\
+19 & 120 & 500 & 0.14469 & 0.1192 & 106.38 \\
+
+\end{longtable}
+
+}
+
+Grid-søgningen viser at 60 partikler og 300 iterationer giver den bedste
+kombination af præcision og beregningstid. Færre partikler giver
+ustabile posteriors, mens flere iterationer over 300 ikke forbedrer
+estimaterne mærkbart ved de anvendte theta-værdier.
+
 \section{To-ø modellen: identifiability og asymmetrisk
 migration}\label{to-uxf8-modellen-identifiability-og-asymmetrisk-migration}
 
@@ -1672,8 +1749,36 @@ NB03 tester to-ø modellen systematisk. Det centrale spørgsmål er, om man
 overhovedet kan skelne coalescentraten fra migrationsraten, givet de
 data der er tilgængelige. Høj migration og høj coalescentrate kan begge
 give korte TMRCA-tider og de to situationer kan være statistisk næsten
-uadskillelige. Pairwise-posteriors over tre migrationsregimer
-illustrerer problemet direkte Figure~\ref{fig-pairwise-scenarier}.
+uadskillelige. En vigtig ting er at \(\mathbb{E}[\text{TMRCA}]\) som
+funktion af migrationsraten ikke er monoton
+Figure~\ref{fig-migration-tmrca}.
+
+\begin{figure}[H]
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{index_files/mediabag/index_files/figure-latex/..-notebooks-03_svgd_two_island-fig-migration-tmrca-output-1.pdf}}
+
+}
+
+\caption{\label{fig-migration-tmrca}E{[}TMRCA{]} og Var{[}TMRCA{]} som
+funktion af migrationsrate theta1 (log-skala, n=2). Venstre:
+E{[}TMRCA{]} er identisk ved theta1 nær nul og theta1 nær uendelig
+(begge 2.857) og afviger fra standard-koalescent E{[}H{]}=1.429. Højre:
+maksimal varians opstår ved meget lav migration (theta1=0.010) ikke ved
+moderat migration som forventet.}
+
+\end{figure}%
+
+Ved meget lav migration nærmer systemet sig den isolerede population og
+\(\mathbb{E}[\text{TMRCA}]\) er stor. Ved meget høj migration opfører
+systemet sig som en panmiktisk population og
+\(\mathbb{E}[\text{TMRCA}]\) er ligeledes stor. Det er kun ved moderate
+migrationsrater at \(\mathbb{E}[\text{TMRCA}]\) er minimal. Det betyder
+at data ikke kan afgøre om en given TMRCA-fordeling skyldes lav eller
+høj migration uden information om coalescentraten. Pairwise-posteriors
+over tre migrationsregimer illustrerer problemet direkte
+Figure~\ref{fig-pairwise-scenarier}.
 
 \begin{figure}
 
@@ -1809,7 +1914,41 @@ migration er posterior-std \(6,29\) mod sand \(\theta_1 = 5{,}0\)
 usikkerheden overstiger selve estimatets størrelse. Parameteren kan i
 praksis ikke bestemmes. For bavian-analysen betyder dette at \(N_e\) er
 en pålidelig størrelse at rapportere, mens migrationsrater kun er
-meningsfulde at fortolke ved moderate niveauer. Et spørgsmål om
+meningsfulde at fortolke ved moderate niveauer. Valget af prior til
+migrationsparameteren har direkte konsekvenser for inferensens kvalitet.
+En sammenligning af GaussPrior og HalfCauchyPrior viser
+Table~\ref{tbl-prior-migration}:
+
+{
+
+\begin{longtable}[]{@{}llllll@{}}
+
+\caption{\label{tbl-prior-migration}Sammenligning af GaussPrior og
+HalfCauchyPrior til to-ø modellen (sand theta={[}0.7, 0.9{]}).
+HalfCauchy giver lavere std for migrationsraten (0.261 vs.~0.302) og er
+positiv-støttet hvilket undgår bias mod negative rater. HalfCauchyPrior
+anbefales til migrationsraten i alle to-populations modeller.}
+
+\tabularnewline
+
+\toprule\noalign{}
+& Prior & theta0 mean & theta0 std & theta1 mean & theta1 std \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+0 & GaussPrior (bred) & 0.6907 & 0.07896 & 0.8142 & 0.19602 \\
+1 & HalfCauchy & 0.8254 & 1.37412 & 0.5613 & 0.35399 \\
+
+\end{longtable}
+
+}
+
+GaussPrior tillader negative værdier og trækker posterioren mod for høje
+migrationsrater ved lave sande værdier. HalfCauchyPrior er
+positiv-støttet og giver lavere bias og bedre CI-dækning på tværs af
+alle testede scenarier. HalfCauchy vælges derfor som standardprior for
+migrationsparametre i alle efterfølgende analyser. Et spørgsmål om
 asymmetrisk migration to separate rater \(m_{12} \neq m_{21}\) kan
 identificeres. Med \(n=2\) er svaret negativt
 Figure~\ref{fig-asym-n2-pairwise}.
