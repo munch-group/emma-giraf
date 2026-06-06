@@ -49,6 +49,8 @@ degree: Master of Science in Bioinformatics
 
 
 
+
+
 # Introduktion
 
 Genetisk variation er grundlaget for evolution. Når man sammenligner DNA-sekvenser fra forskellige individer af samme art, vil man næsten altid finde små forskelle i deres arvemateriale. På nogle positioner kan det ene individ eksempelvis have et $A$ (adenin), mens det andet har et $G$ (guanin). Disse forskelle er opstået gennem mutationer, som er blevet ophobet over mange generationer. Antallet og fordelingen af mutationerne afhænger af de evolutionære processer, der har formet populationen: genetisk drift, migration, rekombination og ændringer i populationsstørrelse [@wakeley2009coalescent]. Genetiske data indeholder dermed information om en populations historie og indenfor populationsgenetik er det netop denne information man gerne vil, udtrække fra de observerede sekvenser.
@@ -104,14 +106,11 @@ Det fører til Wattersons estimator $\hat{\theta}_W = S/a_n$ som er den klassisk
 $$
 \hat{\theta}_\pi = \frac{1}{\binom{n}{2}} \sum_{i < j} \pi_{ij},
 $$
-
 hvor $\pi_{ij}$ er antallet af mutationer, der adskiller sekvens $i$ og $j$. Tajimas $D$-statistik er forskellen mellem de to estimatorer, skaleret med standardafvigelsen for forskellen [@hobolth2021; @tajima1989]:
 $$
 D = \frac{\hat{\theta}_\pi - \hat{\theta}_W}{\sqrt{\mathrm{Var}(\hat{\theta}_\pi - \hat{\theta}_W)}}
 $$
-
 Under neutralitet og konstant populationsstørrelse forventes $D$ at ligge omkring nul. Negative værdier indikerer et overskud af sjældne mutationer, hvilket ofte forbindes med populationsvækst eller positiv selektion. Positive værdier peger derimod på et underskud af sjældne mutationer og kan være tegn på flaskehalse, populationsstruktur eller balancerende selektion.
-
 Mens Wattersons estimator og Tajimas $D$ opsummerer variationen i data ved hjælp af enkelte tal, giver site-frekvens-spektret (SFS) et mere detaljeret billede. SFS beskriver, hvor mange mutationer der observeres i præcis $i$ ud af de $n$ sekvenser. Formelt skrives det som $(\xi_1,\xi_2,\ldots,\xi_{n-1}),$ hvor $\xi_i$ tæller antallet af sites, hvor den afledte allel forekommer i præcis $i$ individer. Under standard coalescenten med neutralitet og konstant populationsstørrelse gælder $\mathbb{E}[\xi_i] = \frac{\theta}{i}, \qquad i = 1, 2, \ldots, n-1$ [@hobolth2021]. Sjældne mutationer forventes at dominere spektret. Især forventes singletons at forekomme langt hyppigere end mutationer med høj frekvens. Dette afspejler direkte formen på genealogien, hvor en stor del af den samlede grenelængde ligger på de ydre grene tæt på nutiden. SFS kan vise, at hvis der er populationsvækst vil man se et overskud af sjældne mutationer, mens flaskehalse ofte reducerer antallet af singletons. Ved at sammenligne observerede og forventede frekvensspektre kan man derfor opnå information om populationens historie.
 @fig-sfs viser det forventede site-frekvens-spektrum for $n=4$ beregnet analytisk ved hjælp af `phasic` [@phasic].
 
@@ -257,45 +256,63 @@ På trods af disse geografiske adskillelser kan flere arter krydse sig med hinan
 Bavianernes evolutionære historie begyndte omtrent samtidig med evolutionen af menneskeslægten *Homo*, altså for omkring 2 millioner år siden [@rogers2019]. I modsætning til mennesker, hvor kun en art eksisterer i dag, har bavianer bevaret flere linjer. PSMC-analyser [@li2011psmc] viser, at alle seks populationer har oplevet fald i effektiv populationsstørrelse de seneste 100.000 år, sandsynligvis i forbindelse med klimatiske ændringer [@rogers2019]. Det gør dem særligt velegnede som modelsystem til at studere både divergens og hybridisering i naturlige populationer. I dette speciale anvendes estimater fra @sorensen2023, herunder en mutationsrate på $\mu = 0.9 \times 10^{-8}$ per site per generation og en generationstid på $g = 11$ år, til at omsætte modelparametre til absolutte størrelser.
 
 
+
 # Metode
 
 ## Data
 
-Dataene stammer fra @sorensen2023, der helgenomsekvestrerede 225 vilde bavianer  fra 19 lokaliteter fordelt over Afrika. Kromosom 20 indeholder $2{,}665{,}269$  varianter fordelt over 227 diploide individer (454 haploide kromosomer). I dette  speciale bruges data fra seks arter med følgende antal segregerende SNPs og  haploide prøver: *P. cynocephalus* $1{,}379{,}280$ SNPs ($n=120$), *P. anubis* $1{,}058{,}781$ SNPs ($n=180$), *P. kindae* $833{,}071$ SNPs ($n=50$),  *P. hamadryas* $460{,}025$ SNPs ($n=48$), *P. ursinus* $403{,}120$ SNPs ($n=8$)  og *P. papio* $110{,}086$ SNPs ($n=24$). Den mindste population *P. ursinus* med  kun 8 haplotyper sætter den øvre grænse for sammenlignende SFS-analyser på tværs  af arter, og alle populationer subsamples til $n_\text{min} = 8$ i de direkte  sammenligninger. For hvert individ er der beregnet allelfrekvenser per position i genomet, repræsenteret som antallet af afledte alleler ud af det totale antal sekvenser per site. Disse allele counts bruges direkte som input til inferensmodellerne via Wattersons estimator $\hat{\theta}_W = S / a_n$, der beregner mutationsdiversiteten fra antallet af segregerende sites. Mutationsraten $\mu = 0{,}9 \times 10^{-8}$ per site per generation og generationstiden $g = 11$ år er taget direkte fra @sorensen2023 og bruges til at konvertere skalerede parametre til biologisk fortolkbare størrelser som $N_e$ og tid i år.
+Dataene er fra @sorensen2023, der har lavet en helgenomsekventering af 225 vilde bavianer  fra 19 lokaliteter fordelt over Afrika. Kromosom $20$ indeholder $2{,}665{,}269$ varianter fordelt over $227$ diploide individer ($454$ haploide kromosomer). Her bruges data fra seks arter med følgende antal segregerende SNPs og  haploide prøver: 
+
+- *P. cynocephalus* $1{,}379{,}280$ SNPs ($n=120$), 
+- *P. anubis* $1{,}058{,}781$ SNPs ($n=180$), 
+- *P. kindae* $833{,}071$ SNPs ($n=50$),  
+- *P. hamadryas* $460{,}025$ SNPs ($n=48$), 
+- *P. ursinus* $403{,}120$ SNPs ($n=8$), 
+- *P. papio* $110{,}086$ SNPs ($n=24$). 
+
+Den mindste population *P. ursinus* med  kun $8$ haplotyper sætter den øvre grænse for sammenlignende SFS-analyser på tværs af arter og alle populationer subsamples til $n_\text{min} = 8$ i de direkte sammenligninger. For hvert individ er der beregnet allelfrekvenser per position i genomet, repræsenteret som antallet af afledte alleler ud af det totale antal sekvenser per site. Disse allele counts bruges direkte som input til inferensmodellerne via Wattersons estimator $\hat{\theta}_W = \frac{S}{a_n}$, der beregner mutationsdiversiteten fra antallet af segregerende sites. Mutationsraten ($\mu = 0{,}9 \times 10^{-8}$ mutation pr. basepar pr. generation) og generationstiden ($g = 11$ år) er hentet fra @sorensen2023. Disse værdier bruges til at kinvertere de skalerede modelparametre til størrelse, der er lettere at fortolke, såsom effektiv populationsstørrelse ($N_e$) og tid angivet i år. 
 
 ## Modeller og implementering
 
-Alle koalescentmodeller implementeres i `phasic` [@phasic] og valideres analytisk og mod msprime-simulationer. I alle analyser bruges $n=4$ haploide prøver til enkeltpopulationsmodellen og $n=6$ til to-populationsmodeller. Valget af $n=4$ er valgt fordi, her er tilstandsrummet lille nok til hurtig beregning, mens stikprøvestørrelsen stadig giver tilstrækkelig information om coalescenttider og SFS-form. For to-populationsmodeller kræves $n=6$ for at tilstandsrummet er stort nok til at adskille coalescent og migration.
+Alle coalescentmodeller er implementeret i `phasic` [@phasic] og er valideret både analytisk og ved sammenligning med simulationer udført i msprime. I alle analyser bruges $n=4$ haploide prøver til enkeltpopulationsmodellen og $n=6$ til to-populationsmodeller. Valget af $n=4$ skyldes, at tilstandsrummet stadig er relativt lille, hvilket gør beregningerne hurtige, samtidig med at prøvestørrelsen indeholder nok inforamtion til at beskrive coalescenttider og formen af SFS. I modeller med to populationer anvnedes $n=6$, da en større prøvestørrelse er nødvendig for at kunne skelne mellem effekterne af coalescent og migration.  
 
-Følgende modeller implementeres og analyseres:
+Analysen er bygget op omkring otte Jupyter notebooks. De otte notebooks er organiseret så hver bygger videre på den foregående, fra grundlæggende verificering til anvendelse på rigtige bavian-data, som er opsummeret i @tbl-notebooks.
 
-- **Kingmans coalescent** (NB01): enkeltpopulationsmodel med en parameter $\theta = 4N_e\mu$.
-- **To-ø modellen** (NB03): to populationer med symmetrisk migration, parametriseret ved $\theta_0$ (coalescentrate) og $\theta_1$ (migrationsrate).
-- **IM-modellen** (NB05): isolation-with-migration med split-tidspunkt $t_s$, implementeret via `add_epoch`.
-- **Tidsinhomogen coalescent** (NB05): flaskehalse og ekspansioner via `distribution_context`.
-- **Joint probability-inferens** (NB06): diskrete SFS-observationer via `joint_prob_graph`.
+| Notebook | Model | Parametre | Formål |
+|:---|:---|:---|:---|
+| NB01 | Kingmans coalescent | $\theta$ | Verificering af fase-type implementering og analytiske egenskaber |
+| NB02 | SVGD-kalibrering | Prior, optimizer, partikler | Systematisk valg af inferenskonfiguration til bavian-analyser |
+| NB03 | To-ø modellen | $\theta_0$, $\theta_1$ | Identificerbarhed og sammenligning med method of moments |
+| NB04 | Numerisk præcision | $n$, $\theta$ | Beregningsmæssige grænser og skalering med prøvestørrelse |
+| NB05 | Tidsinhomogen coalescent og IM-modellen | $\theta_0$, $\theta_1$, $t_s$ | Flaskehalse, ekspansioner og split-tidspunkter |
+| NB06 | Joint probability-inferens | $\theta$, $\mu$, `reward_limit` | Diskrete SFS-observationer og sammenligning med TMRCA-inferens |
+| NB07A | Enkeltpopulationsanalyse | $\theta$, $N_e$ | SVGD-inferens på bavian-data for seks *Papio*-arter |
+| NB07B | To-populations analyse | $\theta_0$, $\theta_1$, $t_s$ | Migration og split-tidspunkter for bavian-artpar |
+
+: Oversigt over notebooks og modeller implementeret i dette speciale. {#tbl-notebooks}
+
 
 ## SVGD-konfiguration
 
-Valget af SVGD-konfiguration er baseret på en systematisk kalibrering i NB02,  hvor prior, optimizer, antal partikler og antal iterationer testes systematisk  på simulerede data med bavian-realistiske sand $\theta = 7$. Formålet er at finde den kombination, der giver den smalleste og  mest præcise posterior uden at bruge unødigt lang beregningstid.
-Det første valg er priorfordelingen. Seks strategier sammenlignes: vag  gaussisk, korrekt gaussisk, forkert gaussisk, HalfCauchyPrior, LogGaussPrior og DataPrior. Konvergensplotterne i @fig-konvergens-priors viser, hvordan  partiklerne bevæger sig mod den sande $\theta = 7$ under de seks priors.
-
+SVGD-konfigurationen er valgt på baggrund af de tests der blev kørt i NB02. Her blev forskellige valg af prior, optimizer, antal partikler og antal iterationer testet på simulerede datasæt med $\theta$-værdier, der ligger inden for et realistisk interval for bavian populationer. @fig-konvergens-priors viser konvergensforløbet under seks forskellige priors.
 {{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-konvergens-priors >}}
-
-Den forkerte prior starter langt fra sandheden og kæmper mod  likelihood-overfladen i de første iterationer. Alle de øvrige priors  konvergerer, men med forskellig præcision. DataPrior er hurtigst og mest  præcis fordi den automatisk estimerer et startpunkt fra data via method of moments, så partiklerne starter tæt på den sande parameterværdi. Over bavian-realistiske $\theta$-værdier er DataPrior valgt som standard fordi den  giver lavest gennemsnitlig bias.
-Det næste valg er optimizeren. @fig-optimizer-konvergens sammenligner alle  tilgængelige optimizere.
-
+Blandt de undersøgt priors gav `DataPrior` de mest præcise estimater og den hurtigste konvergens. Dette skyldes at prioren bruger method-of-momments til automatisk at estimere et passende startpunkt ud fra de observerede data. Valget af optimizer sammenlignes separat og resultaterne er vist i @fig-optimizer-konvergens.
 {{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-optimizer-konvergens >}}
-
-En god optimizer giver en stabil kurve der glat nærmer sig sand $\theta$ uden at svinge. `Adamelia(0,2)` giver den mest stabile konvergens og den smalleste  posterior-std over alle testede $\theta$-værdier. `AdaptiveStepSize` er klart  dårligst og udelades fra videre overvejelse.
-For at bekræfte om posterior-intervallerne er korrekt kalibrerede, dvs. om  $95\%$-CI faktisk dækker den sande parameter i $95\%$ af tilfældene,  gentages analysen $50$ gange med nye datasæt. Resultatet er vist i  @fig-coverage.
-
+Her viste `Adamelia(0,2)` den mest stabile konvergens på tværs af de testede $\theta$-værdier og gav samtidig den laveste variation i posteriorfordelingerne. På baggrund af disse resultatet blev denne optimizer valgt til de efterfølgende analyser. For at vudere kvaliteten af usikkerhedsestimerne blev der lavet en dækningsanalyse, vist i @fig-coverage.
 {{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-coverage >}}
 
-Dækningen er under det nominelle niveau for alle priors. DataPrior giver  $34\%$ ved $n=100$, $52\%$ ved $n=500$ og $68\%$ ved $n=2000$. LogGauss  er nærmest korrekt kalibreret med $90\%$ ved $n=2000$. Det betyder at  posteriorintervallerne er for smalle og undervurderer den sande usikkerhed.  Dette er en vigtig begrænsning der skal holdes for øje ved fortolkning af bayian-resultaterne. Den endelige standardkonfiguration er opsummeret i @tbl-standard-config.
+Dækningsgraden ligger under $95\%$-niveauet for alle de undersøgte priors og stikprøvestørrelser. DataPrior giver $34\%$ dækning ved $n=100$, $52\%$ ved $n=500$ og $68\%$ ved $n=2000$. LogGaussPrior er nærmest korrekt kalibreret med $90\%$ ved $n=2000$, men ingen af dem når det nominelle niveau. Det betyder at posteriorintervallerne er for smalle og undervurderer den sande usikkerhed. Dette er en vigtig begrænsning der skal holdes for øje ved fortolkning af resultater i NB07A og NB07B. På baggrund af alle tests i NB02 blev følgende standardkonfiguration valgt til de efterfølgende analyser:
 
-{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#tbl-standard-config >}}
+| Parameter | Valg | Begrundelse |
+|:---|:---|:---|
+| Optimizer | `Adamelia(0,2)` | Lavest gennemsnitlig posterior-std over bavian-$\theta$ |
+| Prior (enkeltpopulation) | `DataPrior` | Lavest bias ved bavian-realistiske $\theta$-værdier |
+| Prior (migration) | `HalfCauchyPrior` | Positiv-støttet og biologisk korrekt for migrationsrater |
+| Prior (joint probability) | `LogGaussPrior` | Mere kalibreret dækning end DataPrior |
+| Partikler | 20 (test) / 60 (bavian) | Bedste std/tid-kompromis fra grid-søgning |
+| Iterationer | 300 (1 parameter) / 400 (2 parametre) | Konvergerer stabilt inden disse grænser |
 
+: Standard SVGD-konfiguration brugt i alle efterfølgende analyser. {#tbl-standard-config}
 
 
 # Resultater
