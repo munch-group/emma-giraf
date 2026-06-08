@@ -1846,7 +1846,7 @@ Table&nbsp;10.3: Sensitivitetsanalyse for to-ø modellen: <span class="math inli
 <pre><code>θ₀ = 0.00360 +/- 0.00010
 R  = 0.3711   +/- 0.31610</code></pre>
 </div>
-<div id="fig-arg-bavian" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="47" data-fig-height="4" data-fig-width="5">
+<div id="fig-arg-bavian" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-fig-width="5" data-execution_count="47" data-fig-height="4">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-arg-bavian-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output cell-output-display">
@@ -2369,105 +2369,99 @@ Relativ afvigelse:   1.75%</code></pre>
 <p>Fra NB06 ved vi at joint_prob_graph kræver skalerede mutationsrater biologiske <span class="math inline">\(\mu\)</span>-værdier (<span class="math inline">\(\sim 10^{-8}\)</span>) giver numeriske problemer. Jeg bruger en skaleret <span class="math inline">\(\mu\)</span> i coalescent-enheder:</p>
 <p><span class="math display">\[\mu_{\text{skaleret}} = \mu / \hat{\theta}_W\]</span></p>
 <p>Dette holder <span class="math inline">\(\mu_{\text{skaleret}}\)</span> i et numerisk stabilt interval og giver korrekte relative sandsynligheder.</p>
-<div id="fig-joint-bavian" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="55" data-fig-height="3" data-fig-width="6">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-joint-bavian-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb66"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
-<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a>    <span class="im">from</span> phasic <span class="im">import</span> (</span>
-<span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a>        Graph, with_ipv, StateIndexer, Property,</span>
-<span id="cb66-4"><a href="#cb66-4" aria-hidden="true" tabindex="-1"></a>        LogGaussPrior, Adamelia, clear_caches,</span>
-<span id="cb66-5"><a href="#cb66-5" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb66-6"><a href="#cb66-6" aria-hidden="true" tabindex="-1"></a>    <span class="im">from</span> functools <span class="im">import</span> partial</span>
-<span id="cb66-7"><a href="#cb66-7" aria-hidden="true" tabindex="-1"></a>    <span class="im">from</span> itertools <span class="im">import</span> combinations_with_replacement</span>
-<span id="cb66-8"><a href="#cb66-8" aria-hidden="true" tabindex="-1"></a>    <span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb66-9"><a href="#cb66-9" aria-hidden="true" tabindex="-1"></a>    <span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb66-10"><a href="#cb66-10" aria-hidden="true" tabindex="-1"></a>    clear_caches()</span>
-<span id="cb66-11"><a href="#cb66-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb66-12"><a href="#cb66-12" aria-hidden="true" tabindex="-1"></a>    all_pairs_jp <span class="op">=</span> partial(combinations_with_replacement, r<span class="op">=</span><span class="dv">2</span>)</span>
-<span id="cb66-13"><a href="#cb66-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb66-14"><a href="#cb66-14" aria-hidden="true" tabindex="-1"></a>    nr_s_jp <span class="op">=</span> <span class="dv">4</span></span>
-<span id="cb66-15"><a href="#cb66-15" aria-hidden="true" tabindex="-1"></a>    indexer_jp <span class="op">=</span> StateIndexer(</span>
-<span id="cb66-16"><a href="#cb66-16" aria-hidden="true" tabindex="-1"></a>        lineage<span class="op">=</span>[Property(<span class="st">'descendants'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span>nr_s_jp)]</span>
-<span id="cb66-17"><a href="#cb66-17" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb66-18"><a href="#cb66-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb66-19"><a href="#cb66-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">@with_ipv</span>([nr_s_jp] <span class="op">+</span> [<span class="dv">0</span>]<span class="op">*</span>(nr_s_jp<span class="op">-</span><span class="dv">1</span>))</span>
-<span id="cb66-20"><a href="#cb66-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> coal_jp(state):</span>
-<span id="cb66-21"><a href="#cb66-21" aria-hidden="true" tabindex="-1"></a>        transitions <span class="op">=</span> []</span>
-<span id="cb66-22"><a href="#cb66-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i, j <span class="kw">in</span> all_pairs_jp(indexer_jp.lineage):</span>
-<span id="cb66-23"><a href="#cb66-23" aria-hidden="true" tabindex="-1"></a>            p1 <span class="op">=</span> indexer_jp.lineage.index_to_props(i)</span>
-<span id="cb66-24"><a href="#cb66-24" aria-hidden="true" tabindex="-1"></a>            p2 <span class="op">=</span> indexer_jp.lineage.index_to_props(j)</span>
-<span id="cb66-25"><a href="#cb66-25" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb66-26"><a href="#cb66-26" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
-<span id="cb66-27"><a href="#cb66-27" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
-<span id="cb66-28"><a href="#cb66-28" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
-<span id="cb66-29"><a href="#cb66-29" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb66-30"><a href="#cb66-30" aria-hidden="true" tabindex="-1"></a>            k <span class="op">=</span> indexer_jp.lineage.props_to_index(</span>
-<span id="cb66-31"><a href="#cb66-31" aria-hidden="true" tabindex="-1"></a>                descendants<span class="op">=</span>p1.descendants <span class="op">+</span> p2.descendants)</span>
-<span id="cb66-32"><a href="#cb66-32" aria-hidden="true" tabindex="-1"></a>            new[k] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb66-33"><a href="#cb66-33" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)]])</span>
-<span id="cb66-34"><a href="#cb66-34" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
-<span id="cb66-35"><a href="#cb66-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb66-36"><a href="#cb66-36" aria-hidden="true" tabindex="-1"></a>    g_jp <span class="op">=</span> Graph(coal_jp)</span>
-<span id="cb66-37"><a href="#cb66-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb66-38"><a href="#cb66-38" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Skaleret mu: biologisk mu / theta_W → numerisk stabilt interval</span></span>
-<span id="cb66-39"><a href="#cb66-39" aria-hidden="true" tabindex="-1"></a>    theta_W_jp  <span class="op">=</span> results_single[<span class="st">'P_cynocephalus'</span>][<span class="st">'theta_W'</span>]</span>
-<span id="cb66-40"><a href="#cb66-40" aria-hidden="true" tabindex="-1"></a>    theta_jp    <span class="op">=</span> results_single[<span class="st">'P_cynocephalus'</span>][<span class="st">'theta'</span>]</span>
-<span id="cb66-41"><a href="#cb66-41" aria-hidden="true" tabindex="-1"></a>    mu_scaled   <span class="op">=</span> MU <span class="op">/</span> theta_W_jp</span>
-<span id="cb66-42"><a href="#cb66-42" aria-hidden="true" tabindex="-1"></a>    reward_lim  <span class="op">=</span> <span class="dv">2</span>  <span class="co"># konservativt limit fra NB06</span></span>
-<span id="cb66-43"><a href="#cb66-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb66-44"><a href="#cb66-44" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  theta_W        = </span><span class="sc">{</span>theta_W_jp<span class="sc">:.6f}</span><span class="ss">"</span>)</span>
-<span id="cb66-45"><a href="#cb66-45" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  mu_biologisk   = </span><span class="sc">{</span>MU<span class="sc">:.2e}</span><span class="ss">"</span>)</span>
-<span id="cb66-46"><a href="#cb66-46" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  mu_skaleret    = </span><span class="sc">{</span>mu_scaled<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
-<span id="cb66-47"><a href="#cb66-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb66-48"><a href="#cb66-48" aria-hidden="true" tabindex="-1"></a>    jp_graph <span class="op">=</span> g_jp.joint_prob_graph(</span>
-<span id="cb66-49"><a href="#cb66-49" aria-hidden="true" tabindex="-1"></a>        indexer_jp,</span>
-<span id="cb66-50"><a href="#cb66-50" aria-hidden="true" tabindex="-1"></a>        reward_limit<span class="op">=</span>reward_lim,</span>
-<span id="cb66-51"><a href="#cb66-51" aria-hidden="true" tabindex="-1"></a>        mutation_rate<span class="op">=</span>mu_scaled,</span>
-<span id="cb66-52"><a href="#cb66-52" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb66-53"><a href="#cb66-53" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  joint_prob_graph: OK  (reward_limit=</span><span class="sc">{</span>reward_lim<span class="sc">}</span><span class="ss">)"</span>)</span>
-<span id="cb66-54"><a href="#cb66-54" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb66-55"><a href="#cb66-55" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Tjek deficit</span></span>
-<span id="cb66-56"><a href="#cb66-56" aria-hidden="true" tabindex="-1"></a>    jp_graph.update_weights([theta_jp, mu_scaled])</span>
-<span id="cb66-57"><a href="#cb66-57" aria-hidden="true" tabindex="-1"></a>    table <span class="op">=</span> jp_graph.joint_prob_table()</span>
-<span id="cb66-58"><a href="#cb66-58" aria-hidden="true" tabindex="-1"></a>    deficit <span class="op">=</span> <span class="bu">float</span>(<span class="dv">1</span> <span class="op">-</span> table[<span class="st">'prob'</span>].<span class="bu">sum</span>())</span>
-<span id="cb66-59"><a href="#cb66-59" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  Deficit = </span><span class="sc">{</span>deficit<span class="sc">:.4f}</span><span class="ss">  (bør være &lt; 0.05)"</span>)</span>
-<span id="cb66-60"><a href="#cb66-60" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb66-61"><a href="#cb66-61" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Sample joint-observationer</span></span>
-<span id="cb66-62"><a href="#cb66-62" aria-hidden="true" tabindex="-1"></a>    probs <span class="op">=</span> (table[<span class="st">'prob'</span>] <span class="op">/</span> table[<span class="st">'prob'</span>].<span class="bu">sum</span>()).to_numpy()</span>
-<span id="cb66-63"><a href="#cb66-63" aria-hidden="true" tabindex="-1"></a>    idx   <span class="op">=</span> np.random.choice(table.index.values, <span class="dv">200</span>, p<span class="op">=</span>probs)</span>
-<span id="cb66-64"><a href="#cb66-64" aria-hidden="true" tabindex="-1"></a>    obs_jp <span class="op">=</span> table.loc[idx, table.columns[:<span class="op">-</span><span class="dv">1</span>]].to_numpy().tolist()</span>
-<span id="cb66-65"><a href="#cb66-65" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb66-66"><a href="#cb66-66" aria-hidden="true" tabindex="-1"></a>    prior_jp <span class="op">=</span> [LogGaussPrior(ci<span class="op">=</span>[theta_W_jp <span class="op">*</span> <span class="fl">0.1</span>, theta_W_jp <span class="op">*</span> <span class="dv">10</span>]), <span class="va">None</span>]</span>
-<span id="cb66-67"><a href="#cb66-67" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb66-68"><a href="#cb66-68" aria-hidden="true" tabindex="-1"></a>    sv_jp <span class="op">=</span> jp_graph.svgd(</span>
-<span id="cb66-69"><a href="#cb66-69" aria-hidden="true" tabindex="-1"></a>        obs_jp,</span>
-<span id="cb66-70"><a href="#cb66-70" aria-hidden="true" tabindex="-1"></a>        fixed<span class="op">=</span>[(<span class="dv">1</span>, mu_scaled)],</span>
-<span id="cb66-71"><a href="#cb66-71" aria-hidden="true" tabindex="-1"></a>        prior<span class="op">=</span>prior_jp,</span>
-<span id="cb66-72"><a href="#cb66-72" aria-hidden="true" tabindex="-1"></a>        optimizer<span class="op">=</span>Adamelia(<span class="fl">0.2</span>),</span>
-<span id="cb66-73"><a href="#cb66-73" aria-hidden="true" tabindex="-1"></a>        n_particles<span class="op">=</span><span class="dv">20</span>,</span>
-<span id="cb66-74"><a href="#cb66-74" aria-hidden="true" tabindex="-1"></a>        n_iterations<span class="op">=</span><span class="dv">150</span>,</span>
-<span id="cb66-75"><a href="#cb66-75" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb66-76"><a href="#cb66-76" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb66-77"><a href="#cb66-77" aria-hidden="true" tabindex="-1"></a>    res_jp <span class="op">=</span> sv_jp.get_results()</span>
-<span id="cb66-78"><a href="#cb66-78" aria-hidden="true" tabindex="-1"></a>    th_jp  <span class="op">=</span> <span class="bu">float</span>(res_jp[<span class="st">'theta_mean'</span>][<span class="dv">0</span>])</span>
-<span id="cb66-79"><a href="#cb66-79" aria-hidden="true" tabindex="-1"></a>    std_jp <span class="op">=</span> <span class="bu">float</span>(res_jp[<span class="st">'theta_std'</span>][<span class="dv">0</span>])</span>
-<span id="cb66-80"><a href="#cb66-80" aria-hidden="true" tabindex="-1"></a>    Ne_jp  <span class="op">=</span> th_jp <span class="op">/</span> (<span class="dv">4</span> <span class="op">*</span> MU)</span>
-<span id="cb66-81"><a href="#cb66-81" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  Joint theta = </span><span class="sc">{</span>th_jp<span class="sc">:.6f}</span><span class="ss"> +/- </span><span class="sc">{</span>std_jp<span class="sc">:.6f}</span><span class="ss">  →  Ne = </span><span class="sc">{</span>Ne_jp<span class="sc">:,.0f}</span><span class="ss">"</span>)</span>
-<span id="cb66-82"><a href="#cb66-82" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  TMRCA theta = </span><span class="sc">{</span>theta_jp<span class="sc">:.6f}</span><span class="ss">  →  Ne = </span><span class="sc">{</span>theta_jp<span class="op">/</span>(<span class="dv">4</span><span class="op">*</span>MU)<span class="sc">:,.0f}</span><span class="ss">"</span>)</span>
-<span id="cb66-83"><a href="#cb66-83" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb66-84"><a href="#cb66-84" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">Exception</span> <span class="im">as</span> e:</span>
-<span id="cb66-85"><a href="#cb66-85" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"joint_prob_graph fejlede: </span><span class="sc">{</span>e<span class="sc">}</span><span class="ss"> — udelades fra analyse"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="80e423e2" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb66"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a>    <span class="im">from</span> phasic <span class="im">import</span> (</span>
+<span id="cb66-4"><a href="#cb66-4" aria-hidden="true" tabindex="-1"></a>        Graph, with_ipv, StateIndexer, Property,</span>
+<span id="cb66-5"><a href="#cb66-5" aria-hidden="true" tabindex="-1"></a>        LogGaussPrior, Adamelia, clear_caches,</span>
+<span id="cb66-6"><a href="#cb66-6" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb66-7"><a href="#cb66-7" aria-hidden="true" tabindex="-1"></a>    <span class="im">from</span> functools <span class="im">import</span> partial</span>
+<span id="cb66-8"><a href="#cb66-8" aria-hidden="true" tabindex="-1"></a>    <span class="im">from</span> itertools <span class="im">import</span> combinations_with_replacement</span>
+<span id="cb66-9"><a href="#cb66-9" aria-hidden="true" tabindex="-1"></a>    <span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb66-10"><a href="#cb66-10" aria-hidden="true" tabindex="-1"></a>    <span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb66-11"><a href="#cb66-11" aria-hidden="true" tabindex="-1"></a>    clear_caches()</span>
+<span id="cb66-12"><a href="#cb66-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-13"><a href="#cb66-13" aria-hidden="true" tabindex="-1"></a>    all_pairs_jp <span class="op">=</span> partial(combinations_with_replacement, r<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb66-14"><a href="#cb66-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-15"><a href="#cb66-15" aria-hidden="true" tabindex="-1"></a>    nr_s_jp <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb66-16"><a href="#cb66-16" aria-hidden="true" tabindex="-1"></a>    indexer_jp <span class="op">=</span> StateIndexer(</span>
+<span id="cb66-17"><a href="#cb66-17" aria-hidden="true" tabindex="-1"></a>        lineage<span class="op">=</span>[Property(<span class="st">'descendants'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span>nr_s_jp)]</span>
+<span id="cb66-18"><a href="#cb66-18" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb66-19"><a href="#cb66-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-20"><a href="#cb66-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">@with_ipv</span>([nr_s_jp] <span class="op">+</span> [<span class="dv">0</span>]<span class="op">*</span>(nr_s_jp<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb66-21"><a href="#cb66-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> coal_jp(state):</span>
+<span id="cb66-22"><a href="#cb66-22" aria-hidden="true" tabindex="-1"></a>        transitions <span class="op">=</span> []</span>
+<span id="cb66-23"><a href="#cb66-23" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i, j <span class="kw">in</span> all_pairs_jp(indexer_jp.lineage):</span>
+<span id="cb66-24"><a href="#cb66-24" aria-hidden="true" tabindex="-1"></a>            p1 <span class="op">=</span> indexer_jp.lineage.index_to_props(i)</span>
+<span id="cb66-25"><a href="#cb66-25" aria-hidden="true" tabindex="-1"></a>            p2 <span class="op">=</span> indexer_jp.lineage.index_to_props(j)</span>
+<span id="cb66-26"><a href="#cb66-26" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb66-27"><a href="#cb66-27" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb66-28"><a href="#cb66-28" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb66-29"><a href="#cb66-29" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
+<span id="cb66-30"><a href="#cb66-30" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb66-31"><a href="#cb66-31" aria-hidden="true" tabindex="-1"></a>            k <span class="op">=</span> indexer_jp.lineage.props_to_index(</span>
+<span id="cb66-32"><a href="#cb66-32" aria-hidden="true" tabindex="-1"></a>                descendants<span class="op">=</span>p1.descendants <span class="op">+</span> p2.descendants)</span>
+<span id="cb66-33"><a href="#cb66-33" aria-hidden="true" tabindex="-1"></a>            new[k] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb66-34"><a href="#cb66-34" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)]])</span>
+<span id="cb66-35"><a href="#cb66-35" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
+<span id="cb66-36"><a href="#cb66-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-37"><a href="#cb66-37" aria-hidden="true" tabindex="-1"></a>    g_jp <span class="op">=</span> Graph(coal_jp)</span>
+<span id="cb66-38"><a href="#cb66-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-39"><a href="#cb66-39" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Skaleret mu: biologisk mu / theta_W → numerisk stabilt interval</span></span>
+<span id="cb66-40"><a href="#cb66-40" aria-hidden="true" tabindex="-1"></a>    theta_W_jp  <span class="op">=</span> results_single[<span class="st">'P_cynocephalus'</span>][<span class="st">'theta_W'</span>]</span>
+<span id="cb66-41"><a href="#cb66-41" aria-hidden="true" tabindex="-1"></a>    theta_jp    <span class="op">=</span> results_single[<span class="st">'P_cynocephalus'</span>][<span class="st">'theta'</span>]</span>
+<span id="cb66-42"><a href="#cb66-42" aria-hidden="true" tabindex="-1"></a>    mu_scaled   <span class="op">=</span> MU <span class="op">/</span> theta_W_jp</span>
+<span id="cb66-43"><a href="#cb66-43" aria-hidden="true" tabindex="-1"></a>    reward_lim  <span class="op">=</span> <span class="dv">2</span>  <span class="co"># konservativt limit fra NB06</span></span>
+<span id="cb66-44"><a href="#cb66-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-45"><a href="#cb66-45" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  theta_W        = </span><span class="sc">{</span>theta_W_jp<span class="sc">:.6f}</span><span class="ss">"</span>)</span>
+<span id="cb66-46"><a href="#cb66-46" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  mu_biologisk   = </span><span class="sc">{</span>MU<span class="sc">:.2e}</span><span class="ss">"</span>)</span>
+<span id="cb66-47"><a href="#cb66-47" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  mu_skaleret    = </span><span class="sc">{</span>mu_scaled<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb66-48"><a href="#cb66-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-49"><a href="#cb66-49" aria-hidden="true" tabindex="-1"></a>    jp_graph <span class="op">=</span> g_jp.joint_prob_graph(</span>
+<span id="cb66-50"><a href="#cb66-50" aria-hidden="true" tabindex="-1"></a>        indexer_jp,</span>
+<span id="cb66-51"><a href="#cb66-51" aria-hidden="true" tabindex="-1"></a>        reward_limit<span class="op">=</span>reward_lim,</span>
+<span id="cb66-52"><a href="#cb66-52" aria-hidden="true" tabindex="-1"></a>        mutation_rate<span class="op">=</span>mu_scaled,</span>
+<span id="cb66-53"><a href="#cb66-53" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb66-54"><a href="#cb66-54" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  joint_prob_graph: OK  (reward_limit=</span><span class="sc">{</span>reward_lim<span class="sc">}</span><span class="ss">)"</span>)</span>
+<span id="cb66-55"><a href="#cb66-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-56"><a href="#cb66-56" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Tjek deficit</span></span>
+<span id="cb66-57"><a href="#cb66-57" aria-hidden="true" tabindex="-1"></a>    jp_graph.update_weights([theta_jp, mu_scaled])</span>
+<span id="cb66-58"><a href="#cb66-58" aria-hidden="true" tabindex="-1"></a>    table <span class="op">=</span> jp_graph.joint_prob_table()</span>
+<span id="cb66-59"><a href="#cb66-59" aria-hidden="true" tabindex="-1"></a>    deficit <span class="op">=</span> <span class="bu">float</span>(<span class="dv">1</span> <span class="op">-</span> table[<span class="st">'prob'</span>].<span class="bu">sum</span>())</span>
+<span id="cb66-60"><a href="#cb66-60" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  Deficit = </span><span class="sc">{</span>deficit<span class="sc">:.4f}</span><span class="ss">  (bør være &lt; 0.05)"</span>)</span>
+<span id="cb66-61"><a href="#cb66-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-62"><a href="#cb66-62" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Sample joint-observationer</span></span>
+<span id="cb66-63"><a href="#cb66-63" aria-hidden="true" tabindex="-1"></a>    probs <span class="op">=</span> (table[<span class="st">'prob'</span>] <span class="op">/</span> table[<span class="st">'prob'</span>].<span class="bu">sum</span>()).to_numpy()</span>
+<span id="cb66-64"><a href="#cb66-64" aria-hidden="true" tabindex="-1"></a>    idx   <span class="op">=</span> np.random.choice(table.index.values, <span class="dv">200</span>, p<span class="op">=</span>probs)</span>
+<span id="cb66-65"><a href="#cb66-65" aria-hidden="true" tabindex="-1"></a>    obs_jp <span class="op">=</span> table.loc[idx, table.columns[:<span class="op">-</span><span class="dv">1</span>]].to_numpy().tolist()</span>
+<span id="cb66-66"><a href="#cb66-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-67"><a href="#cb66-67" aria-hidden="true" tabindex="-1"></a>    prior_jp <span class="op">=</span> [LogGaussPrior(ci<span class="op">=</span>[theta_W_jp <span class="op">*</span> <span class="fl">0.1</span>, theta_W_jp <span class="op">*</span> <span class="dv">10</span>]), <span class="va">None</span>]</span>
+<span id="cb66-68"><a href="#cb66-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-69"><a href="#cb66-69" aria-hidden="true" tabindex="-1"></a>    sv_jp <span class="op">=</span> jp_graph.svgd(</span>
+<span id="cb66-70"><a href="#cb66-70" aria-hidden="true" tabindex="-1"></a>        obs_jp,</span>
+<span id="cb66-71"><a href="#cb66-71" aria-hidden="true" tabindex="-1"></a>        fixed<span class="op">=</span>[(<span class="dv">1</span>, mu_scaled)],</span>
+<span id="cb66-72"><a href="#cb66-72" aria-hidden="true" tabindex="-1"></a>        prior<span class="op">=</span>prior_jp,</span>
+<span id="cb66-73"><a href="#cb66-73" aria-hidden="true" tabindex="-1"></a>        optimizer<span class="op">=</span>Adamelia(<span class="fl">0.2</span>),</span>
+<span id="cb66-74"><a href="#cb66-74" aria-hidden="true" tabindex="-1"></a>        n_particles<span class="op">=</span><span class="dv">20</span>,</span>
+<span id="cb66-75"><a href="#cb66-75" aria-hidden="true" tabindex="-1"></a>        n_iterations<span class="op">=</span><span class="dv">150</span>,</span>
+<span id="cb66-76"><a href="#cb66-76" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb66-77"><a href="#cb66-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-78"><a href="#cb66-78" aria-hidden="true" tabindex="-1"></a>    res_jp <span class="op">=</span> sv_jp.get_results()</span>
+<span id="cb66-79"><a href="#cb66-79" aria-hidden="true" tabindex="-1"></a>    th_jp  <span class="op">=</span> <span class="bu">float</span>(res_jp[<span class="st">'theta_mean'</span>][<span class="dv">0</span>])</span>
+<span id="cb66-80"><a href="#cb66-80" aria-hidden="true" tabindex="-1"></a>    std_jp <span class="op">=</span> <span class="bu">float</span>(res_jp[<span class="st">'theta_std'</span>][<span class="dv">0</span>])</span>
+<span id="cb66-81"><a href="#cb66-81" aria-hidden="true" tabindex="-1"></a>    Ne_jp  <span class="op">=</span> th_jp <span class="op">/</span> (<span class="dv">4</span> <span class="op">*</span> MU)</span>
+<span id="cb66-82"><a href="#cb66-82" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  Joint theta = </span><span class="sc">{</span>th_jp<span class="sc">:.6f}</span><span class="ss"> +/- </span><span class="sc">{</span>std_jp<span class="sc">:.6f}</span><span class="ss">  →  Ne = </span><span class="sc">{</span>Ne_jp<span class="sc">:,.0f}</span><span class="ss">"</span>)</span>
+<span id="cb66-83"><a href="#cb66-83" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  TMRCA theta = </span><span class="sc">{</span>theta_jp<span class="sc">:.6f}</span><span class="ss">  →  Ne = </span><span class="sc">{</span>theta_jp<span class="op">/</span>(<span class="dv">4</span><span class="op">*</span>MU)<span class="sc">:,.0f}</span><span class="ss">"</span>)</span>
+<span id="cb66-84"><a href="#cb66-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-85"><a href="#cb66-85" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">Exception</span> <span class="im">as</span> e:</span>
+<span id="cb66-86"><a href="#cb66-86" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"joint_prob_graph fejlede: </span><span class="sc">{</span>e<span class="sc">}</span><span class="ss"> — udelades fra analyse"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>  Joint theta = 0.003879 +/- 0.001451  →  Ne = 107,763
   TMRCA theta = 0.003537  →  Ne = 98,257</code></pre>
 </div>
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-joint-bavian-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;10.22
-</figcaption>
-</figure>
-</div>
-<div id="1f14d064" class="cell" data-execution_count="56">
+<div class="cell" data-fig-width="6" data-fig-height="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb68"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a>sv_jp.plot_ci()</span>
 <span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a>plt.gcf().suptitle(</span>
 <span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f'Joint posterior  Ne=</span><span class="sc">{</span>Ne_jp<span class="sc">:,.0f}</span><span class="ss">  (TMRCA Ne=</span><span class="sc">{</span>theta_jp<span class="op">/</span>(<span class="dv">4</span><span class="op">*</span>MU)<span class="sc">:,.0f}</span><span class="ss">)'</span>,</span>
@@ -2475,18 +2469,39 @@ Figure&nbsp;10.22
 <span id="cb68-5"><a href="#cb68-5" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
 <span id="cb68-6"><a href="#cb68-6" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
 <span id="cb68-7"><a href="#cb68-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"joint_prob_graph: OK"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>joint_prob_graph: OK</code></pre>
+</div>
+<div id="fig-joint-bavian" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-fig-width="6" data-fig-height="3">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-joint-bavian-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><a href="07b_bavian_modeller_files/figure-html/cell-40-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-25"><img src="07b_bavian_modeller_files/figure-html/cell-40-output-1.png" width="697" height="290" class="figure-img"></a></p>
+<div id="fig-joint-bavian-1" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-subfloat-fig figure">
+<div aria-describedby="fig-joint-bavian-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="07b_bavian_modeller_files/figure-html/fig-joint-bavian-output-1.png" class="lightbox" data-gallery="fig-joint-bavian" title="Figure&nbsp;10.22&nbsp;(a): Joint probability-inferens for P. cynocephalus med skaleret mutationsrate. Posterior CI for \hat{\theta} fra joint SFS sammenlignet med TMRCA-estimat fra NB07A."><img src="07b_bavian_modeller_files/figure-html/fig-joint-bavian-output-1.png" data-ref-parent="fig-joint-bavian" width="697" height="290" class="figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-joint-bavian-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(a) Joint probability-inferens for <em>P. cynocephalus</em> med skaleret mutationsrate. Posterior CI for <span class="math inline">\(\hat{\theta}\)</span> fra joint SFS sammenlignet med TMRCA-estimat fra NB07A.
+</figcaption>
 </figure>
 </div>
 </div>
-<div class="cell-output cell-output-display">
+<div id="fig-joint-bavian-2" class="cell-output cell-output-display quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-subfloat-fig figure">
+<div aria-describedby="fig-joint-bavian-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <pre><code>&lt;Figure size 800x400 with 0 Axes&gt;</code></pre>
 </div>
-<div class="cell-output cell-output-stdout">
-<pre><code>joint_prob_graph: OK</code></pre>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-joint-bavian-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(b)
+</figcaption>
+</figure>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-joint-bavian-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;10.22
+</figcaption>
+</figure>
 </div>
 </div>
 <div id="68eb5151" class="cell" data-execution_count="57">
