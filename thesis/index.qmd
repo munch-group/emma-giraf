@@ -40,10 +40,10 @@ keywords:
   - Papio
 
 abstract: >
-  Dette speciale udvikler en ramme for Bayesiansk demografisk inferens baseret på eksakte fase-type beregninger kombineret med Stein Variational Gradient Descent (SVGD). Coalescentmodeller for enkelt-populationer, to-ø modellen og Isolation with Migration (IM)-modellen implementeres via phasic-biblioteket og valideres analytisk og med msprime-simulationer. Metoderne anvendes på helgenomsekvenseringsdata fra seks bavian-populationer (*Papio* spp.) til estimering af effektive populationsstørrelser, migrationsrater og split-tidspunkter.
 
 plain-language-summary: |
-  Her kan du skrive et abstract som de fleste danskere burde få noget ud af...
+  Dette speciale udvikler en ramme for Bayesiansk demografisk inferens baseret på eksakte fase-type beregninger kombineret med Stein Variational Gradient Descent (SVGD). Coalescentmodeller for enkelt-populationer, to-ø modellen og Isolation with Migration (IM)-modellen implementeres via phasic-biblioteket og valideres analytisk og med msprime-simulationer. Metoderne anvendes på helgenomsekvenseringsdata fra seks bavian-populationer (*Papio* spp.) til estimering af effektive populationsstørrelser, migrationsrater og split-tidspunkter.
+
 
 key-points:
   - Fase-type fordelinger giver eksakt analytisk adgang til coalescent statistiske egenskaber
@@ -584,22 +584,21 @@ Den mest komplekse model i NB05 er ARG-modellen, der simultant estimerer coalesc
 {{< embed ../notebooks/05_joint_probability_inferens.ipynb#fig-arg-conv >}}
 {{< embed ../notebooks/05_joint_probability_inferens.ipynb#fig-arg-svgd-ci >}}
 
+## Enkeltpopulationsanalyse af *Papio*-arterne
 
-## Bavian-data: enkeltpopulationsanalyse
+Kingmans coalescent er tilpasset data fra seks *Papio*-populationer ved hjælp af SVGD-inferens på kromosom 20. For hver population er coalescentraten $\hat{\theta}$ estimeret fra allele counts og omregnet til effektiv populationsstørrelse via $N_e = \hat{\theta} / (4\mu)$ med $\mu = 0{,}9 \times 10^{-8}$ og $g = 11$ år. SVGD-konfigurationen følger den systematiske kalibrering fra NB02: $n = 8$ haploide prøver, $N_{\text{obs}} = 50.000$ observationer, 20 partikler, 300 iterationer, `DataPrior` og læringsraten `ExpStepSize(0.1, 0.001, 100.0)`.
 
-De første fem notebooks har etableret at implementeringen er korrekt og at inferensmetoden virker. Nu anvendes metoderne på rigtige genomdata fra seks bavian-populationer, og det første spørgsmål er enkelt: hvad er den effektive populationsstørrelse for hver art?
-
-Inden SVGD køres, giver nukleotiddiversitet og Tajimas $D$ et første fingerpeg om hvad der er i dataene. @fig-ne-tajima viser begge størrelser for alle seks arter. *P. cynocephalus* og *P. anubis* har negativ $D$ ($-0{,}589$ og $-0{,}637$), som indikerer et overskud af sjældne varianter — et mønster der typisk ses efter populationsvækst eller admixture. *P. papio* har omvendt det højeste positive $D$ ($1{,}019$), som indikerer et underskud af sjældne varianter og er foreneligt med en historisk flaskehals.
-{{< embed ../notebooks/06a_bavian_data.ipynb#fig-ne-tajima >}}
-Det observerede SFS subsampled til $n_{\text{min}} = 8$ i @fig-sfs-bavian konkretiserer dette billede. For *P. cynocephalus* og *P. anubis* stikker singleton-søjlerne klart op over den grå neutrale forventning. For *P. papio* er billedet omvendt: søjlerne ved lave frekvenser er kortere end forventet, mens midterste frekvenser er relativt overrepræsenterede. De øvrige arter ligger tættere på den neutrale forventning men ikke perfekt.
-{{< embed ../notebooks/06a_bavian_data.ipynb#fig-sfs-bavian >}}
-@fig-ne-svgd viser MoM-fittet for hver art direkte sammenlignet med det observerede SFS. Den orange kurve er det bedste neutrale fit, og det er netop de steder den blå søjle afviger fra den orange, der driver forskellen mellem arterne. For *P. cynocephalus* og *P. anubis* er afvigelsen systematisk ved singletons. Det er disse afvigelser der siden hen giver et lidt højere SVGD-estimat af $N_e$ sammenlignet med $\pi$-metoden for de samme arter.
-{{< embed ../notebooks/06a_bavian_data.ipynb#fig-ne-svgd >}}
-SVGD-estimaterne er samlet i @tbl-ne-single-pop. Spredningen er markant: *P. cynocephalus* har den højeste $N_e = 98.257$ (95%-CI: $96.656$–$99.858$), og *P. papio* den laveste $N_e = 11.366$ (95%-CI: $10.252$–$12.480$), altså en faktor $\sim 9$ forskel. Estimaterne er præcise i den forstand at posteriorintervallerne er smalle, men smalle intervaller afspejler kun usikkerheden givet modellen og den estimerede $\hat{\theta}_W$ — ikke den samlede biologiske usikkerhed.
+De estimerede $N_e$-værdier fremgår af @tbl-ne-single-pop. *P. cynocephalus* har den største estimerede effektive populationsstørrelse med $N_e \approx 98.000$, efterfulgt af *P. kindae* ($N_e \approx 75.000$) og *P. anubis* ($N_e \approx 74.000$). *P. hamadryas* og *P. ursinus* har mellem størrelser, mens *P. papio* skiller sig markant ud med den laveste effektive populationsstørrelse på $N_e \approx 11.000$. For *P. papio* var SVGD numerisk ustabilt ved den meget lave $\theta$-værdi, og $N_e$ er derfor estimeret direkte fra Wattersons estimator.                        Wattersons estimat $\hat{\theta}_W$ og SVGD-estimatet $\hat{\theta}_{\text{SVGD}}$ er i tæt overensstemmelse for alle seks populationer, med relative afvigelser på under 5%. Dette bekræfter at SVGD-inferensen er konsistent med den momentbaserede estimering.
 {{< embed ../notebooks/06a_bavian_data.ipynb#tbl-ne-single-pop >}}
-Msprime-valideringen i @fig-msprime-val-nb07a bekræfter til sidst at skalering og implementering er korrekt for bavian-parametrene. Histogrammet af $2000$ simulerede TMRCA-tider og phasics analytiske PDF følger hinanden tæt med $0{,}42\%$ relativ afvigelse.
+Som uafhængig reference er $N_e$ også beregnet fra nukleotiddiversitet $\pi$. @fig-ne-svgd viser at de to estimater generelt er i god overensstemmelse, men SVGD-estimaterne er systematisk lidt højere for de store populationer. Dette afspejler en forskel i den tidsskala de to metoder integrerer over: $\pi$-baseret $N_e$ er mere følsom over for nutidige ændringer, mens coalescent-baseret SVGD integrerer over den fulde genealogiske historik.
+{{< embed ../notebooks/06a_bavian_data.ipynb#fig-ne-svgd >}}
+Tajimas $D$ varierer på tværs af arterne (@fig-ne-tajima). *P. cynocephalus* og *P. anubis* har negativ $D$, i overnesstemmelse med et overskud af sjældne mutationer og mulig populationsvækst eller positiv selektion. *P. papio* har det højeste positive $D$, i overensstemmelse med en flaskehals eller balancerende selektion.
+{{< embed ../notebooks/06a_bavian_data.ipynb#fig-ne-tajima >}}
+Modellen er valideret ved at sammenligne den analytiske TMRCA-fordeling fra phasic med $50.000$ msprime-simulerede TMRCA-tider ved det estimerede $N_e$ for *P. cynocephalus* (@fig-msprime-val-nb07a). PDF og CDF er i tæt overensstemmelse med en relativ afvigelse i middelværdien på $0,22%$, godt under grænsen på $5%$.
 {{< embed ../notebooks/06a_bavian_data.ipynb#fig-msprime-val-nb07a >}}
-
+Da alle $N_e$-estimater er direkte proportionale med $\mu$ og $g$, er der gennemført en sensitivitetsanalyse for *P. cynocephalus* over $\mu \in \{0{,}7; 0{,}9; 1{,}1\} \times 10^{-8}$ og $g \in \{9; 11; 13\}$ år. Den estimerede $\hat{\theta}$ er uændret kun konverteringen til $N_e$ og $T_{\text{coal}}$ påvirkes. Variationen i $\mu$ giver en proportional variation i $N_e$ på ca. $\pm 22\%$, men rangordenen på tværs af populationer er stabil i alle scenarier.
+{{< embed ../notebooks/06a_bavian_data.ipynb#tbl-sensitivity >}}
+{{< embed ../notebooks/06a_bavian_data.ipynb#fig-sensitivity >}}
 
 ## Bavian-data: to-populations analyse
 
