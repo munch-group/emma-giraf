@@ -306,7 +306,6 @@ window.Quarto = {
   <li><a href="#prior-sammenligning-for-joint-probability-inferens" id="toc-prior-sammenligning-for-joint-probability-inferens" class="nav-link" data-scroll-target="#prior-sammenligning-for-joint-probability-inferens">Prior-sammenligning for joint probability-inferens</a></li>
   <li><a href="#svgd-inferens-på-joint-probability-data" id="toc-svgd-inferens-på-joint-probability-data" class="nav-link" data-scroll-target="#svgd-inferens-på-joint-probability-data">SVGD-inferens på joint probability-data</a></li>
   <li><a href="#im-modellen-svgd-inferens-via-epoch_starts" id="toc-im-modellen-svgd-inferens-via-epoch_starts" class="nav-link" data-scroll-target="#im-modellen-svgd-inferens-via-epoch_starts">IM-modellen: SVGD-inferens via epoch_starts</a></li>
-  <li><a href="#validering-im-model-med-msprime" id="toc-validering-im-model-med-msprime" class="nav-link" data-scroll-target="#validering-im-model-med-msprime">Validering: IM-model med msprime</a></li>
   <li><a href="#arg-modellen-to-locus-joint-probability" id="toc-arg-modellen-to-locus-joint-probability" class="nav-link" data-scroll-target="#arg-modellen-to-locus-joint-probability">ARG-modellen: to-locus joint probability</a></li>
   </ul>
 <div class="toc-actions"><ul class="collapse"><li><a href="https://github.dev/munch-group/emma-giraf/blob/main/notebooks/05_joint_probability_inferens.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/emma-giraf/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/emma-giraf/blob/main/notebooks/05_joint_probability_inferens.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
@@ -333,7 +332,7 @@ window.Quarto = {
 </header>
 
 
-<div id="735f0efd" class="cell" data-execution_count="2">
+<div id="735f0efd" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Importer de nødvendige pakker </span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">"CUDA_VISIBLE_DEVICES"</span>] <span class="op">=</span> <span class="st">"0"</span>   </span>
@@ -397,10 +396,10 @@ table {
 </style>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  Removed 1 file(s), preserved directory structure</code></pre>
+<pre><code>  Removed 3 file(s), preserved directory structure</code></pre>
 </div>
 </div>
-<div id="d20ba4d5" class="cell" data-execution_count="3">
+<div id="d20ba4d5" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Kalibrerede SVGD-parametre fra NB02 </span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>BEST_LR_KWARGS <span class="op">=</span> {<span class="st">'learning_rate'</span>: ExpStepSize(<span class="fl">0.1</span>, <span class="fl">0.001</span>, <span class="fl">100.0</span>)}</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>BEST_ITER_LR   <span class="op">=</span> <span class="dv">300</span></span>
@@ -413,7 +412,7 @@ table {
 <span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>JOINT_LR_KWARGS <span class="op">=</span> {<span class="st">'learning_rate'</span>: ExpStepSize(<span class="fl">0.05</span>, <span class="fl">0.005</span>, <span class="fl">30.0</span>)}</span>
 <span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>BEST_PRIOR_JP   <span class="op">=</span> <span class="st">'LogGaussPrior'</span>  <span class="co"># fra prior-sammenligning</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="9ed63c8c" class="cell" data-execution_count="4">
+<div id="9ed63c8c" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> vscodenb</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>vscodenb.is_vscode_dark_theme <span class="op">=</span> <span class="kw">lambda</span>: (<span class="va">False</span>, <span class="st">'white'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
@@ -421,12 +420,12 @@ table {
 <h2 class="anchored" data-anchor-id="coalescent-og-joint-probability-grafen">Coalescent og joint probability-grafen</h2>
 <p>Joint probability-grafen udvider koalescent-grafen til at tracke joint fordelinger af diskrete features (singletons, doubletons osv.). Vejlederens kode bruger <code>StateIndexer</code> med <code>lineage</code> og <code>Property('descendants')</code> til at bygge grafen korrekt.</p>
 <p><code>reward_limit</code> sætter et øvre loft på antal events per feature. <code>tot_reward_limit</code> sætter loft på total antal events på tværs af alle features. Begge parametre påvirker deficit — sandsynlighed for kombinationer udover loftet.</p>
-<div id="8645e8ac" class="cell" data-execution_count="5">
+<div id="8645e8ac" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> partial</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itertools <span class="im">import</span> combinations_with_replacement</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>all_pairs <span class="op">=</span> partial(combinations_with_replacement, r<span class="op">=</span><span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="15f82dc7" class="cell" data-execution_count="6">
+<div id="15f82dc7" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Standard coalescent med StateIndexer</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(</span>
@@ -452,7 +451,7 @@ table {
 <span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent_1param, indexer<span class="op">=</span>indexer)</span>
 <span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>graph.plot(dark<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="6">
+<div class="cell-output cell-output-display" data-execution_count="5">
 <div>
 <figure class="figure">
 <p><a href="05_joint_probability_inferens_files/figure-html/cell-6-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="05_joint_probability_inferens_files/figure-html/cell-6-output-1.svg" class="img-fluid figure-img"></a></p>
@@ -464,7 +463,7 @@ table {
 <section id="joint-probability-tabel-og-deficit" class="level2">
 <h2 class="anchored" data-anchor-id="joint-probability-tabel-og-deficit">Joint probability-tabel og deficit</h2>
 <p><code>joint_prob_graph()</code> bygger en augmenteret graf der tracker alle kombinationer af diskrete hændelser. Hver absorberingstilstand repræsenterer en unik kombination af mutationstyper. <code>reward_limit</code> sætter loftet for antal mutationer per type og styrer graf-størrelse og deficit.</p>
-<div id="cell-fig-joint-prob-graf" class="cell" data-execution_count="7">
+<div id="cell-fig-joint-prob-graf" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Parametre</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>reward_limit    <span class="op">=</span> <span class="dv">5</span></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>reward_limit_im <span class="op">=</span> <span class="dv">5</span></span>
@@ -614,7 +613,7 @@ Figure&nbsp;7.1: Joint probability-graf for koalescent med <span class="math inl
 </figure>
 </div>
 </div>
-<div id="0f2bff7c" class="cell" data-execution_count="8">
+<div id="0f2bff7c" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'joint_prob_graph: </span><span class="sc">{</span>joint_prob_graph<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss"> tilstande, deficit=</span><span class="sc">{</span>deficit<span class="sc">:.2e}</span><span class="ss">'</span>)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'jp_im: </span><span class="sc">{</span>jp_im<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss"> tilstande (discrete=False)'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -625,7 +624,7 @@ jp_im: 514 tilstande (discrete=False)</code></pre>
 <section id="deficit-som-funktion-af-reward_limit" class="level3">
 <h3 class="anchored" data-anchor-id="deficit-som-funktion-af-reward_limit">Deficit som funktion af reward_limit</h3>
 <p>Jeg tester systematisk hvilken <code>reward_limit</code> der giver tilstrækkelig lav deficit.</p>
-<div id="cell-fig-deficit" class="cell" data-fig-width="5" data-fig-height="3" data-execution_count="9">
+<div id="cell-fig-deficit" class="cell" data-fig-width="5" data-fig-height="3" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>reward_limits <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>]</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>mutation_rates_test <span class="op">=</span> [<span class="fl">1e-5</span>, <span class="fl">1e-4</span>, <span class="fl">1e-3</span>]</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">5</span>, <span class="dv">3</span>))</span>
@@ -658,7 +657,7 @@ Figure&nbsp;7.2: Deficit som funktion af <code>reward_limit</code> for tre mutat
 <section id="marginal-sfs-fra-joint-probability-tabellen" class="level2">
 <h2 class="anchored" data-anchor-id="marginal-sfs-fra-joint-probability-tabellen">Marginal SFS fra joint probability-tabellen</h2>
 <p>De marginale fordelinger fra joint probability-tabellen giver det forventede SFS.</p>
-<div id="cell-fig-marginal-sfs" class="cell" data-fig-width="5" data-fig-height="3" data-execution_count="10">
+<div id="cell-fig-marginal-sfs" class="cell" data-fig-width="5" data-fig-height="3" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Marginal SFS fra joint probability-tabellen</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>tons <span class="op">=</span> <span class="bu">list</span>(<span class="bu">range</span>(<span class="dv">1</span>, nr_samples))</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>marginals_joint <span class="op">=</span> [</span>
@@ -718,7 +717,7 @@ Direkte (norm): [0.5455, 0.2727, 0.1818]</code></pre>
 <h2 class="anchored" data-anchor-id="prior-sammenligning-for-joint-probability-inferens">Prior-sammenligning for joint probability-inferens</h2>
 <p><code>DataPrior</code> kan ikke bruges direkte til joint probability-grafer fordi grafen ikke har meningsfulde momenter. Jeg sammenligner <code>LogGaussPrior</code> og <code>GaussPrior</code> for at finde den bedste prior til joint-inferens.</p>
 <p><strong>Bemærk:</strong> <code>preconditioner=None</code> er påkrævet for joint probability-grafer.</p>
-<div id="1c224c44" class="cell" data-execution_count="12">
+<div id="1c224c44" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sample_joint_observations(jp_graph, theta, n_obs):</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    jp_graph.update_weights(theta)</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    jpt <span class="op">=</span> jp_graph.joint_prob_table()</span>
@@ -887,169 +886,130 @@ Figure&nbsp;7.6: Posterior mean (venstre) og posterior std (højre) for <span cl
 <section id="im-modellen-svgd-inferens-via-epoch_starts" class="level2">
 <h2 class="anchored" data-anchor-id="im-modellen-svgd-inferens-via-epoch_starts">IM-modellen: SVGD-inferens via epoch_starts</h2>
 <p>phasic implementerer tidsinhomogen inferens via <code>joint_prob_graph(discrete=False)</code> kombineret med <code>epoch_starts</code>. Med <code>epoch_starts=[0, t_s]</code> estimerer SVGD koalescentraten i to epoker. Mutationsraten fastlåses via <code>fixed</code>. Jeg kører SVGD på simulerede data og validerer med msprime.</p>
-<div id="2880ef37" class="cell" data-execution_count="35">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simuler observationer fra jp_im</span></span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>N_OBS_IM <span class="op">=</span> <span class="dv">10000</span></span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>obs_im <span class="op">=</span> sample_joint_observations(jp_im, [true_coal_im, mut_im], N_OBS_IM)</span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Simulerede </span><span class="sc">{</span>N_OBS_IM<span class="sc">}</span><span class="ss"> observationer'</span>)</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Sand coal=</span><span class="sc">{</span>true_coal_im<span class="sc">:.2e}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="2ca782f0" class="cell" data-execution_count="11">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv, ExpStepSize, LogGaussPrior, StateIndexer, Property</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> msprime</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> partial</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itertools <span class="im">import</span> combinations_with_replacement</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>all_pairs <span class="op">=</span> partial(combinations_with_replacement, r<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>reward_limit <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>mut_rate   <span class="op">=</span> <span class="fl">1.0e-8</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>rec_rate   <span class="op">=</span> <span class="fl">1e-8</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>seq_length <span class="op">=</span> <span class="dv">10_000_000</span></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>epoch_starts    <span class="op">=</span> [<span class="dv">0</span>, <span class="fl">0.2</span>]</span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>epoch_pop_sizes <span class="op">=</span> [<span class="dv">10_000</span>, <span class="dv">10_000</span>]</span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a><span class="co"># msprime: simuler data med to epoker </span></span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>demography <span class="op">=</span> msprime.Demography()</span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>demography.add_population(name<span class="op">=</span><span class="st">"pop"</span>, initial_size<span class="op">=</span>epoch_pop_sizes[<span class="dv">0</span>])</span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> s, t <span class="kw">in</span> <span class="bu">zip</span>(epoch_starts[<span class="dv">1</span>:], epoch_pop_sizes[<span class="dv">1</span>:]):</span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>    demography.add_population_parameters_change(time<span class="op">=</span>t, initial_size<span class="op">=</span>s, population<span class="op">=</span><span class="st">"pop"</span>)</span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a>ts <span class="op">=</span> msprime.sim_ancestry(samples<span class="op">=</span>{<span class="st">"pop"</span>: nr_samples}, ploidy<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a>                           demography<span class="op">=</span>demography, recombination_rate<span class="op">=</span>rec_rate,</span>
+<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a>                           sequence_length<span class="op">=</span>seq_length, random_seed<span class="op">=</span><span class="dv">42</span>)</span>
+<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a>ts <span class="op">=</span> msprime.sim_mutations(ts, rate<span class="op">=</span>mut_rate, random_seed<span class="op">=</span><span class="dv">42</span>)</span>
+<span id="cb24-26"><a href="#cb24-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-27"><a href="#cb24-27" aria-hidden="true" tabindex="-1"></a>observations <span class="op">=</span> []</span>
+<span id="cb24-28"><a href="#cb24-28" aria-hidden="true" tabindex="-1"></a>tree_spans <span class="op">=</span> []</span>
+<span id="cb24-29"><a href="#cb24-29" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> tree <span class="kw">in</span> ts.trees():</span>
+<span id="cb24-30"><a href="#cb24-30" aria-hidden="true" tabindex="-1"></a>    obs <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> nr_samples</span>
+<span id="cb24-31"><a href="#cb24-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> site <span class="kw">in</span> tree.sites():</span>
+<span id="cb24-32"><a href="#cb24-32" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> mut <span class="kw">in</span> site.mutations:</span>
+<span id="cb24-33"><a href="#cb24-33" aria-hidden="true" tabindex="-1"></a>            ton <span class="op">=</span> <span class="bu">len</span>(<span class="bu">list</span>(tree.leaves(mut.node)))</span>
+<span id="cb24-34"><a href="#cb24-34" aria-hidden="true" tabindex="-1"></a>            obs[ton<span class="op">-</span><span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb24-35"><a href="#cb24-35" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> obs[<span class="op">-</span><span class="dv">1</span>] <span class="kw">or</span> <span class="bu">max</span>(obs) <span class="op">&gt;</span> reward_limit:</span>
+<span id="cb24-36"><a href="#cb24-36" aria-hidden="true" tabindex="-1"></a>        <span class="cf">continue</span></span>
+<span id="cb24-37"><a href="#cb24-37" aria-hidden="true" tabindex="-1"></a>    observations.append(obs)</span>
+<span id="cb24-38"><a href="#cb24-38" aria-hidden="true" tabindex="-1"></a>    start, end <span class="op">=</span> tree.interval</span>
+<span id="cb24-39"><a href="#cb24-39" aria-hidden="true" tabindex="-1"></a>    tree_spans.append(end <span class="op">-</span> start)</span>
+<span id="cb24-40"><a href="#cb24-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-41"><a href="#cb24-41" aria-hidden="true" tabindex="-1"></a>tree_spans <span class="op">=</span> np.array(tree_spans)</span>
+<span id="cb24-42"><a href="#cb24-42" aria-hidden="true" tabindex="-1"></a>base <span class="op">=</span> <span class="dv">8</span></span>
+<span id="cb24-43"><a href="#cb24-43" aria-hidden="true" tabindex="-1"></a>tree_spans <span class="op">=</span> base<span class="op">**</span>(np.<span class="bu">round</span>(np.log(tree_spans)<span class="op">/</span>np.log(base)))</span>
+<span id="cb24-44"><a href="#cb24-44" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'unique tree spans (rounded):'</span>, np.unique(tree_spans).size)</span>
+<span id="cb24-45"><a href="#cb24-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-46"><a href="#cb24-46" aria-hidden="true" tabindex="-1"></a><span class="co"># Coalescent-graf </span></span>
+<span id="cb24-47"><a href="#cb24-47" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(</span>
+<span id="cb24-48"><a href="#cb24-48" aria-hidden="true" tabindex="-1"></a>    lineage<span class="op">=</span>[Property(<span class="st">'descendants'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span>nr_samples)]</span>
+<span id="cb24-49"><a href="#cb24-49" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb24-50"><a href="#cb24-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-51"><a href="#cb24-51" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples] <span class="op">+</span> [<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb24-52"><a href="#cb24-52" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent(state, indexer<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb24-53"><a href="#cb24-53" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb24-54"><a href="#cb24-54" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, j <span class="kw">in</span> all_pairs(indexer.lineage):</span>
+<span id="cb24-55"><a href="#cb24-55" aria-hidden="true" tabindex="-1"></a>        p1 <span class="op">=</span> indexer.lineage.index_to_props(i)</span>
+<span id="cb24-56"><a href="#cb24-56" aria-hidden="true" tabindex="-1"></a>        p2 <span class="op">=</span> indexer.lineage.index_to_props(j)</span>
+<span id="cb24-57"><a href="#cb24-57" aria-hidden="true" tabindex="-1"></a>        same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb24-58"><a href="#cb24-58" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb24-59"><a href="#cb24-59" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb24-60"><a href="#cb24-60" aria-hidden="true" tabindex="-1"></a>        new <span class="op">=</span> state.copy()<span class="op">;</span> new[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb24-61"><a href="#cb24-61" aria-hidden="true" tabindex="-1"></a>        k <span class="op">=</span> indexer.lineage.props_to_index(</span>
+<span id="cb24-62"><a href="#cb24-62" aria-hidden="true" tabindex="-1"></a>            descendants<span class="op">=</span>p1.descendants <span class="op">+</span> p2.descendants)</span>
+<span id="cb24-63"><a href="#cb24-63" aria-hidden="true" tabindex="-1"></a>        new[k] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb24-64"><a href="#cb24-64" aria-hidden="true" tabindex="-1"></a>        transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)]])</span>
+<span id="cb24-65"><a href="#cb24-65" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb24-66"><a href="#cb24-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-67"><a href="#cb24-67" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent, indexer<span class="op">=</span>indexer)</span>
+<span id="cb24-68"><a href="#cb24-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-69"><a href="#cb24-69" aria-hidden="true" tabindex="-1"></a><span class="co"># Joint probability-graf (discrete=False kræves for epoch_starts) </span></span>
+<span id="cb24-70"><a href="#cb24-70" aria-hidden="true" tabindex="-1"></a>joint_prob_graph_cont <span class="op">=</span> graph.joint_prob_graph(</span>
+<span id="cb24-71"><a href="#cb24-71" aria-hidden="true" tabindex="-1"></a>    indexer, reward_limit<span class="op">=</span>reward_limit, mutation_rate<span class="op">=</span>mut_rate, discrete<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb24-72"><a href="#cb24-72" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb24-73"><a href="#cb24-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-74"><a href="#cb24-74" aria-hidden="true" tabindex="-1"></a><span class="co"># SVGD med epoch_starts </span></span>
+<span id="cb24-75"><a href="#cb24-75" aria-hidden="true" tabindex="-1"></a>sv_im <span class="op">=</span> joint_prob_graph_cont.svgd(</span>
+<span id="cb24-76"><a href="#cb24-76" aria-hidden="true" tabindex="-1"></a>    observations,</span>
+<span id="cb24-77"><a href="#cb24-77" aria-hidden="true" tabindex="-1"></a>    preconditioner<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb24-78"><a href="#cb24-78" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">1</span>, mut_rate)],</span>
+<span id="cb24-79"><a href="#cb24-79" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>LogGaussPrior(ci<span class="op">=</span>[<span class="dv">1</span><span class="op">/</span><span class="dv">50_000</span>, <span class="dv">1</span><span class="op">/</span><span class="dv">2000</span>]),</span>
+<span id="cb24-80"><a href="#cb24-80" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span>ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.005</span>, tau<span class="op">=</span><span class="fl">30.0</span>),</span>
+<span id="cb24-81"><a href="#cb24-81" aria-hidden="true" tabindex="-1"></a>    epoch_starts<span class="op">=</span>epoch_starts,</span>
+<span id="cb24-82"><a href="#cb24-82" aria-hidden="true" tabindex="-1"></a>    exposure<span class="op">=</span>tree_spans,</span>
+<span id="cb24-83"><a href="#cb24-83" aria-hidden="true" tabindex="-1"></a>    exposure_param_index<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb24-84"><a href="#cb24-84" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb24-85"><a href="#cb24-85" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb24-86"><a href="#cb24-86" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">20</span>,</span>
+<span id="cb24-87"><a href="#cb24-87" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb24-88"><a href="#cb24-88" aria-hidden="true" tabindex="-1"></a>sv_im.summary(ci_method<span class="op">=</span><span class="st">'hpd'</span>, ci_level<span class="op">=</span><span class="fl">0.95</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Simulerede 10000 observationer
-Sand coal=1.00e-04</code></pre>
-</div>
-</div>
-<div id="27e82b0a" class="cell" data-execution_count="42">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># SVGD på simulerede data</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>sv_im <span class="op">=</span> jp_im.svgd(</span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    obs_im,</span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>prior_configs_jp[BEST_PRIOR_JP],</span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    preconditioner<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">40</span>,</span>
-<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">300</span>,</span>
-<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">1</span>, mut_im)],</span>
-<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span>ExpStepSize(first_step<span class="op">=</span><span class="fl">0.005</span>, last_step<span class="op">=</span><span class="fl">0.0005</span>, tau<span class="op">=</span><span class="fl">50.0</span>),</span>
-<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Sand coal=</span><span class="sc">{</span>true_coal_im<span class="sc">:.2e}</span><span class="ss">'</span>)</span>
-<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>sv_im.summary(ci_method<span class="op">=</span><span class="st">'hpd'</span>, ci_level<span class="op">=</span><span class="fl">0.95</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Sand coal=1.00e-04
-Parameter  Fixed          MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
-0          No             0.0001266  0.0001156  3.68e-05   3.951e-05    0.000169    
+<pre><code>Parameter  Fixed          MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
+0          No             0.0001208  0.0001338  8.334e-05  4.344e-05    0.0002938   
 1          Yes            1e-08      NA         NA         NA           NA          
-
-Particles: 40, Iterations: 300</code></pre>
-</div>
-</div>
-<div id="cell-fig-im-epoch-conv" class="cell" data-fig-width="6" data-fig-height="3" data-execution_count="43">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>sv_im.plot_convergence()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-<div id="fig-im-epoch-conv" class="quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-im-epoch-conv-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="05_joint_probability_inferens_files/figure-html/fig-im-epoch-conv-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-6" title="Figure&nbsp;7.7: Posterior mean (venstre) og posterior std (højre) for \theta_0 over 300 SVGD-iterationer for IM-modellen med to epoker via epoch_starts med sand \theta=10^{-4} og t_s=0{,}5."><img src="05_joint_probability_inferens_files/figure-html/fig-im-epoch-conv-output-1.svg" class="img-fluid figure-img"></a>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-im-epoch-conv-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;7.7: Posterior mean (venstre) og posterior std (højre) for <span class="math inline">\(\theta_0\)</span> over 300 SVGD-iterationer for IM-modellen med to epoker via <code>epoch_starts</code> med sand <span class="math inline">\(\theta=10^{-4}\)</span> og <span class="math inline">\(t_s=0{,}5\)</span>.
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-<div id="cell-fig-im-epoch-ci" class="cell" data-fig-width="6" data-fig-height="3" data-execution_count="44">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>sv_im.plot_ci(ci_method<span class="op">=</span><span class="st">'hpd'</span>, true_theta<span class="op">=</span>[theta])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-<div id="fig-im-epoch-ci" class="quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-im-epoch-ci-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="05_joint_probability_inferens_files/figure-html/fig-im-epoch-ci-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-7" title="Figure&nbsp;7.8: Posterior mean \pm 95% HPD for \theta_0 over 300 SVGD-iterationer for IM-modellen med to epoker via epoch_starts med sand \theta=10^{-4} og t_s=0{,}5. Stiplet linje markerer sand \theta."><img src="05_joint_probability_inferens_files/figure-html/fig-im-epoch-ci-output-1.svg" class="img-fluid figure-img"></a>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-im-epoch-ci-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;7.8: Posterior mean <span class="math inline">\(\pm\)</span> 95% HPD for <span class="math inline">\(\theta_0\)</span> over 300 SVGD-iterationer for IM-modellen med to epoker via <code>epoch_starts</code> med sand <span class="math inline">\(\theta=10^{-4}\)</span> og <span class="math inline">\(t_s=0{,}5\)</span>. Stiplet linje markerer sand <span class="math inline">\(\theta\)</span>.
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</section>
-<section id="validering-im-model-med-msprime" class="level2">
-<h2 class="anchored" data-anchor-id="validering-im-model-med-msprime">Validering: IM-model med msprime</h2>
-<p>Simuler ARG-data med msprime, ekstraher SFS-observationer per træ, afrundes tree spans i log-rum, kør SVGD med <code>epoch_starts</code> og <code>exposure=tree_spans</code>. Dette er den korrekte implementering af tidsinhomogen joint probability-inferens.</p>
-<div id="07361636" class="cell" data-execution_count="10">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># msprime-simulering </span></span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> msprime</span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>epoch_starts_val    <span class="op">=</span> [<span class="dv">0</span>, <span class="fl">0.2</span>]</span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>epoch_pop_sizes_val <span class="op">=</span> [<span class="dv">10_000</span>, <span class="dv">10_000</span>]</span>
-<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>demography <span class="op">=</span> msprime.Demography()</span>
-<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>demography.add_population(name<span class="op">=</span><span class="st">'pop'</span>, initial_size<span class="op">=</span>epoch_pop_sizes_val[<span class="dv">0</span>])</span>
-<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> s, t <span class="kw">in</span> <span class="bu">zip</span>(epoch_starts_val[<span class="dv">1</span>:], epoch_pop_sizes_val[<span class="dv">1</span>:]):</span>
-<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>    demography.add_population_parameters_change(</span>
-<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>        time<span class="op">=</span>t, initial_size<span class="op">=</span>s, population<span class="op">=</span><span class="st">'pop'</span>)</span>
-<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a>ts_val <span class="op">=</span> msprime.sim_ancestry(</span>
-<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a>    samples<span class="op">=</span>{<span class="st">'pop'</span>: nr_samples}, ploidy<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a>    demography<span class="op">=</span>demography,</span>
-<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a>    recombination_rate<span class="op">=</span><span class="fl">1e-8</span>,</span>
-<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a>    sequence_length<span class="op">=</span><span class="dv">500_000</span>,</span>
-<span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a>    random_seed<span class="op">=</span><span class="dv">42</span></span>
-<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb30-20"><a href="#cb30-20" aria-hidden="true" tabindex="-1"></a>ts_val <span class="op">=</span> msprime.sim_mutations(ts_val, rate<span class="op">=</span>mut_im, random_seed<span class="op">=</span><span class="dv">42</span>)</span>
-<span id="cb30-21"><a href="#cb30-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-22"><a href="#cb30-22" aria-hidden="true" tabindex="-1"></a>obs_val, spans_val <span class="op">=</span> [], []</span>
-<span id="cb30-23"><a href="#cb30-23" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> tree <span class="kw">in</span> ts_val.trees():</span>
-<span id="cb30-24"><a href="#cb30-24" aria-hidden="true" tabindex="-1"></a>    obs <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> nr_samples</span>
-<span id="cb30-25"><a href="#cb30-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> site <span class="kw">in</span> tree.sites():</span>
-<span id="cb30-26"><a href="#cb30-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> mut <span class="kw">in</span> site.mutations:</span>
-<span id="cb30-27"><a href="#cb30-27" aria-hidden="true" tabindex="-1"></a>            ton <span class="op">=</span> <span class="bu">len</span>(<span class="bu">list</span>(tree.leaves(mut.node)))</span>
-<span id="cb30-28"><a href="#cb30-28" aria-hidden="true" tabindex="-1"></a>            obs[ton <span class="op">-</span> <span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb30-29"><a href="#cb30-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> obs[<span class="op">-</span><span class="dv">1</span>] <span class="kw">or</span> <span class="bu">max</span>(obs) <span class="op">&gt;</span> reward_limit_im:</span>
-<span id="cb30-30"><a href="#cb30-30" aria-hidden="true" tabindex="-1"></a>        <span class="cf">continue</span></span>
-<span id="cb30-31"><a href="#cb30-31" aria-hidden="true" tabindex="-1"></a>    obs_val.append(obs)</span>
-<span id="cb30-32"><a href="#cb30-32" aria-hidden="true" tabindex="-1"></a>    start, end <span class="op">=</span> tree.interval</span>
-<span id="cb30-33"><a href="#cb30-33" aria-hidden="true" tabindex="-1"></a>    spans_val.append(end <span class="op">-</span> start)</span>
-<span id="cb30-34"><a href="#cb30-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-35"><a href="#cb30-35" aria-hidden="true" tabindex="-1"></a>spans_val <span class="op">=</span> np.array(spans_val)</span>
-<span id="cb30-36"><a href="#cb30-36" aria-hidden="true" tabindex="-1"></a>base <span class="op">=</span> <span class="dv">2</span></span>
-<span id="cb30-37"><a href="#cb30-37" aria-hidden="true" tabindex="-1"></a>spans_val <span class="op">=</span> base<span class="op">**</span>(np.<span class="bu">round</span>(np.log(spans_val) <span class="op">/</span> np.log(base)))</span>
-<span id="cb30-38"><a href="#cb30-38" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Antal træer: </span><span class="sc">{</span><span class="bu">len</span>(obs_val)<span class="sc">}</span><span class="ss">, unikke spans: </span><span class="sc">{</span>np<span class="sc">.</span>unique(spans_val)<span class="sc">.</span>size<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Antal træer: 82, unikke spans: 10</code></pre>
-</div>
-</div>
-<div id="ddfdd1fa" class="cell" data-execution_count="11">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># SVGD med epoch_starts og exposure</span></span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>sv_val_im <span class="op">=</span> jp_im.svgd(</span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>    obs_val,</span>
-<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>    preconditioner<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">1</span>, mut_im)],</span>
-<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>LogGaussPrior(ci<span class="op">=</span>[<span class="dv">1</span><span class="op">/</span><span class="dv">50_000</span>, <span class="dv">1</span><span class="op">/</span><span class="dv">2_000</span>]),</span>
-<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span>ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.005</span>, tau<span class="op">=</span><span class="fl">30.0</span>),</span>
-<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>    epoch_starts<span class="op">=</span>epoch_starts_val,</span>
-<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>    exposure<span class="op">=</span>spans_val,</span>
-<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>    exposure_param_index<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">50</span>,</span>
-<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">20</span>,</span>
-<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'SVGD msprime-validering (test-kørsel):'</span>)</span>
-<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a>sv_val_im.summary(ci_method<span class="op">=</span><span class="st">'hpd'</span>, ci_level<span class="op">=</span><span class="fl">0.95</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>SVGD msprime-validering (test-kørsel):
-Parameter  Fixed          MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
-0          No             9.043e-05  8.442e-05  4.485e-05  2.523e-05    9.043e-05   
-1          Yes            1e-08      NA         NA         NA           NA          
-2          No             0.2602     0.1994     0.09163    0.02993      0.2602      
+2          No             0.5601     3.295      2.337      0.9815       8.09        
 3          Yes            1e-08      NA         NA         NA           NA          
 
 Particles: 20, Iterations: 50</code></pre>
 </div>
 </div>
-<div id="cell-fig-im-val-ci" class="cell" data-fig-width="5" data-fig-height="3">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>sv_val_im.plot_ci()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="cell-fig-im-epoch-conv" class="cell" data-execution_count="12">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>sv_im.plot_convergence()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
-<div id="fig-im-val-ci" class="quarto-float quarto-figure quarto-figure-center anchored">
+<div id="fig-im-epoch-conv" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-im-val-ci-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="05_joint_probability_inferens_files/figure-html/fig-im-val-ci-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-8" title="Figure&nbsp;7.9: Posterior mean \pm 95% HPD for \theta_0 (blå) og \theta_2 (grøn) over 50 SVGD-iterationer for IM-modellen på msprime-simulerede data med sand \theta=10^{-4} og t_s=0{,}5. Stiplet linje markerer sand \theta."><img src="05_joint_probability_inferens_files/figure-html/fig-im-val-ci-output-1.svg" class="img-fluid figure-img"></a>
+<div aria-describedby="fig-im-epoch-conv-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="05_joint_probability_inferens_files/figure-html/fig-im-epoch-conv-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-6" title="Figure&nbsp;7.7: Konvergensplot for IM-modellen med to epoker via epoch_starts (n=4, sand coal=10^{-4}, t_s=0{,}5)."><img src="05_joint_probability_inferens_files/figure-html/fig-im-epoch-conv-output-1.svg" class="img-fluid figure-img"></a>
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-im-val-ci-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;7.9: Posterior mean <span class="math inline">\(\pm\)</span> 95% HPD for <span class="math inline">\(\theta_0\)</span> (blå) og <span class="math inline">\(\theta_2\)</span> (grøn) over 50 SVGD-iterationer for IM-modellen på msprime-simulerede data med sand <span class="math inline">\(\theta=10^{-4}\)</span> og <span class="math inline">\(t_s=0{,}5\)</span>. Stiplet linje markerer sand <span class="math inline">\(\theta\)</span>.
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-im-epoch-conv-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7.7: Konvergensplot for IM-modellen med to epoker via epoch_starts (<span class="math inline">\(n=4\)</span>, sand coal=<span class="math inline">\(10^{-4}\)</span>, <span class="math inline">\(t_s=0{,}5\)</span>).
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<div id="cell-fig-im-val-conv" class="cell" data-fig-width="5" data-fig-height="3">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>sv_val_im.plot_convergence()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="cell-fig-im-epoch-ci" class="cell" data-execution_count="13">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>sv_im.plot_ci(ci_method<span class="op">=</span><span class="st">'hpd'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
-<div id="fig-im-val-conv" class="quarto-float quarto-figure quarto-figure-center anchored">
+<div id="fig-im-epoch-ci" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-im-val-conv-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="05_joint_probability_inferens_files/figure-html/fig-im-val-conv-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-9" title="Figure&nbsp;7.10: Posterior mean (venstre) og posterior std (højre) for \theta_0 (blå) og \theta_2 (orange) over 50 SVGD-iterationer for IM-modellen på msprime-simulerede data med sand \theta=10^{-4} og t_s=0{,}5."><img src="05_joint_probability_inferens_files/figure-html/fig-im-val-conv-output-1.svg" class="img-fluid figure-img"></a>
+<div aria-describedby="fig-im-epoch-ci-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="05_joint_probability_inferens_files/figure-html/fig-im-epoch-ci-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-7" title="Figure&nbsp;7.8: Posterior CI for IM-modellen med to epoker via epoch_starts (n=4, sand coal=10^{-4}, t_s=0{,}5)."><img src="05_joint_probability_inferens_files/figure-html/fig-im-epoch-ci-output-1.svg" class="img-fluid figure-img"></a>
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-im-val-conv-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;7.10: Posterior mean (venstre) og posterior std (højre) for <span class="math inline">\(\theta_0\)</span> (blå) og <span class="math inline">\(\theta_2\)</span> (orange) over 50 SVGD-iterationer for IM-modellen på msprime-simulerede data med sand <span class="math inline">\(\theta=10^{-4}\)</span> og <span class="math inline">\(t_s=0{,}5\)</span>.
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-im-epoch-ci-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7.8: Posterior CI for IM-modellen med to epoker via epoch_starts (<span class="math inline">\(n=4\)</span>, sand coal=<span class="math inline">\(10^{-4}\)</span>, <span class="math inline">\(t_s=0{,}5\)</span>).
 </figcaption>
 </figure>
 </div>
@@ -1062,113 +1022,113 @@ Figure&nbsp;7.10: Posterior mean (venstre) og posterior std (højre) for <span c
 <p>Joint probability-grafen for ARG-modellen giver en simultant fordeling over singletons ved locus 1 og locus 2 — og dermed et estimat af både koalescensrate <span class="math inline">\(\theta\)</span> og rekombinationsrate <span class="math inline">\(\rho\)</span>.</p>
 <p><strong>Bemærk:</strong> ARG-modellen er en direkte udvidelse der er relevant for bavian-kromosom 20 hvor rekombination forekommer.</p>
 <div id="bc193bd8" class="cell" data-execution_count="14">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># To-locus ARG-model med nr_samples=3 (vejlederens kode)</span></span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv, StateIndexer, Property</span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>nr_samples_arg <span class="op">=</span> <span class="dv">3</span></span>
-<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>indexer_arg <span class="op">=</span> StateIndexer(</span>
-<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>    descendants<span class="op">=</span>[</span>
-<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'loc1'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_samples_arg),</span>
-<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'loc2'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_samples_arg)</span>
-<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>    ]</span>
-<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>initial_arg <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer_arg.state_length</span>
-<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>initial_arg[indexer_arg.descendants.props_to_index(loc1<span class="op">=</span><span class="dv">1</span>, loc2<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> nr_samples_arg</span>
-<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>(initial_arg)</span>
-<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> two_locus_arg(state, indexer<span class="op">=</span><span class="va">None</span>):</span>
-<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb36-17"><a href="#cb36-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state.<span class="bu">sum</span>() <span class="op">&lt;=</span> <span class="dv">1</span>: <span class="cf">return</span> transitions</span>
-<span id="cb36-18"><a href="#cb36-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(indexer_arg.state_length):</span>
-<span id="cb36-19"><a href="#cb36-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[i] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
-<span id="cb36-20"><a href="#cb36-20" aria-hidden="true" tabindex="-1"></a>        props_i <span class="op">=</span> indexer_arg.descendants.index_to_props(i)</span>
-<span id="cb36-21"><a href="#cb36-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, indexer_arg.state_length):</span>
-<span id="cb36-22"><a href="#cb36-22" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> state[j] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
-<span id="cb36-23"><a href="#cb36-23" aria-hidden="true" tabindex="-1"></a>            props_j <span class="op">=</span> indexer_arg.descendants.index_to_props(j)</span>
-<span id="cb36-24"><a href="#cb36-24" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb36-25"><a href="#cb36-25" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
-<span id="cb36-26"><a href="#cb36-26" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
-<span id="cb36-27"><a href="#cb36-27" aria-hidden="true" tabindex="-1"></a>            child <span class="op">=</span> state.copy()</span>
-<span id="cb36-28"><a href="#cb36-28" aria-hidden="true" tabindex="-1"></a>            child[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> child[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb36-29"><a href="#cb36-29" aria-hidden="true" tabindex="-1"></a>            des_loc1 <span class="op">=</span> props_i.loc1 <span class="op">+</span> props_j.loc1</span>
-<span id="cb36-30"><a href="#cb36-30" aria-hidden="true" tabindex="-1"></a>            des_loc2 <span class="op">=</span> props_i.loc2 <span class="op">+</span> props_j.loc2</span>
-<span id="cb36-31"><a href="#cb36-31" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> des_loc1 <span class="op">&lt;=</span> nr_samples_arg <span class="kw">and</span> des_loc2 <span class="op">&lt;=</span> nr_samples_arg:</span>
-<span id="cb36-32"><a href="#cb36-32" aria-hidden="true" tabindex="-1"></a>                child[indexer_arg.descendants.props_to_index(loc1<span class="op">=</span>des_loc1, loc2<span class="op">=</span>des_loc2)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb36-33"><a href="#cb36-33" aria-hidden="true" tabindex="-1"></a>                transitions.append([child, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same), <span class="dv">0</span>]])</span>
-<span id="cb36-34"><a href="#cb36-34" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[i] <span class="op">&gt;</span> <span class="dv">0</span> <span class="kw">and</span> props_i.loc1 <span class="op">&gt;</span> <span class="dv">0</span> <span class="kw">and</span> props_i.loc2 <span class="op">&gt;</span> <span class="dv">0</span>:</span>
-<span id="cb36-35"><a href="#cb36-35" aria-hidden="true" tabindex="-1"></a>            child <span class="op">=</span> state.copy()</span>
-<span id="cb36-36"><a href="#cb36-36" aria-hidden="true" tabindex="-1"></a>            child[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb36-37"><a href="#cb36-37" aria-hidden="true" tabindex="-1"></a>            child[indexer_arg.descendants.props_to_index(loc1<span class="op">=</span><span class="dv">0</span>, loc2<span class="op">=</span>props_i.loc2)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb36-38"><a href="#cb36-38" aria-hidden="true" tabindex="-1"></a>            child[indexer_arg.descendants.props_to_index(loc1<span class="op">=</span>props_i.loc1, loc2<span class="op">=</span><span class="dv">0</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb36-39"><a href="#cb36-39" aria-hidden="true" tabindex="-1"></a>            transitions.append([child, [<span class="dv">0</span>, state[i]]])</span>
-<span id="cb36-40"><a href="#cb36-40" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb36-41"><a href="#cb36-41" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-42"><a href="#cb36-42" aria-hidden="true" tabindex="-1"></a>g_arg <span class="op">=</span> Graph(two_locus_arg, indexer<span class="op">=</span>indexer_arg)</span>
-<span id="cb36-43"><a href="#cb36-43" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'ARG graf: </span><span class="sc">{</span>g_arg<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss"> tilstande, </span><span class="sc">{</span>g_arg<span class="sc">.</span>param_length()<span class="sc">}</span><span class="ss"> parametre'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># To-locus ARG-model med nr_samples=3 (vejlederens kode)</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv, StateIndexer, Property</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>nr_samples_arg <span class="op">=</span> <span class="dv">3</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>indexer_arg <span class="op">=</span> StateIndexer(</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    descendants<span class="op">=</span>[</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'loc1'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_samples_arg),</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'loc2'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_samples_arg)</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>initial_arg <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer_arg.state_length</span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>initial_arg[indexer_arg.descendants.props_to_index(loc1<span class="op">=</span><span class="dv">1</span>, loc2<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> nr_samples_arg</span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>(initial_arg)</span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> two_locus_arg(state, indexer<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state.<span class="bu">sum</span>() <span class="op">&lt;=</span> <span class="dv">1</span>: <span class="cf">return</span> transitions</span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(indexer_arg.state_length):</span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[i] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
+<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a>        props_i <span class="op">=</span> indexer_arg.descendants.index_to_props(i)</span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, indexer_arg.state_length):</span>
+<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> state[j] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
+<span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a>            props_j <span class="op">=</span> indexer_arg.descendants.index_to_props(j)</span>
+<span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb28-27"><a href="#cb28-27" aria-hidden="true" tabindex="-1"></a>            child <span class="op">=</span> state.copy()</span>
+<span id="cb28-28"><a href="#cb28-28" aria-hidden="true" tabindex="-1"></a>            child[i] <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> child[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb28-29"><a href="#cb28-29" aria-hidden="true" tabindex="-1"></a>            des_loc1 <span class="op">=</span> props_i.loc1 <span class="op">+</span> props_j.loc1</span>
+<span id="cb28-30"><a href="#cb28-30" aria-hidden="true" tabindex="-1"></a>            des_loc2 <span class="op">=</span> props_i.loc2 <span class="op">+</span> props_j.loc2</span>
+<span id="cb28-31"><a href="#cb28-31" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> des_loc1 <span class="op">&lt;=</span> nr_samples_arg <span class="kw">and</span> des_loc2 <span class="op">&lt;=</span> nr_samples_arg:</span>
+<span id="cb28-32"><a href="#cb28-32" aria-hidden="true" tabindex="-1"></a>                child[indexer_arg.descendants.props_to_index(loc1<span class="op">=</span>des_loc1, loc2<span class="op">=</span>des_loc2)] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb28-33"><a href="#cb28-33" aria-hidden="true" tabindex="-1"></a>                transitions.append([child, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same), <span class="dv">0</span>]])</span>
+<span id="cb28-34"><a href="#cb28-34" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[i] <span class="op">&gt;</span> <span class="dv">0</span> <span class="kw">and</span> props_i.loc1 <span class="op">&gt;</span> <span class="dv">0</span> <span class="kw">and</span> props_i.loc2 <span class="op">&gt;</span> <span class="dv">0</span>:</span>
+<span id="cb28-35"><a href="#cb28-35" aria-hidden="true" tabindex="-1"></a>            child <span class="op">=</span> state.copy()</span>
+<span id="cb28-36"><a href="#cb28-36" aria-hidden="true" tabindex="-1"></a>            child[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb28-37"><a href="#cb28-37" aria-hidden="true" tabindex="-1"></a>            child[indexer_arg.descendants.props_to_index(loc1<span class="op">=</span><span class="dv">0</span>, loc2<span class="op">=</span>props_i.loc2)] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb28-38"><a href="#cb28-38" aria-hidden="true" tabindex="-1"></a>            child[indexer_arg.descendants.props_to_index(loc1<span class="op">=</span>props_i.loc1, loc2<span class="op">=</span><span class="dv">0</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb28-39"><a href="#cb28-39" aria-hidden="true" tabindex="-1"></a>            transitions.append([child, [<span class="dv">0</span>, state[i]]])</span>
+<span id="cb28-40"><a href="#cb28-40" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb28-41"><a href="#cb28-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-42"><a href="#cb28-42" aria-hidden="true" tabindex="-1"></a>g_arg <span class="op">=</span> Graph(two_locus_arg, indexer<span class="op">=</span>indexer_arg)</span>
+<span id="cb28-43"><a href="#cb28-43" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'ARG graf: </span><span class="sc">{</span>g_arg<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss"> tilstande, </span><span class="sc">{</span>g_arg<span class="sc">.</span>param_length()<span class="sc">}</span><span class="ss"> parametre'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>ARG graf: 32 tilstande, 2 parametre</code></pre>
 </div>
 </div>
 <div id="cell-fig-arg-graph" class="cell" data-execution_count="15">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>g_arg.plot(nodesep<span class="op">=</span><span class="fl">0.5</span>, wrap<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>g_arg.plot(nodesep<span class="op">=</span><span class="fl">0.5</span>, wrap<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="15">
 <div id="fig-arg-graph" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-arg-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="05_joint_probability_inferens_files/figure-html/fig-arg-graph-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-10" title="Figure&nbsp;7.11: Tilstandsrum for to-locus ARG-modellen med n=3 prøver. Tilstandsvektoren tracker lineager med afstamninger fra locus 1, locus 2 eller begge. Pile viser koalescentovergange og rekombinationsovergange, og absorptionstilstanden nås når alle lineager enten er coalesceret eller skilt ad ved rekombination."><img src="05_joint_probability_inferens_files/figure-html/fig-arg-graph-output-1.svg" class="img-fluid figure-img"></a>
+<a href="05_joint_probability_inferens_files/figure-html/fig-arg-graph-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-8" title="Figure&nbsp;7.9: Tilstandsrum for to-locus ARG-modellen med n=3 prøver. Tilstandsvektoren tracker lineager med afstamninger fra locus 1, locus 2 eller begge. Pile viser koalescentovergange og rekombinationsovergange, og absorptionstilstanden nås når alle lineager enten er coalesceret eller skilt ad ved rekombination."><img src="05_joint_probability_inferens_files/figure-html/fig-arg-graph-output-1.svg" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-arg-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;7.11: Tilstandsrum for to-locus ARG-modellen med <span class="math inline">\(n=3\)</span> prøver. Tilstandsvektoren tracker lineager med afstamninger fra locus 1, locus 2 eller begge. Pile viser koalescentovergange og rekombinationsovergange, og absorptionstilstanden nås når alle lineager enten er coalesceret eller skilt ad ved rekombination.
+Figure&nbsp;7.9: Tilstandsrum for to-locus ARG-modellen med <span class="math inline">\(n=3\)</span> prøver. Tilstandsvektoren tracker lineager med afstamninger fra locus 1, locus 2 eller begge. Pile viser koalescentovergange og rekombinationsovergange, og absorptionstilstanden nås når alle lineager enten er coalesceret eller skilt ad ved rekombination.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 <div id="07f70b69" class="cell" data-execution_count="17">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sample_joint_observations(jp_graph, theta, n_obs):</span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>    jp_graph.update_weights(theta)</span>
-<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>    jpt <span class="op">=</span> jp_graph.joint_prob_table()</span>
-<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> (jpt[<span class="st">'prob'</span>] <span class="op">/</span> jpt[<span class="st">'prob'</span>].<span class="bu">sum</span>()).to_numpy()</span>
-<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>    idx <span class="op">=</span> np.random.choice(jpt.index.values, size<span class="op">=</span>n_obs, p<span class="op">=</span>p)</span>
-<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> jpt.loc[idx, jpt.columns[:<span class="op">-</span><span class="dv">1</span>]].to_numpy().tolist()</span>
-<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Joint probability-graf for ARG</span></span>
-<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>mutation_rate_arg <span class="op">=</span> <span class="dv">1</span></span>
-<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>joint_arg <span class="op">=</span> g_arg.joint_prob_graph(</span>
-<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>    indexer_arg,</span>
-<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>    reward_only<span class="op">=</span>[<span class="st">'loc1'</span>, <span class="st">'loc2'</span>],</span>
-<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a>    reward_limit<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a>    tot_reward_limit<span class="op">=</span><span class="dv">2</span>,</span>
-<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>    mutation_rate<span class="op">=</span>mutation_rate_arg</span>
-<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a>true_theta_arg <span class="op">=</span> [<span class="dv">10</span>, <span class="dv">1</span>, mutation_rate_arg]</span>
-<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a>observations_arg <span class="op">=</span> sample_joint_observations(</span>
-<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a>    joint_arg, true_theta_arg, n_obs<span class="op">=</span><span class="dv">1000</span></span>
-<span id="cb39-21"><a href="#cb39-21" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb39-22"><a href="#cb39-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'ARG observationer: </span><span class="sc">{</span><span class="bu">len</span>(observations_arg)<span class="sc">}</span><span class="ss">'</span>)</span>
-<span id="cb39-23"><a href="#cb39-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Første 3: </span><span class="sc">{</span>observations_arg[:<span class="dv">3</span>]<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sample_joint_observations(jp_graph, theta, n_obs):</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>    jp_graph.update_weights(theta)</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    jpt <span class="op">=</span> jp_graph.joint_prob_table()</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> (jpt[<span class="st">'prob'</span>] <span class="op">/</span> jpt[<span class="st">'prob'</span>].<span class="bu">sum</span>()).to_numpy()</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>    idx <span class="op">=</span> np.random.choice(jpt.index.values, size<span class="op">=</span>n_obs, p<span class="op">=</span>p)</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> jpt.loc[idx, jpt.columns[:<span class="op">-</span><span class="dv">1</span>]].to_numpy().tolist()</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Joint probability-graf for ARG</span></span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>mutation_rate_arg <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>joint_arg <span class="op">=</span> g_arg.joint_prob_graph(</span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>    indexer_arg,</span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>    reward_only<span class="op">=</span>[<span class="st">'loc1'</span>, <span class="st">'loc2'</span>],</span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>    reward_limit<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a>    tot_reward_limit<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a>    mutation_rate<span class="op">=</span>mutation_rate_arg</span>
+<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-18"><a href="#cb31-18" aria-hidden="true" tabindex="-1"></a>true_theta_arg <span class="op">=</span> [<span class="dv">10</span>, <span class="dv">1</span>, mutation_rate_arg]</span>
+<span id="cb31-19"><a href="#cb31-19" aria-hidden="true" tabindex="-1"></a>observations_arg <span class="op">=</span> sample_joint_observations(</span>
+<span id="cb31-20"><a href="#cb31-20" aria-hidden="true" tabindex="-1"></a>    joint_arg, true_theta_arg, n_obs<span class="op">=</span><span class="dv">1000</span></span>
+<span id="cb31-21"><a href="#cb31-21" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb31-22"><a href="#cb31-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'ARG observationer: </span><span class="sc">{</span><span class="bu">len</span>(observations_arg)<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb31-23"><a href="#cb31-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Første 3: </span><span class="sc">{</span>observations_arg[:<span class="dv">3</span>]<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>ARG observationer: 1000
 Første 3: [[0, 0, 0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0]]</code></pre>
 </div>
 </div>
 <div id="8a432381" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>sv_arg <span class="op">=</span> joint_arg.svgd(</span>
-<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>    observations_arg,</span>
-<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">2</span>, mutation_rate_arg)],</span>
-<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>[</span>
-<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>        GaussPrior(ci<span class="op">=</span>[<span class="dv">5</span>, <span class="dv">25</span>]),</span>
-<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>        GaussPrior(ci<span class="op">=</span>[<span class="dv">0</span>, <span class="dv">3</span>]),</span>
-<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>        <span class="va">None</span></span>
-<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>    ],</span>
-<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">40</span>,</span>
-<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">300</span>,</span>
-<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span>ExpStepSize(first_step<span class="op">=</span><span class="fl">0.1</span>, last_step<span class="op">=</span><span class="fl">0.01</span>, tau<span class="op">=</span><span class="fl">50.0</span>),</span>
-<span id="cb41-14"><a href="#cb41-14" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb41-15"><a href="#cb41-15" aria-hidden="true" tabindex="-1"></a>sv_arg.summary(ci_method<span class="op">=</span><span class="st">'hpd'</span>, ci_level<span class="op">=</span><span class="fl">0.95</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>sv_arg <span class="op">=</span> joint_arg.svgd(</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    observations_arg,</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">2</span>, mutation_rate_arg)],</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>[</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>        GaussPrior(ci<span class="op">=</span>[<span class="dv">5</span>, <span class="dv">25</span>]),</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>        GaussPrior(ci<span class="op">=</span>[<span class="dv">0</span>, <span class="dv">3</span>]),</span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>        <span class="va">None</span></span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>    ],</span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">40</span>,</span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">300</span>,</span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span>ExpStepSize(first_step<span class="op">=</span><span class="fl">0.1</span>, last_step<span class="op">=</span><span class="fl">0.01</span>, tau<span class="op">=</span><span class="fl">50.0</span>),</span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>sv_arg.summary(ci_method<span class="op">=</span><span class="st">'hpd'</span>, ci_level<span class="op">=</span><span class="fl">0.95</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Parameter  Fixed          MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
 0          No             7.505      9.873      4.052      6.122        17.37       
@@ -1179,45 +1139,45 @@ Particles: 40, Iterations: 300</code></pre>
 </div>
 </div>
 <div id="cell-fig-arg-svgd-ci" class="cell" data-fig-width="5" data-fig-height="3">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>sv_arg.plot_ci(ci_method<span class="op">=</span><span class="st">'hpd'</span>, true_theta<span class="op">=</span>true_theta_arg)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>sv_arg.plot_ci(ci_method<span class="op">=</span><span class="st">'hpd'</span>, true_theta<span class="op">=</span>true_theta_arg)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div id="fig-arg-svgd-ci" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-arg-svgd-ci-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="05_joint_probability_inferens_files/figure-html/fig-arg-svgd-ci-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-11" title="Figure&nbsp;7.12: Posterior mean \pm 95% HPD for \theta_0 (blå) og \theta_1 (orange) over 300 SVGD-iterationer for ARG-modellen med sand \theta=10 og \rho=1. Stiplede linjer markerer sande parametre."><img src="05_joint_probability_inferens_files/figure-html/fig-arg-svgd-ci-output-1.svg" class="img-fluid figure-img"></a>
+<a href="05_joint_probability_inferens_files/figure-html/fig-arg-svgd-ci-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-9" title="Figure&nbsp;7.10: Posterior mean \pm 95% HPD for \theta_0 (blå) og \theta_1 (orange) over 300 SVGD-iterationer for ARG-modellen med sand \theta=10 og \rho=1. Stiplede linjer markerer sande parametre."><img src="05_joint_probability_inferens_files/figure-html/fig-arg-svgd-ci-output-1.svg" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-arg-svgd-ci-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;7.12: Posterior mean <span class="math inline">\(\pm\)</span> 95% HPD for <span class="math inline">\(\theta_0\)</span> (blå) og <span class="math inline">\(\theta_1\)</span> (orange) over 300 SVGD-iterationer for ARG-modellen med sand <span class="math inline">\(\theta=10\)</span> og <span class="math inline">\(\rho=1\)</span>. Stiplede linjer markerer sande parametre.
+Figure&nbsp;7.10: Posterior mean <span class="math inline">\(\pm\)</span> 95% HPD for <span class="math inline">\(\theta_0\)</span> (blå) og <span class="math inline">\(\theta_1\)</span> (orange) over 300 SVGD-iterationer for ARG-modellen med sand <span class="math inline">\(\theta=10\)</span> og <span class="math inline">\(\rho=1\)</span>. Stiplede linjer markerer sande parametre.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 <div id="cell-fig-arg-conv" class="cell" data-fig-width="5" data-fig-height="3">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>sv_arg.plot_convergence()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>sv_arg.plot_convergence()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div id="fig-arg-conv" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-arg-conv-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="05_joint_probability_inferens_files/figure-html/fig-arg-conv-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-12" title="Figure&nbsp;7.13: Posterior mean (venstre) og posterior std (højre) for \theta_0 (blå) og \theta_1 (orange) over 300 SVGD-iterationer for ARG-modellen med sand \theta=10 og \rho=1."><img src="05_joint_probability_inferens_files/figure-html/fig-arg-conv-output-1.svg" class="img-fluid figure-img"></a>
+<a href="05_joint_probability_inferens_files/figure-html/fig-arg-conv-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-10" title="Figure&nbsp;7.11: Posterior mean (venstre) og posterior std (højre) for \theta_0 (blå) og \theta_1 (orange) over 300 SVGD-iterationer for ARG-modellen med sand \theta=10 og \rho=1."><img src="05_joint_probability_inferens_files/figure-html/fig-arg-conv-output-1.svg" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-arg-conv-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;7.13: Posterior mean (venstre) og posterior std (højre) for <span class="math inline">\(\theta_0\)</span> (blå) og <span class="math inline">\(\theta_1\)</span> (orange) over 300 SVGD-iterationer for ARG-modellen med sand <span class="math inline">\(\theta=10\)</span> og <span class="math inline">\(\rho=1\)</span>.
+Figure&nbsp;7.11: Posterior mean (venstre) og posterior std (højre) for <span class="math inline">\(\theta_0\)</span> (blå) og <span class="math inline">\(\theta_1\)</span> (orange) over 300 SVGD-iterationer for ARG-modellen med sand <span class="math inline">\(\theta=10\)</span> og <span class="math inline">\(\rho=1\)</span>.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 <div id="cell-fig-arg-pairwise" class="cell" data-fig-width="4" data-fig-height="4" data-execution_count="34">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>sv_arg.plot_pairwise(true_theta<span class="op">=</span>true_theta_arg)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>sv_arg.plot_pairwise(true_theta<span class="op">=</span>true_theta_arg)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div id="fig-arg-pairwise" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-arg-pairwise-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="05_joint_probability_inferens_files/figure-html/fig-arg-pairwise-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-13" title="Figure&nbsp;7.14: Pairwise posterior for ARG-model (θ vs.&nbsp;ρ). Stjerner markerer sande parametre."><img src="05_joint_probability_inferens_files/figure-html/fig-arg-pairwise-output-1.svg" class="img-fluid figure-img"></a>
+<a href="05_joint_probability_inferens_files/figure-html/fig-arg-pairwise-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-11" title="Figure&nbsp;7.12: Pairwise posterior for ARG-model (θ vs.&nbsp;ρ). Stjerner markerer sande parametre."><img src="05_joint_probability_inferens_files/figure-html/fig-arg-pairwise-output-1.svg" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-arg-pairwise-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;7.14: Pairwise posterior for ARG-model (θ vs.&nbsp;ρ). Stjerner markerer sande parametre.
+Figure&nbsp;7.12: Pairwise posterior for ARG-model (θ vs.&nbsp;ρ). Stjerner markerer sande parametre.
 </figcaption>
 </figure>
 </div>
