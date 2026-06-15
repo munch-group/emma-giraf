@@ -63,6 +63,7 @@ degree: Master of Science in Bioinformatics
 
 
 
+
 # Introduktion
 
 Genetisk variation er grundlaget for evolution. Hvis man sammenligner DNA-sekvenser fra forskellige individer, vil man næsten altid finde små forskelle i deres arvemateriale. På samme position i arvemateriale kan et individ eksempelvis have et $A$ (adenin), mens et andet individ kan have et $G$ (guanin). Sådanne forskelle opstår fordi mutationer ophobes over mange generationer. Antallet og fordelingen af mutationerne afhænger af de evolutionære processer, der har påvirket populationen, herunder genetisk drift, migration, rekombination og ændringer i populationsstørrelse [@wakeley2009coalescent]. Genetiske data indeholder derfor information om en populations evolutionære historie.                                                                                   Inden for populationsgenetik forsøger man netop at udlede denne information fra de observerede DNA-sekvenser. De evolutionære processer beskrives ofte ved hjælp af fremadrettede modeller, hvor man følger udviklingen af allelfrekvenser fra generation til generation. En af de mest klassiske modeller er Wright-Fisher-modellen, som blev udviklet i begyndelsen af det 20. århundrede af Sewall Wright og Ronald Fisher [@wakeley2009coalescent; @Hobolth2018]. Selvom sådanne modeller giver en detaljeret beskrivelse aaf de evoltionære processer, bliver de hurtigt komplekse og svære at arbejde med, når man vil analysere genetiske data fra mange individer. I stedet kan betragte de samme processer fra et andet perspektiv.
@@ -289,7 +290,7 @@ Disse seks arter opdeles i to klader: en nordlig klade bestående af P. hamadrya
 ::: {#fig-Kort}
 ![](illustrations/Kort.png){width="50%"}
 
-*Papio*-arter og deres nuværende geografiske udbredelse, samt placeringen af tre veldokumenterede aktive hybridzoner. x1: hybridzone mellem *P. hamadryas* og *P. anubis*. x2: hybridzone mellem *P. cynocephalus* og *P. anubis*. x3: hybridzone mellem *P. kindae* og *P. ursinus*. Billede fra @rogers2019.
+*Papio*-arter og deres nuværende geografiske udbredelse, samt placeringen af tre veldokumenterede aktive hybridzoner. x1: hybridzone mellem *P. hamadryas* og *P. anubis*. x2: hybridzone mellem *P. cynocephalus* og *P. anubis*. x3: hybridzone mellem *P. kindae* og *P. ursinus*. Billedet er fra @rogers2019.
 
 :::
 
@@ -325,13 +326,14 @@ Analysen er bygget op omkring syv Jupyter notebooks, der hver bygger videre på 
 
 : Oversigt over notebooks og modeller implementeret i dette speciale. {#tbl-notebooks}
 
+
 # Resultater
 
 Resultatafsnittet følger analysens opbygning. Først tjekkes det om `phasic` beregner de rigtige størrelser ved at sammenligne med kendte resultater. Derefter undersøges det hvilken SVGD-konfiguration der fungerer bedst. Herefter testes to-ø-modellen og tidsinhomogene modeller. Til sidst bruges de validerede metoder på genomdata fra seks *Papio*-arter.
 
 ## Verificering af Kingmans coalescent (NB01)
 
-Inden inferens på bavian-data sammenlignes `phasic`s numeriske beregning af den forventede coalescenttid $\mathbb{E}[H]$ med den kendte analytiske formel $\sum_{k=2}^{n} \frac{2}{k(k-1)}$ for stikprøvestørrelser fra $n=2$ til $n=8$. Afvigelsen er nul for alle værdier af $n$, som vist i @tbl-verificering.
+Inden inferens på bavian-data sammenlignes `phasics` numeriske beregning af den forventede coalescenttid $\mathbb{E}[H]$ med den kendte analytiske formel $\sum_{k=2}^{n} \frac{2}{k(k-1)}$ for stikprøvestørrelser fra $n=2$ til $n=8$. Afvigelsen er nul for alle værdier af $n$, som vist i @tbl-verificering.
 
 {{< embed ../notebooks/01_coalescent_basics.ipynb#tbl-verificering >}}
 
@@ -377,56 +379,41 @@ For at finde den bedste læringsrate testes $16$ strategier over fem forskellige
 
 En værdi på $0{,}00000$ betyder, at strategien ikke dækker sand $\theta$ i $95\%$-intervallet ved det specifikke antal af iterationer og disse strategier fravælges derfor. Det gælder Constant(0.5), Exp(0.5 → 0.001, τ=50), Exp(1.0 → 0.01, τ=50) og Warmup(peak=0.5, w=30), der ikke dækker $\theta$ ved nogen af iterationsantallene, samt Exp(0.3 → 0.001, τ=50) og Warmup(peak=0.3, w=30), der kun dækker $\theta$ ved enkelte iterationsantal. De resterende strategier dækker sand $\theta$ ved alle testede iterationsantal og har generelt lavere std for de eksponentielt aftagende strategier end for de konstante.
 
-Posteriorintervallerne for de strategier, der dækker sand $\theta$, er vist over mange uafhængige kørsler i @fig-lr-ci-1 til @fig-lr-ci-6. Konstant $0{,}001$ (@fig-lr-ci-6) giver det bredeste interval af de seks strategier, med store udsving i HPD-bredden gennem hele forløbet, der ikke bliver smallere med stigende antal iterationer.
+Posteriorintervallerne for de strategier, der dækker sand $\theta$, er kørt over mange uafhængige kørsler. På den baggrund vælges den bedste læringsrate. 
 
 ::: {#fig-lr-ci-6}
-![](illustrations/fig-lr-ci-6.png)
+![](illustrations/fig-lr-ci-6.png){width="80%"}
 
 Posterior credibility interval (CI) for Constant(0.001) over 300 iterationer med sand $\theta=7$. Den blå kurve viser posterior-mean og det blå bånd viser 95% HPD-intervallet. Stiplet linje markerer sand $\theta=7$.
 :::
 
-Konstant $0{,}05$ (@fig-lr-ci-4) og Exp(0.05 → 0.001, τ=30) (@fig-lr-ci-3) har kørsler der misser sand $\theta$ helt. For Constant(0.05) ses et bredt og uregelmæssigt HPD-bånd med store udsving gennem alle $300$ iritationer. Exp(0.05 → 0.001, τ=30), ligger posterior-mean overordnet tæt på $\theta=7$ gennem forløbet, men stadig højere. 
-
-::: {#fig-lr-ci-4}
-![](illustrations/fig-lr-ci-4.png)
-
-Posterior credibility interval (CI) for Constant(0.05) over 300 iterationer med sand $\theta=7$. Den blå kurve viser posterior-mean og det blå bånd viser 95% HPD-intervallet. Stiplet linje markerer sand $\theta=7$.
-:::
+Konstant $0{,}001$ (@fig-lr-ci-6) giver det bredeste interval af de seks strategier, med store udsving i HPD-bredden gennem hele forløbet, der ikke bliver smallere med stigende antal iterationer.
 
 ::: {#fig-lr-ci-3}
-![](illustrations/fig-lr-ci-3.png)
+![](illustrations/fig-lr-ci-3.png){width="80%"}
 
 Posterior credibility interval (CI) for Exp(0.05 → 0.001, τ=30) over 300 iterationer med sand $\theta=7$. Den blå kurve viser posterior-mean og det blå bånd viser 95% HPD-intervallet. Stiplet linje markerer sand $\theta=7$.
 :::
 
-For Warmup(peak=0.1, w=20) ses en spids i posterior-mean omkring iteration $25$-$50$, hvor middelværdien kortvarigt rammer langt over $\theta=7$, før den hurtigt stabiliserer sig tæt på den sande værdi for resten af forløbet (@fig-lr-ci-5).
+For Exp(0.05 → 0.001, τ=30) (@fig-lr-ci-3) ligger posterior mean for $\theta_0$ en smule over den sande værdi, gennem hele forløbet og rammer aldrig præcis $\theta=7$. HPD-båndet er bredest i de første iterationer, med flere udsving, og har generelt udsvingerne gennem hele forløbet. 
+
 
 ::: {#fig-lr-ci-5}
-![](illustrations/fig-lr-ci-5.png)
+![](illustrations/fig-lr-ci-5.png){width="80%"}
 
 Posterior credibility interval (CI) for Warmup (peak=0.1, w=20) over 300 iterationer med sand $\theta=7$. Den blå kurve viser posterior-mean og det blå bånd viser 95% HPD-intervallet. Stiplet linje markerer sand $\theta=7$.
 :::
 
-For Constant(0.01) (@fig-lr-ci-1) er HPD-båndet relativt bredt gennem hele forløbet, med flere usving, blandt andet omkring iteration $130$-$200$ og igen mod slutningen af forløbet. Posterior-mean ligger dog konsekvent tæt på $\theta=7$.
+For Warmup(peak=0.1, w=20) ses en spids i posterior-mean omkring iteration $25$-$50$, hvor middelværdien kortvarigt rammer langt over $\theta=7$, før den hurtigt stabiliserer sig tæt på den sande værdi for resten af forløbet (@fig-lr-ci-5).
 
-::: {#fig-lr-ci-1}
-![](illustrations/fig-lr-ci-1.png)
-
-Posterior credibility interval (CI) for Constant(0.01) over 300 iterationer med sand $\theta=7$. Den blå kurve viser posterior-mean og det blå bånd viser 95% HPD-intervallet. Stiplet linje markerer sand $\theta=7$.
-:::
-
-For Exp(0.05 → 0.001, τ=30) (@fig-lr-ci-3) starter HPD-båndet relativt bredt, men smalner gradvist og jævnt ind mod et meget snævert interval omkring $\theta=7$ efter ca. iteration $150$-$200$, uden de kraftige spikes der ses for de øvrige strategier.
-
-
-`Exp(0.1 → 0.001, τ=100)` (@fig-lr-ci-2) har et HPD-bånd, der er bredt i starten af forløbet med flere spidse, men disse spidse bliver gradvist mindre og posterior-mean ligger stabilt omkring $\theta=7$ gennem hele forløbet. 
 
 ::: {#fig-lr-ci-2}
-![](illustrations/fig-lr-ci-2.png)
+![](illustrations/fig-lr-ci-2.png){width="80%"}
 
 Posterior credibility interval (CI) for Exp(0.1 → 0.001, τ=100) over 300 iterationer med sand $\theta=7$. Den blå kurve viser posterior-mean og det blå bånd viser 95% HPD-intervallet. Stiplet linje markerer sand $\theta=7$.
 :::
 
-Sammenholdt med @tbl-lr-bred, hvor denne strategi har den laveste posterior-std blandt alle $16$ strategier over iterationsantal, vælges `Exp(0.1 → 0.001, τ=100)` som standard læringsrate. Selvom Warmup(peak=0.1, w=20) (@fig-lr-ci-5) også har et stabilt og pænt CI-plot, har `Exp(0.1 → 0.001, τ=100)` den laveste samlede std og vælges derfor frem for denne.
+`Exp(0.1 → 0.001, τ=100)` (@fig-lr-ci-2) ligsom Warmup en spids i posterior-mean omkring $30-35$, hvor middelværdien kortvarigt rammer langt over $\theta=7$, før den hurtigt stabiliserer sig tæt på den sande værdi for resten af forløbet. Sammenholdt med @tbl-lr-bred, hvor denne strategi har den laveste posterior-std blandt alle $16$ strategier over iterationsantal, vælges `Exp(0.1 → 0.001, τ=100)` som standard læringsrate. Selvom Warmup(peak=0.1, w=20) (@fig-lr-ci-5) også har et stabilt og pænt CI-plot, har `Exp(0.1 → 0.001, τ=100)` den laveste samlede std og vælges derfor frem for denne.
 
 
 ### Prior
@@ -435,18 +422,17 @@ Fem priors testes med den valgte læringsrate på simulerede data med sand $\the
 
 {{< embed ../notebooks/02_svgd_inferens_basis.ipynb#fig-priors >}}
 
-Som det ses i @fig-priors, er den vage GaussPrior bred og højreskæv, hvilket giver høj sandsynlighed til værdier langt fra sand $\theta=7$. GaussPrior er til sammenligning smal og symmetrisk centreret omkring $\theta=7$, men dækker som det fremgår af @tbl-prior-sammenligning ikke sand $\theta$ i $95\%$-intervallet. HalfCauchyPrior er meget koncentreret omkring nul og falder hurtigt, hvilket betyder, at den i udgangspunktet lægger lav sandsynlighed på værdier omkring $\theta=7$. LogGaussPrior er vist på log-skala og er skæv mod høje værdier, mens DataPrior, vist som histogram, er meget smal og centreret tæt ved $\theta=7$.
-
+Som det ses i @fig-priors, er den vage GaussPrior bred og højreskæv, hvilket giver høj sandsynlighed til værdier langt fra sand $\theta=7$. GaussPrior er til sammenligning smal og symmetrisk centreret omkring $\theta=7$, men dækker som det fremgår af @tbl-prior-sammenligning ikke sand $\theta$ i $95\%$-intervallet. HalfCauchyPrior er meget koncentreret omkring nul og falder hurtigt, hvilket betyder, at den i udgangspunktet lægger lav sandsynlighed på værdier omkring $\theta=7$. LogGaussPrior er vist på log-skala og er skæv mod høje værdier, mens DataPrior, vist som histogram er centreret tæt ved $\theta=7$.
 Std og bias for de fem priors er vist i @tbl-prior-sammenligning.
 
 | | Vag GaussPrior | GaussPrior | HalfCauchyPrior | LogGaussPrior | DataPrior |
 |:---|:---:|:---:|:---:|:---:|:---:|
-| Dækker | True | Dækker | True | True | True |
-| Score | 0,15043 | 0,01023 | 0,14821 | 0,25055 | 0,0934 |
+| Dækker | True | True | True | True | True |
+| Score | 0,1504 | 0,1023 | 0,1482 | 0,2505 | 0,0934 |
 
 : Sammenligning af fem priors med læringsrate Exp(0.1 → 0.001, τ=100) og sand $\theta = 7$. Rækkerne viser om sand $\theta$ dækkes i $95\%$-intervallet og samlet score (std $+ 2\times$ bias). Kolonnerne svarer til de fem priors. {#tbl-prior-sammenligning}
 
-DataPrior har den laveste score af alle fem priors og dækker samtidig sand $\theta$. De øvrige priors ses at, vag GaussPrior og HalfCauchyPrior er brede og HalfCauchyPrior er placeret forkert. GausPrior dækker også sand $\theta$ men har større scorre end DataPrior. DataPrior vælges derfor som standardprior.
+DataPrior har den laveste score af alle fem priors og dækker samtidig sand $\theta$. De øvrige priors ses at, vag Vag GaussPrior, HalfCauchyPrior og LogGaussPrior har de højeste score. GausPrior dækker også sand $\theta$ men har større scorre end DataPrior. DataPrior vælges derfor som standardprior.
 
 
 ### Antal observationer, samples og partikler
@@ -480,16 +466,25 @@ Effekten af antal haploide samples testes over $\{2, 4, 6, 8, 10, 12\}$. Inferen
 
 Effekten af antal partikler testes over $\{10, 20, 40, 60, 80, 100\}$. Man ser, at fra $20$ partikler stabiliserer std sig og yderligere partikler giver ingen forbedring, som vist i @tbl-partikler. $20$ partikler vælges som standard.
 
-{{< embed ../notebooks/02_svgd_inferens_basis.ipynb#tbl-partikler >}}
+| Partikler | $\hat\theta$ | Std | Bias | Dækker | Tid (s) | Score |
+|---:|---:|---:|---:|---:|---:|---:|
+| 10 | 7,0175 | 0,06530 | 0,0277 | 0,666667 | 35,20 | 0,12070 |
+| 20 | 6,9868 | 0,01718 | 0,0191 | 0,666667 | 67,76 | 0,05538 |
+| 40 | 7,0258 | 0,00920 | 0,0273 | 0,666667 | 129,86 | 0,06380 |
+| 60 | 7,0180 | 0,00500 | 0,0278 | 0,000000 | 193,62 | 0,06060 |
+| 80 | 7,0399 | 0,03422 | 0,0300 | 0,666667 | 287,98 | 0,09422 |
+| 100 | 7,0116 | 0,00975 | 0,0155 | 0,666667 | 475,03 | 0,04075 |
+
+: Effekt af antal partikler på SVGD-inferens med sand $\theta = 7$, $n_{\text{obs}} = 50.000$, læringsrate Exp(0.1 → 0.001, τ=100) og DataPrior. Kolonnerne viser antal partikler, posterior-mean $\hat\theta$, posterior-std, absolut bias, andel af kørsler der dækker sand $\theta$ i $95\%$-intervallet, beregningstid i sekunder og samlet score. {#tbl-partikler}
 
 Den samlede standardkonfiguration fra de systematiske tests er opsummeret i @tbl-standard-config.
 
 | Parameter | Valgt værdi | Gælder for |
 |:---|:---|:---|
 | Læringsrate | `Exp(0.1 → 0.001, τ=100)` | Alle modeller |
-| Prior | `DataPrior` | Enkeltpopulationsmodel |
+| Prior | `DataPrior` | Enkelt populationsmodel |
 | $n_{\text{obs}}$ | $50.000$ | Alle modeller |
-| $n_{\text{samples}}$ | $8$ | Enkeltpopulationsmodel |
+| $n_{\text{samples}}$ | $8$ | Enkelt populationsmodel |
 | Partikler | $20$ | Alle modeller |
 
 : Valgte SVGD-parametre bestemt fra systematiske tests i NB02. {#tbl-standard-config}
@@ -503,32 +498,36 @@ Implementeringen af to-ø modellen valideres ved at sammenligne `phasic`s analyt
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#fig-two-island-msprime-val >}}
 
-SVGD køres på de samme simulerede data. Hvor posteriorintervallerne er vist i @fig-two-island-ci. Begge sande værdier, $\theta_0 = 0{,}7$ og $\theta_1 = 0{,}3$, dækkes.
+SVGD køres på de samme simulerede data, og posteriorintervallerne er vist i @fig-msprime-svgd-twoisland. Posterior mean for $\theta_0$ har store udsving i de første $50$ iterationer, før den stabiliserer sig tæt på den sande værdi $\theta_0=0{,}7$ for resten af forløbet. Posterior mean for $\theta_1$ ligger fra start tæt på sin endelige værdi omkring $0{,}3$ med kun mindre udsving gennem forløbet. $95\%$ HPD-intervallet for $\theta_0$ er bredt i starten, bliver smallere omkring iteration $50$-$70$ og forbliver derefter forholdsvis konstant. Intervallet for $\theta_1$ er bredt gennem hele forløbet og dækker fra omkring $0$ til $0{,}5$. Begge sande værdier, $\theta_0 = 0{,}7$ og $\theta_1 = 0{,}3$ (stiplede linjer), dækkes af $95\%$ HPD-intervaller.
 
-{{< embed ../notebooks/03_svgd_two_island.ipynb#fig-two-island-ci >}}
+{{< embed ../notebooks/03_svgd_two_island.ipynb#fig-msprime-svgd-twoisland >}}
 
 
 ### Identificerbarhed ved varierende migration
 
-Tre scenarier testes med fast $\theta_0 = 0{,}7$ og $\theta_1 = 0{,}2$ (lav), $\theta_1 = 0{,}3$ (moderat) og $\theta_1 = 1{,}0$ (høj) for at undersøge hvornår de to parametre kan adskilles. For de tre scenarier er der viser posteriorintervallerne forskellige ting. Ved lav migration ($\theta_1 = 0{,}2$) dækkes begge sande parametre med std $= 0{,}048$ for $\theta_1$ (@fig-ci-lav-migration).
+Tre scenarier testes med fast $\theta_0 = 0{,}7$ og $\theta_1 = 0{,}2$ (lav), $\theta_1 = 0{,}3$ (moderat) og $\theta_1 = 1{,}0$ (høj) for at undersøge hvornår de to parametre kan adskilles.
+
+Ved lav migration (@fig-ci-lav-migration) viser posterior mean for $\theta_0$ et udsving omkring iteration $10$-$30$, hvor den når op til omkring $1{,}5$, før den stabiliserer sig tæt på den sande værdi $\theta_0=0{,}7$. Posterior mean for $\theta_1$ ligger fra start tæt på sin endelige værdi omkring $0{,}25$ og konvergerer mod omkring $0{,}22$. Begge sande parametre dækkes, med std $= 0{,}048$ for $\theta_1$.
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#fig-ci-lav-migration >}}
 
-Ved moderat migration ($\theta_1 = 1{,}0$) er std steget til $0{,}330$ (@fig-ci-moderat-migration). 
+Ved moderat migration (@fig-ci-moderat-migration) er udsvinget for $\theta_0$ kraftigere og varer længere, til omkring iteration $50$, hvorefter $\theta_0$ stabiliserer sig omkring $0{,}62$ som er under den sande værdi $0{,}7$. Posterior mean for $\theta_1$ konvergerer mod omkring $0{,}25$ også under den sande værdi $0{,}3$. HPD-intervallet for $\theta_0$ forbliver bredt gennem hele forløbet og std for $\theta_1$ er steget til $0{,}330$.
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#fig-ci-moderat-migration >}}
 
-Ved høj migration ($\theta_1 = 1{,}0$) er std $= 9{,}221$ og mange kørsler rammer ikke sand $\theta_1$ (@fig-hoj-migration).
+Ved høj migration (@fig-ci-hoj-migration) er HPD-intervallet for $\theta_1$ meget bredt, fra omkring $0$ til over $12$, gennem hele forløbet og bliver ikke smallere. Posterior mean for $\theta_0$ konvergerer mod omkring $0{,}6$-$0{,}7$, men også her er HPD-intervallet relativt bredt. Std for $\theta_1$ er $9{,}221$ og mange kørsler rammer ikke sand $\theta_1$.
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#fig-ci-hoj-migration >}}
 
-Den joint posterior for de tre scenarier er vist i pairwise-plottene i @fig-pairwise-lav, @fig-pairwise-moderat og @fig-pairwise-hoj. Ved lav og moderat migration er partiklerne samlet tæt uden tydelig korrelation. 
+Den joint posterior for de tre scenarier er vist i pairwise-plottene i @fig-pairwise-lav, @fig-pairwise-moderat og @fig-pairwise-hoj. Ved lav migration (@fig-pairwise-lav) er partikler samlet tæt sammen omkring de sande værdier $(\theta_0,\theta_1)\approx(0{,}7, 0{,}3)$, mens en enkelt partikel afviger som outlier omkring $(\theta_0,\theta_1)\approx(0{,}37, 0)$.
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#fig-pairwise-lav >}}
 
+Ved moderat migration (@fig-pairwise-moderat) er de fleste partikler samlet omkring $(\theta_0,\theta_1)\approx(0{,}66, 0{,}29)$, tæt på men ikke præcis på de sande værdier $(0{,}7, 0{,}3)$, mens en mindre gruppe partikler igen ligger som outliers omkring $(\theta_0,\theta_1)\approx(0{,}34, 0)$.
+
 {{< embed ../notebooks/03_svgd_two_island.ipynb#fig-pairwise-moderat >}}
 
-Ved høj migration er de spredt langs diagonalen og mange kombinationer af $\theta_0$ og $\theta_1$ er næsten lige sandsynlige givet data.
+Ved høj migration (@fig-pairwise-hoj) er fordelingen af $\theta_0$ todelt, med en gruppe partikler omkring $0{,}7$ og en anden gruppe omkring $0{,}35$. Samtidig er $\theta_1$ spredt over et meget bredt interval fra omkring $0$ til over $14$, langt fra den sande værdi $1{,}0$. Scatter-plottet viser en klar positiv sammenhæng mellem $\theta_0$ og $\theta_1$, og mange kombinationer af de to parametre er næsten lige sandsynlige givet data.
 
 {{< embed ../notebooks/03_svgd_two_island.ipynb#fig-pairwise-hoj >}}
 
@@ -539,14 +538,13 @@ TMRCA-fordelingen for en flaskehals med varierende dybde $f = N/N_b \in \{1, 2, 
 
 {{< embed ../notebooks/04_time_inhomogeneous.ipynb#fig-bottleneck-cdf >}}
 
-Med stigende flaskehalsdybde $f$ rykker både CDF og PDF mod kortere TMRCA-tider. For $f=50$ sker næsten alt coalescens inden for selve flaskehalsperioden (den orange skravering), mens PDF-kurven for $f=1$ (ingen flaskehals) er spredt ud over hele tidsaksen. Dybere flaskehalsen giver kurverne en skarp top placeret ved flaskehalsens starttidspunkt, fordi næsten alle linjer coalescerer i den korte periode med lille populationsstørrelse.
+Med stigende flaskehalsdybde $f$ rykker både CDF og PDF mod kortere TMRCA-tider. For $f=50$ sker næsten alt coalescent inden for selve flaskehalsperioden (den orange skravering), mens PDF-kurven for $f=1$ (ingen flaskehals) er spredt ud over hele tidsaksen. Dybere flaskehalsen giver kurverne en skarp top placeret ved flaskehalsens starttidspunkt, fordi næsten alle linjer coalescerer i den korte periode med lille populationsstørrelse.
 
 CDF- og PDF-forløbet for fem scenarier er vist i @fig-multiepoch.
 
 {{< embed ../notebooks/04_time_inhomogeneous.ipynb#fig-multiepoch >}}
 
-Ekspansion giver den hurtigste stigning i CDF og en PDF med top tæt på $t=0$, fordi en stor nutidig population betyder hurtig coalescent. Kontraktion giver omvendt den langsomste CDF-stigning med en bred, fladtoppet PDF og en bule omkring $t=2$, der afspejler den lange periode med lille ancestral population. Flaskehals + recovery følger ekspansionskurven tæt, den korte flaskehalsperiode dominerer TMRCA-fordelingen på samme måde som i @fig-bottleneck-cdf. Trinvis vækst ligger mellem konstant og ekspansion, med en PDF der har sin top tidligere end den konstante model, men senere end de rene ekspansions- og flaskehalsscenarier.
-
+Ekspansion giver den hurtigste stigning i CDF og en PDF med top tæt på $t=0$, fordi en stor nutidig population betyder hurtig coalescent. Kontraktion giver omvendt den langsomste CDF-stigning med en bred, fladtoppet PDF og en bule omkring $t=2$, der afspejler den lange periode med lille ancestral population. Flaskehals + recovery følger ekspansionskurven tæt, den korte flaskehalsperiode dominerer TMRCA-fordelingen på samme måde som i @fig-bottleneck-cdf. PDF'en for trinvis vækst placerer sig mellem den konstante model og ekspansionsmodellen. Dens top ligger senere end for de rene ekspansions- og flaskehalsscenarier, men tidligere end for den konstante model.
 
 
 ## Joint probability-inferens (NB05)
@@ -559,52 +557,55 @@ To priors testes for joint probability-inferens. Std og bias for de to priors er
 
 ### IM-modellen og ARG-modellen
 
-IM-modellen implementeres som en tidsinhomogen joint probability-graf via `joint_prob_graph(discrete=False)` kombineret med `epoch_starts=[0, 0.2]`, der opdeler historien i to epoker. Data simuleres med msprime med sand coalescensrate $\theta = 4\times10^{-4}$ i begge epoker (populationsstørrelse $N=10.000$ og mutationsrate $\mu=10^{-8}$), og mutationsraten fastsættes via `fixed`.
+IM-modellen implementeres som en tidsinhomogen joint probability-graf via `joint_prob_graph(discrete=False)` kombineret med `epoch_starts=[0, 0.2]`, der opdeler historien i to epoker. Data simuleres med msprime med sand coalescentrate $\theta = 4\times10^{-4}$ i begge epoker (populationsstørrelse $N=10.000$ og mutationsrate $\mu=10^{-8}$), og mutationsraten fastsættes via `fixed`.
 Konvergensforløbet for de to epokers parametre er vist i @fig-im-epoch-conv.
 
 {{< embed ../notebooks/05_joint_probability_inferens.ipynb#fig-im-epoch-conv >}}
 
-Posterior mean for $\theta_0$ (epoke 0) ligger tæt på $0$ gennem alle $50$ iterationer, både for mean og std, hvilket er konsistent med den lave sande værdi $\theta = 4\times10^{-4}$. Posterior mean for $\theta_2$ (epoke 1) starter højt omkring $3{,}9$ efter den første iteration og falder derefter gradvist til omkring $3{,}3$ ved iteration $50$. Posterior std for $\theta_2$ falder fra omkring $3{,}0$ til omkring $2{,}2$ inden for de første par iterationer og stiger derefter svagt igen til omkring $2{,}3$ ved iteration $50$.
+Posterior mean for $\theta_0$ (epoke 0) ligger tæt på $0$ gennem alle $50$ iterationer, både for mean og std, hvilket er i overensstemmelse med den lave sande værdi $\theta = 4\times10^{-4}$. Posterior mean for $\theta_2$ (epoke 1) starter højt omkring $3{,}9$ efter den første iteration og falder derefter gradvist til omkring $3{,}3$ ved iteration $50$. Posterior std for $\theta_2$ falder fra omkring $3{,}0$ til omkring $2{,}2$ inden for de første par iterationer og stiger derefter svagt igen til omkring $2{,}3$ ved iteration $50$.
 Posteriorintervallerne er vist i @fig-im-epoch-ci.
 
 {{< embed ../notebooks/05_joint_probability_inferens.ipynb#fig-im-epoch-ci >}}
 
 For $\theta_0$ er $95\%$ HPD-intervallet meget smalt og ligger tæt på $0$ gennem hele forløbet. For $\theta_2$ er HPD-intervallet til sammenligning meget bredt, fra omkring $0{,}8$ til over $8$, hvilket afspejler den begrænsede mængde information om den anden epoke.
 
+
 ARG-modellen estimerer coalescentraten $\theta$ og rekombinationsraten $\rho$ fra to loci med sand $\theta = 10$ og sand $\rho = 1$. Konvergensforløbet for posterior mean og std er vist i @fig-arg-conv.
 
 {{< embed ../notebooks/05_joint_probability_inferens.ipynb#fig-arg-conv >}}
 
-Posterior mean for $\theta_0$ starter ved omkring $13$ og falder gradvist mod $10$ over de første $150$ iterationer, hvorefter den stabiliserer sig tæt på den sande værdi $\theta=10$. Posterior mean for $\theta_1$ ligger derimod allerede fra start tæt på sin endelige værdi omkring $1,5$ og ændrer sig kun lidt gennem forløbet. Posterior std for $\theta_0$ starter højt omkring $4{,}6$, stiger en anelse i starten og falder derefter langsomt til omkring $4{,}0$ ved iteration $300$ – std for $\theta_0$ forbliver altså forholdsvis høj gennem hele forløbet. Std for $\theta_1$ starter højere omkring $0{,}8$, falder hurtigt til under $0{,}5$ inden for de første $\sim 30$ iterationer og stabiliserer sig derefter omkring $0{,}5$-$0{,}6$.
+Posterior mean for $\theta_0$ starter ved omkring $13$ og falder gradvist mod $10$ over de første $150$ iterationer, hvorefter den stabiliserer sig tæt på den sande værdi $\theta=10$. Posterior mean for $\theta_1$ ligger derimod allerede fra start tæt på sin endelige værdi omkring $1,5$ og ændrer sig kun lidt gennem forløbet. Posterior std for $\theta_0$ starter højt omkring $4{,}6$, stiger en anelse i starten og falder derefter langsomt til omkring $4{,}0$ ved iteration $300$. Std for $\theta_0$ forbliver altså forholdsvis høj gennem hele forløbet. Std for $\theta_1$ starter højere omkring $0{,}8$, falder hurtigt til under $0{,}5$ inden for de første $30$ iterationer og stabiliserer sig derefter omkring $0{,}5$.
 
 Posteriorintervallerne ved konvergens er vist i @fig-arg-svgd-ci.
 
 {{< embed ../notebooks/05_joint_probability_inferens.ipynb#fig-arg-svgd-ci >}}
 
-For $\theta_0$ er $95\%$ HPD-intervallet meget bredt gennem hele forløbet, fra omkring $5$ til $18$ ved iteration $300$, men dækker konsekvent den sande værdi $\theta=10$ (stiplet blå linje). For $\theta_1$ er HPD-intervallet til sammenligning smallere og ligger tæt omkring den sande værdi $\rho=1$ (stiplet grøn linje), selvom posterior mean for $\theta_1$ ligger lidt over $\rho=1$. Begge sande parametre dækkes altså af de respektive $95\%$ HPD-intervaller, men usikkerheden på $\theta_0$ er markant større end på $\theta_1$, hvilket afspejler, at coalescentraten er sværere at estimere præcist fra to-locus SNP-par end rekombinationsraten i denne opsætning.
+For $\theta_0$ er $95\%$ HPD-intervallet meget bredt gennem hele forløbet, fra omkring $5$ til $18$, men dækker den sande værdi $\theta=10$ (stiplet blå linje). For $\theta_1$ er HPD-intervallet til sammenligning smallere og ligger tæt omkring den sande værdi $\rho=1$ (stiplet grøn linje), selvom posterior mean for $\theta_1$ ligger lidt over $\rho=1$. Begge sande parametre dækkes altså af $95\%$ HPD-intervaller, men usikkerheden på $\theta_0$ er en del større end på $\theta_1$.
 
 
 ## Enkeltpopulationsanalyse af *Papio*-arterne (NB06a)
 
-Kingmans coalescent tilpasses data fra seks *Papio*-populationer på kromosom $20$ med konfigurationen fra NB02. Coalescentraten $\hat{\theta}$ omregnes til effektiv populationsstørrelse via $N_e = \hat{\theta} / (4\mu)$. Effektiv populationsstørrelse $N_e$ er baseret på $\pi$ samt Tajimas $D$ for alle seks populationer og er vist i @fig-ne-tajima. *P. cynocephalus* har den højeste $\pi$-baserede $N_e$ ($N_e = 81.861$), efterfulgt af *P. kindae* ($N_e = 75.235$) mens *P. papio* har den laveste ($N_e = 14.222$). Tajimas $D$ er negativ for *P. cynocephalus* ($D = -0{,}589$) og *P. anubis* ($D = -0{,}637$), i overensstemmelse med populationsvækst, mens *P. kindae* ($D = 0{,}301$), *P. ursinus* ($D = 0{,}082$), *P. hamadryas* ($D = 0{,}649$) og *P. papio* ($D = 1{,}019$) alle har positiv $D$. *P. papio* har den højeste værdi, i overensstemmelse med en flaskehals.
+Kingmans coalescent tilpasses data fra seks *Papio*-populationer på kromosom $20$ med konfigurationen fra NB02. Coalescentraten $\hat{\theta}$ omregnes til effektiv populationsstørrelse via $N_e = \hat{\theta} / (4\mu)$. Effektiv populationsstørrelse $N_e$ er baseret på $\pi$ samt Tajimas $D$ for alle seks populationer og er vist i @fig-ne-tajima. 
 
 {{< embed ../notebooks/06a_bavian_data.ipynb#fig-ne-tajima >}}
 
-Det ufoldede SFS er vist i @fig-sfs-bavian, subsampled til $n_{\text{sub}} = 8$ haplotyper og sammenlignet med den neutrale forventning. *P. cynocephalus*, *P. kindae* og *P. anubis* har et overskud af singletons (1-ton) relativt til den neutrale forventning. *P. papio* skiller sig ud med en relativt fladere fordeling med færre singletons og en højere andel af varianter ved mellemliggende frekvenser.
+*P. cynocephalus* har den højeste $\pi$-baserede $N_e$ ($N_e = 81.843$), efterfulgt af *P. kindae* ($N_e = 77.583$) mens *P. papio* har den laveste ($N_e = 14.217$). Tajimas $D$ er negativ for *P. cynocephalus* ($D = -0{,}589$) og *P. anubis* ($D = -0{,}637$), mens *P. kindae* ($D = 0{,}301$), *P. ursinus* ($D = 0{,}192$), *P. hamadryas* ($D = 0{,}649$) og *P. papio* ($D = 1{,}019$) alle har positiv $D$. 
 
 {{< embed ../notebooks/06a_bavian_data.ipynb#fig-sfs-bavian >}}
 
-Det foldede SFS med den fulde stikprøvestørrelse per art er vist i @fig-sfs-foldet og viser samme overordnede mønster som det ufoldede SFS.
+Det ufoldede SFS er vist i @fig-sfs-bavian, subsampled til $n_{\text{sub}} = 8$ haplotyper og sammenlignet med den neutrale forventning. *P. cynocephalus* og *P. anubis* har et overskud af singletons (1-ton) relativt til den neutrale forventning. *P. papio* skiller sig ud med en relativt lavere fordeling med færre singletons. 
 
 {{< embed ../notebooks/06a_bavian_data.ipynb#fig-sfs-foldet >}}
 
-For at validere de $\pi$-baserede estimater køres SVGD-inferens for alle seks populationer. De estimerede $N_e$-værdier fra SVGD med $95\%$-kredibilitetsintervaller er vist i @tbl-ne-single-pop. *P. cynocephalus* har den højeste effektive populationsstørrelse med $N_e = 98.257$, efterfulgt af *P. kindae* med $N_e = 75.235$ og *P. anubis* med $N_e = 73.744$. *P. ursinus* estimeres til $N_e = 60.637$ og *P. hamadryas* til $N_e = 39.215$. *P. papio* har den laveste effektive populationsstørrelse med $N_e = 11.366$. For *P. papio* var SVGD ustabilt og estimatet er beregnet direkte fra Wattersons estimator. For alle seks populationer afviger $\hat{\theta}_W$ og $\hat{\theta}_{\text{SVGD}}$ med under $5\%$ fra hinanden, hvilket bekræfter at SVGD-inferensen genfinder de empiriske estimater fra data korrekt.
+Det foldede SFS med den fulde stikprøvestørrelse per art er vist i @fig-sfs-foldet og viser samme overordnede mønster som det ufoldede SFS.
 
 {{< embed ../notebooks/06a_bavian_data.ipynb#tbl-ne-single-pop >}}
 
-En sammenligning af $N_e$ estimeret fra SVGD med $N_e$ beregnet fra nukleotiddiversitet $\pi$ er vist i @fig-ne-svgd. SVGD-estimaterne er systematisk lidt højere end $\pi$-estimaterne for de store populationer, mens de ligger tættere på for de små.
+For at validere de $\pi$-baserede estimater køres SVGD-inferens for alle seks populationer. De estimerede $N_e$-værdier fra SVGD med $95\%$-intervaller er vist i @tbl-ne-single-pop. *P. cynocephalus* har den højeste effektive populationsstørrelse med $N_e = 98.257$, efterfulgt af *P. kindae* med $N_e = 75.235$ og *P. anubis* med $N_e = 73.744$. *P. ursinus* estimeres til $N_e = 60.637$ og *P. hamadryas* til $N_e = 39.215$. *P. papio* har den laveste effektive populationsstørrelse med $N_e = 11.366$. For *P. papio* var SVGD ustabilt og estimatet er beregnet direkte fra Wattersons estimator. For alle seks populationer afviger $\hat{\theta}_W$ og $\hat{\theta}_{\text{SVGD}}$ med under $5\%$ fra hinanden, hvilket bekræfter at SVGD-inferensen genfinder de empiriske estimater fra data korrekt.
 
 {{< embed ../notebooks/06a_bavian_data.ipynb#fig-ne-svgd >}}
+
+En sammenligning af $N_e$ estimeret fra SVGD med $N_e$ beregnet fra nukleotiddiversitet $\pi$ er vist i @fig-ne-svgd. SVGD-estimaterne er systematisk lidt højere end $\pi$-estimaterne for de store populationer, mens de ligger tættere på for de små.
 
 
 ## To-populations analyse af bavian-artpar (NB06b)
@@ -613,43 +614,41 @@ Her anvendes modellerne fra NB03 og NB05 på bavian-data fra kromosom 20: to-ø 
 
 ### To-ø modellen
 
-To-ø modellen fra NB03 tilpasses bavian-data og køres for artsparret *P. hamadryas* × *P. anubis*. Resultaterne viser, at $\hat\theta_0 = 1{,}7339$ med standardafvigelse $0{,}01829$, og $\hat\theta_1 = 0{,}5296$ med standardafvigelse $0{,}0034$ (@tbl-two-island-bavian).
-
-{{< embed ../notebooks/06b_bavian_modeller.ipynb#tbl-two-island-bavian >}}
-
-Konvergensforløbet er vist i @fig-two-island-convergence-kindae-cynocephalus. Posterior mean for $\theta_0$ stiger hurtigt fra omkring $1{,}60$ til omkring $1{,}70$ inden for de første $50$ iterationer og forbliver derefter stabil resten af forløbet. Posterior mean for $\theta_1$ ligger derimod allerede fra start tæt på sin endelige værdi omkring $0{,}50$ og ændrer sig stort set ikke gennem forløbet. Posterior std for $\theta_0$ starter højt omkring $0{,}25$ og falder gradvist til omkring $0{,}02$ ved iteration $300$, mens std for $\theta_1$ starter lavere omkring $0{,}05$ og falder til tæt på $0$ over samme periode, med enkelte mindre udsving undervejs.
+To-ø modellen fra NB03 tilpasses bavian-data og køres for artsparret *P. Kindae* × *P. Cynocephalus*. Resultaterne viser, at $\hat\theta_0 = 1{,}7339$ med standardafvigelse $0{,}01829$, og $\hat\theta_1 = 0{,}5296$ med standardafvigelse $0{,}0034$. 
 
 {{< embed ../notebooks/06b_bavian_modeller.ipynb#fig-two-island-convergence-kindae-cynocephalus >}}
 
-CI-plottet i @fig-two-island-ci-kindae-cynocephalus viser, at $95\%$ HPD-intervallet for $\theta_0$ er forholdsvis bredt, mens intervallet for $\theta_1$ er meget smalt, hvilket afspejler den lave posterior-std for begge parametre.
+Konvergensforløbet er vist i @fig-two-island-convergence-kindae-cynocephalus. Posterior mean for $\theta_0$ stiger hurtigt fra omkring $1{,}60$ til omkring $1{,}70$ inden for de første $50$ iterationer og forbliver derefter stabil resten af forløbet. Posterior mean for $\theta_1$ ligger derimod allerede fra start tæt på sin endelige værdi omkring $0{,}50$ og ændrer sig stort set ikke gennem forløbet. Posterior std for $\theta_0$ starter højt omkring $0{,}25$ og falder gradvist til omkring $0{,}02$ ved iteration $300$, mens std for $\theta_1$ starter lavere omkring $0{,}05$ og falder til tæt på $0$ over samme periode, med enkelte mindre udsving undervejs.
 
 {{< embed ../notebooks/06b_bavian_modeller.ipynb#fig-two-island-ci-kindae-cynocephalus >}}
+
+CI-plottet i @fig-two-island-ci-kindae-cynocephalus viser, at $95\%$ HPD-intervallet for $\theta_0$ er forholdsvis bredt, mens intervallet for $\theta_1$ er meget smalt, hvilket afspejler den lave posterior-std for begge parametre.
+
 
 ### IM-modellen
 
 IM-modellen fra NB05 tilpasses bavian-data og køres for *P. cynocephalus* × *P. anubis*. Resultaterne viser, at $\hat\theta_0$ (moderne) $= 2{,}759$ med standardafvigelse $3{,}335$ og $\hat\theta_2$ (ancestral) $= 1{,}657$ med standardafvigelse $2{,}344$. Begge standardafvigelser er større end de tilsvarende estimater, hvilket viser, at usikkerheden på estimaterne er meget stor for begge epoker. Modellen kan derfor ikke sige noget præcist om coalescentraten, hverken i den moderne eller den ancestrale epoke, ud fra disse data.
 
-Konvergensplottet i @fig-im-bavian-conv viser, hvordan $\hat\theta_0$ og $\hat\theta_2$ udvikler sig over de $300$ iterationer for henholdsvis den moderne og den ancestrale epoke.
-
 {{< embed ../notebooks/06b_bavian_modeller.ipynb#fig-im-bavian-conv >}}
 
-I modsætning til konvergensforløbet for to-ø modellen er kurverne for både posterior mean og posterior std her stort set flade fra den første til den sidste iteration. Det indikerer, at SVGD-partiklerne allerede fra start ligger spredt over et bredt parameterområde og ikke flytter sig nævneværdigt gennem optimeringen, snarere end at processen konvergerer mod en smal posterior.
-
-CI-plottet i @fig-im-bavian-ci viser de tilhørende posteriorintervaller for de to parametre ved konvergens. $95\%$ HPD-intervallet for $\theta_0$ går fra omkring $0$ til $8{,}2$, og for $\theta_2$ fra omkring $0$ til $6{,}4$. De to intervaller overlapper næsten fuldstændigt, hvilket afspejler den store usikkerhed i estimaterne for begge epoker.
+Konvergensplottet i @fig-im-bavian-conv viser, hvordan $\hat\theta_0$ og $\hat\theta_2$ udvikler sig over de $300$ iterationer for henholdsvis den moderne og den ancestrale epoke. Kurverne for både posterior mean og posterior std er her stort set flade fra den første til den sidste iteration. SVGD-partiklerne ligger allerede fra start spredt over et bredt parameterområde.
 
 {{< embed ../notebooks/06b_bavian_modeller.ipynb#fig-im-bavian-ci >}}
 
+CI-plottet i @fig-im-bavian-ci viser de tilhørende posteriorintervaller for de to parametre ved konvergens. $95\%$ HPD-intervallet for $\theta_0$ går fra omkring $0$ til $8{,}2$, og for $\theta_2$ fra omkring $0$ til $6{,}4$. De to intervaller overlapper næsten fuldstændigt, hvilket afspejler stor usikkerhed i estimaterne for begge epoker.
+
+
 ### ARG-modellen
 
-ARG-modellen fra NB05 tilpasses bavian-data og køres for *P. cynocephalus*. Resultaterne viser, at $\hat\theta = 0{,}5887$ med standardafvigelse $1{,}397$ og $95\%$ HPD-interval $[0{,}01075, 2{,}221]$, og $\hat\rho = 1{,}652$ med standardafvigelse $6{,}237$ og $95\%$ HPD-interval $[0{,}0003514, 7{,}101]$. Begge standardafvigelser er større end de tilsvarende estimater, hvilket viser, at usikkerheden på begge parametre er meget stor.
-
-Konvergensforløbet, som er vist i @fig-arg-bavian-conv, viser, at posterior mean for $\hat\rho$ falder svagt fra omkring $1{,}8$ til omkring $1{,}65$, og at posterior mean for $\hat\theta$ tilsvarende falder svagt fra omkring $0{,}63$ til omkring $0{,}59$ over de $100$ iterationer. Posterior std er for begge parametre stort set konstant gennem hele forløbet, omkring $6{,}2$ for $\hat\rho$ og omkring $1{,}4$ for $\hat\theta$.
+ARG-modellen fra NB05 tilpasses bavian-data og køres for *P. cynocephalus*. Resultaterne viser, at $\hat\theta = 0{,}5887$ med standardafvigelse $1{,}397$ og $95\%$ HPD-interval $[0{,}01075, 2{,}221]$. $\hat\rho = 1{,}652$ med standardafvigelse $6{,}237$ og $95\%$ HPD-interval $[0{,}0003514, 7{,}101]$. Begge standardafvigelser er større end de tilsvarende estimater, hvilket viser, at usikkerheden på begge parametre er meget stor.
 
 {{< embed ../notebooks/06b_bavian_modeller.ipynb#fig-arg-bavian-conv >}}
 
-CI-plottet i @fig-arg-bavian-ci viser de tilhørende posteriorintervaller for de to parametre ved konvergens. $95\%$ HPD-intervallet for $\hat\rho$ går fra omkring $0$ til $7$, og for $\hat\theta$ fra omkring $0$ til $2{,}3$. Begge intervaller er brede i forhold til de tilsvarende posterior mean-værdier, hvilket afspejler den store usikkerhed i estimaterne.
+Konvergensforløbet, som er vist i @fig-arg-bavian-conv, viser, at posterior mean for $\hat\rho$ falder svagt fra omkring $1{,}8$ til omkring $1{,}65$, og at posterior mean for $\hat\theta$ tilsvarende falder svagt fra omkring $0{,}63$ til omkring $0{,}59$ over de $100$ iterationer. Posterior std er for begge parametre stort set konstant gennem hele forløbet, omkring $6{,}2$ for $\hat\rho$ og omkring $1{,}4$ for $\hat\theta$.
 
 {{< embed ../notebooks/06b_bavian_modeller.ipynb#fig-arg-bavian-ci >}}
+
+CI-plottet i @fig-arg-bavian-ci viser de tilhørende posteriorintervaller for de to parametre ved konvergens. $95\%$ HPD-intervallet for $\hat\rho$ går fra omkring $0$ til $7$, og for $\hat\theta$ fra omkring $0$ til $2{,}3$. Begge intervaller er brede i forhold til de tilsvarende posterior mean-værdier, hvilket afspejler stor usikkerhed i estimaterne.
 
 
 # Diskussion
@@ -742,8 +741,7 @@ En konkret forskel fra PSMC og MSMC er, at fase-type tilgangen giver en fuld pos
 
 Samlet set peger sammenligningen ikke på, at fase-type tilgangen er bedre eller dårligere end HMM-baserede metoder. Metoderne er designet til at besvare delvist forskellige spørgsmål. HMM-metoder er særligt velegnede til at rekonstruere den evolutionære historie som en fri kurve over lang tid, mens fase-type tilgangen er mere velegnet til at teste specifikke hypoteser om migration, split-tidspunkter og populationsstruktur inden for en veldefineret modelramme med fuld Bayesiansk usikkerhedskvantificering under forudsætning af, at modellens parametre faktisk er identificerbare for de pågældende data.
 
-
-# Konklusion 
+# Konklusion
 
 Formålet med dette speciale var at undersøge, hvordan fase-type-baserede coalescentmodeller kan implementeres, verificeres og kombineres med Bayesiansk inferens via SVGD til at rekonstruere en populations historie fra genetiske data. Konkret blev det undersøgt, om phasic-implementeringen af Kingmans coalescent, to-ø-modellen og IM-modellen giver korrekte momenter, tæthedsfunktioner og SFS, om SVGD-inferensen er kalibreret korrekt. Hvornår parametrene for to-ø- og IM-modellen er identificerbare og hvad modellerne kan fortælle om den evolutionære historie for *Papio*-slægten.
 
@@ -764,9 +762,8 @@ Analyserne peger på flere retninger for fremtidigt arbejde. Det mest oplagte er
 ::: {#refs}
 :::
 
-
-
 # Appendiks
+
 
 ## Data tilgængelighed 
 
@@ -781,4 +778,3 @@ I overensstemmelse med Aarhus Universitets retningslinjer oplyser jeg hermed min
 **Claude (Anthropic)** blev brugt til kodereview og fejlsøgning i Python-notebooks, herunder debugging af `phasic`-implementeringer, SVGD-konfigurationer og msprime-validering. Claude blev også brugt til strukturering og rendering af Quarto-dokumentet, herunder opsætning af `header_extra.tex` og løsning af LaTeX-/PDF-renderingsproblemer.
 
 **Copilot** blev brugt til kodefuldførelse og fejlsøgning samt til at tilpasse eksisterende kode til opdaterede variable og analysebehov.
-
