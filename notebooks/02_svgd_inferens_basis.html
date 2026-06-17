@@ -332,9 +332,6 @@ window.Quarto = {
 </header>
 
 
-<p>I denne notebook vil jeg se på Stein Variational Gradient Descent (SVGD) som metode til Bayesiansk parameterestimering i fase-type modeller. Jeg starter med en single-parameter coalescent og undersøger, hvordan valget af prior, læringsrate og regularisering påvirker konvergens og posterior-præcision. Jeg undersøger desuden prøvestørrelse-effekter og posterior-bredde.</p>
-<p><strong>SVGD</strong> repræsenterer posterioren med et sæt partikler der iterativt opdateres mod den sande posterior ved at kombinere gradient-information fra likelihood og prior med et kernelbaseret kraft, der forhindrer partikelkollaps.</p>
-<p><strong>Kalibrering (ingen peaks).</strong>: en informativ men ikke for smal prior (GaussPrior/ HalfCauchyPrior/DataPrior) kombineret med en aftagende læringsrate (ExpStepSize) eller en adaptiv optimizer (Adam). Målet er en <strong>bred, flad posterior</strong> der dækker den sande værdi, ikke en spids (“peaked”) posterior, som er tegn på numerisk kollaps eller for høj læringsrate. Afsnittet <em>SVGD posterior-form: peaked vs.&nbsp;flad</em> viser denne kontrast eksplicit via kurtosis.</p>
 <div id="7a81c81d" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Importer de nødvendige pakker</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
@@ -428,8 +425,6 @@ table {
 </div>
 <section id="læringsrate-strategier" class="level2">
 <h2 class="anchored" data-anchor-id="læringsrate-strategier">1. Læringsrate-strategier</h2>
-<p>Phasic tilbyder <code>ConstantStepSize</code>, <code>ExpStepSize</code>, <code>WarmupExpStepSize</code> og <code>AdaptiveStepSize</code>. Jeg tester disse systematisk over et bredt interval af start-rater (<span class="math inline">\(0.001\)</span>–<span class="math inline">\(1.0\)</span>) og iterationer (<span class="math inline">\(100\)</span>–<span class="math inline">\(1000\)</span>) for at finde den bedste kombination.</p>
-<p>Alle tests i denne blok bruger: <span class="math inline">\(n_{\text{obs}}=3000\)</span>, <span class="math inline">\(n_{\text{particles}}=20\)</span>, <code>DataPrior</code>, sand <span class="math inline">\(\theta=7\)</span>.</p>
 <div id="cell-fig-lr-schedules" class="cell" data-fig-width="5" data-fig-height="3.5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>N_ITER_VIS <span class="op">=</span> <span class="dv">1000</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>iters_vis <span class="op">=</span> np.arange(N_ITER_VIS)</span>
@@ -898,7 +893,7 @@ Andel iterationer hvor CI dækker sand θ:</code></pre>
 <span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>    ax.set_title(<span class="ss">f'</span><span class="sc">{</span>name<span class="sc">}</span><span class="ch">\n</span><span class="sc">{</span>m<span class="sc">:.3f}</span><span class="ss">±</span><span class="sc">{</span>s<span class="sc">:.4f}</span><span class="ss">'</span>, fontsize<span class="op">=</span><span class="dv">7</span>)</span>
 <span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>    ax.tick_params(labelsize<span class="op">=</span><span class="dv">6</span>)</span>
 <span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(top6_lr), <span class="bu">len</span>(axes.flat)): axes.flat[j].set_visible(<span class="va">False</span>)</span>
-<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="ss">f'Top 5 læringsrate-strategier der dækker sand θ'</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="ss">f'Top 6 læringsrate-strategier der dækker sand θ'</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
 <span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()<span class="op">;</span> </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div id="fig-lr-top6" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -1144,8 +1139,6 @@ Figure&nbsp;4.8
 </section>
 <section id="prior-sammenligning" class="level2">
 <h2 class="anchored" data-anchor-id="prior-sammenligning">2. Prior-sammenligning</h2>
-<p>Med den bedste læringsrate (<code>BEST_LR_KWARGS</code>) tester jeg seks prior-strategier. Formålet er at finde den prior der giver lavest bias og std uanset startpunkt.</p>
-<p>Alle tests: <span class="math inline">\(n_{\text{obs}}=10000\)</span>, <span class="math inline">\(n_{\text{particles}}=20\)</span>, <span class="math inline">\(n_{\text{iter}}=300\)</span>, sand <span class="math inline">\(\theta=7\)</span>, <code>BEST_LR_KWARGS</code>.</p>
 <div id="23a802c0" class="cell" data-execution_count="69">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>N_OBS <span class="op">=</span> <span class="dv">10000</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta)</span>
@@ -1316,15 +1309,14 @@ Table&nbsp;4.2: Sammenligning af fem priors med læringsrate Exp(0.1 → 0.001, 
 </figure>
 </div>
 </div>
-<div id="1b181e4e" class="cell" data-execution_count="72">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Kun priors der dækker sand θ</span></span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>priors_dækker <span class="op">=</span> {k: v <span class="cf">for</span> k, v <span class="kw">in</span> svgd_priors.items() <span class="cf">if</span> v[<span class="st">'dækker'</span>]}</span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">len</span>(priors_dækker) <span class="op">==</span> <span class="dv">0</span>:</span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">'Advarsel: ingen prior dækker sand θ — bruger alle'</span>)</span>
-<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    priors_dækker <span class="op">=</span> svgd_priors</span>
-<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>BEST_PRIOR <span class="op">=</span> <span class="bu">min</span>(priors_dækker, key<span class="op">=</span><span class="kw">lambda</span> k: priors_dækker[k][<span class="st">'std'</span>] <span class="op">+</span> <span class="fl">2.0</span> <span class="op">*</span> <span class="bu">abs</span>(priors_dækker[k][<span class="st">'mean'</span>] <span class="op">-</span> true_theta[<span class="dv">0</span>]))</span>
-<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Bedste prior: </span><span class="sc">{</span>BEST_PRIOR<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="1b181e4e" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>priors_dækker <span class="op">=</span> {k: v <span class="cf">for</span> k, v <span class="kw">in</span> svgd_priors.items() <span class="cf">if</span> v[<span class="st">'dækker'</span>]}</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">len</span>(priors_dækker) <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">'Advarsel: ingen prior dækker sand θ — bruger alle'</span>)</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    priors_dækker <span class="op">=</span> svgd_priors</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>BEST_PRIOR <span class="op">=</span> <span class="bu">min</span>(priors_dækker, key<span class="op">=</span><span class="kw">lambda</span> k: priors_dækker[k][<span class="st">'std'</span>] <span class="op">+</span> <span class="fl">2.0</span> <span class="op">*</span> <span class="bu">abs</span>(priors_dækker[k][<span class="st">'mean'</span>] <span class="op">-</span> true_theta[<span class="dv">0</span>]))</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Bedste prior: </span><span class="sc">{</span>BEST_PRIOR<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Bedste prior: DataPrior</code></pre>
 </div>
@@ -1528,8 +1520,6 @@ Figure&nbsp;4.15: Konvergensplots for fem priors. Flad kurve mod sand θ indiker
 </section>
 <section id="effekt-af-antal-observationer" class="level2">
 <h2 class="anchored" data-anchor-id="effekt-af-antal-observationer">3. Effekt af antal observationer</h2>
-<p>Bavian-populationer har <span class="math inline">\(N_e \in [14000, 100000]\)</span>. Jeg tester <span class="math inline">\(n_{\text{obs}} \in [50, 100000]\)</span> for at se hvornår estimatet stabiliserer sig og hvad der er et fornuftigt minimum til bavian-analysen.</p>
-<p>Alle tests: bedste lr-strategi, bedste prior bedst iter, <span class="math inline">\(n_{\text{particles}}=20\)</span>.</p>
 <div class="cell" data-execution_count="91">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>nobs_list <span class="op">=</span> [<span class="dv">50</span>, <span class="dv">100</span>, <span class="dv">250</span>, <span class="dv">500</span>, <span class="dv">1000</span>, <span class="dv">2000</span>, <span class="dv">5000</span>, <span class="dv">10000</span>, <span class="dv">50000</span>, <span class="dv">100000</span>]</span>
 <span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>rows_nobs <span class="op">=</span> []</span>
@@ -1825,15 +1815,12 @@ Table&nbsp;4.4: Effekt af antal observationer <span class="math inline">\(n_{\te
 </section>
 <section id="effekt-af-antal-prøver-n_textsamples" class="level2">
 <h2 class="anchored" data-anchor-id="effekt-af-antal-prøver-n_textsamples">4. Effekt af antal prøver (<span class="math inline">\(n_{\text{samples}}\)</span>)</h2>
-<p>Standard er <span class="math inline">\(n_{\text{samples}}=4\)</span> (antal haploide individer i coalescent-modellen). Til to-populationsmodellen for bavian vil det give mening at bruge <span class="math inline">\(n_{\text{samples}}=6\)</span> per population (12 total), eller højere. Her tester jeg effekten på en-populationsmodellen for at forstå hvad der sker med state-space størrelse, beregningstid og inferenspræcision.</p>
-<p><strong>Bemærk:</strong> <span class="math inline">\(n_{\text{samples}}=6\)</span> per population i to-population modellen betyder <span class="math inline">\(6\)</span> individer fra <em>hver</em> art ikke <span class="math inline">\(6\)</span> i alt.</p>
-<div id="ba9e1f12" class="cell" data-execution_count="10">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Kalibrerede SVGD-parametre </span></span>
-<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>BEST_LR_NAME   <span class="op">=</span> <span class="st">'Exp(0.1 → 0.001, τ=100)'</span></span>
-<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>BEST_LR_KWARGS <span class="op">=</span> {<span class="st">'learning_rate'</span>: ExpStepSize(<span class="fl">0.1</span>, <span class="fl">0.001</span>, <span class="fl">100.0</span>)}</span>
-<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>BEST_ITER_LR   <span class="op">=</span> <span class="dv">300</span></span>
-<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>BEST_PRIOR     <span class="op">=</span> <span class="st">'DataPrior'</span></span>
-<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a>BEST_NOBS      <span class="op">=</span> <span class="dv">50000</span> </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="ba9e1f12" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>BEST_LR_NAME   <span class="op">=</span> <span class="st">'Exp(0.1 → 0.001, τ=100)'</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>BEST_LR_KWARGS <span class="op">=</span> {<span class="st">'learning_rate'</span>: ExpStepSize(<span class="fl">0.1</span>, <span class="fl">0.001</span>, <span class="fl">100.0</span>)}</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>BEST_ITER_LR   <span class="op">=</span> <span class="dv">300</span></span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>BEST_PRIOR     <span class="op">=</span> <span class="st">'DataPrior'</span></span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>BEST_NOBS      <span class="op">=</span> <span class="dv">50000</span> </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv</span>
@@ -1983,8 +1970,6 @@ Table&nbsp;4.5: Effekt af antal samples <span class="math inline">\(n_{\text{sam
 </section>
 <section id="effekt-af-antal-partikler" class="level2">
 <h2 class="anchored" data-anchor-id="effekt-af-antal-partikler">5. Effekt af antal partikler</h2>
-<p>Antallet af partikler bestemmer hvor godt posterioren er repræsenteret. Flere partikler giver bedre dækning men øger beregningstiden lineært. Jeg laver en grid-søgning over partikler og iterationer.</p>
-<p>Alle tests: bedste lr-strategi, bedste prior, <span class="math inline">\(n_{\text{obs}}=3000\)</span>, sand <span class="math inline">\(\theta=7\)</span>.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb52"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
 <span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -2121,15 +2106,14 @@ Table&nbsp;4.6: Effekt af antal partikler på SVGD-inferens med sand <span class
 </figure>
 </div>
 </div>
-<div id="ff646d19" class="cell" data-execution_count="18">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb54"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Begræns til partikler med acceptabel beregningstid (&lt; 150s)</span></span>
-<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>df_p_dækker <span class="op">=</span> df_p[(df_p[<span class="st">'Dækker'</span>] <span class="op">&gt;</span> <span class="dv">0</span>) <span class="op">&amp;</span> (df_p[<span class="st">'Tid (s)'</span>] <span class="op">&lt;</span> <span class="dv">150</span>)]</span>
-<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">len</span>(df_p_dækker) <span class="op">==</span> <span class="dv">0</span>:</span>
-<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a>    df_p_dækker <span class="op">=</span> df_p</span>
-<span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb54-6"><a href="#cb54-6" aria-hidden="true" tabindex="-1"></a>best_p <span class="op">=</span> df_p_dækker.sort_values(<span class="st">'Score'</span>).iloc[<span class="dv">0</span>]</span>
-<span id="cb54-7"><a href="#cb54-7" aria-hidden="true" tabindex="-1"></a>BEST_PARTICLES <span class="op">=</span> <span class="bu">int</span>(best_p[<span class="st">'Partikler'</span>])</span>
-<span id="cb54-8"><a href="#cb54-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Bedste antal partikler: </span><span class="sc">{</span>BEST_PARTICLES<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="ff646d19" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb54"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>df_p_dækker <span class="op">=</span> df_p[(df_p[<span class="st">'Dækker'</span>] <span class="op">&gt;</span> <span class="dv">0</span>) <span class="op">&amp;</span> (df_p[<span class="st">'Tid (s)'</span>] <span class="op">&lt;</span> <span class="dv">150</span>)]</span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">len</span>(df_p_dækker) <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a>    df_p_dækker <span class="op">=</span> df_p</span>
+<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a>best_p <span class="op">=</span> df_p_dækker.sort_values(<span class="st">'Score'</span>).iloc[<span class="dv">0</span>]</span>
+<span id="cb54-6"><a href="#cb54-6" aria-hidden="true" tabindex="-1"></a>BEST_PARTICLES <span class="op">=</span> <span class="bu">int</span>(best_p[<span class="st">'Partikler'</span>])</span>
+<span id="cb54-7"><a href="#cb54-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Bedste antal partikler: </span><span class="sc">{</span>BEST_PARTICLES<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Bedste antal partikler: 20</code></pre>
 </div>
@@ -2166,10 +2150,6 @@ Figure&nbsp;4.17: Posterior-std som funktion af antal partikler (sand θ=7, BEST
 </section>
 <section id="validering-med-msprime" class="level2">
 <h2 class="anchored" data-anchor-id="validering-med-msprime">Validering med msprime</h2>
-<p>I stedet for posterior predictive checks med CDF/PDF validerer jeg SVGD-inferensen direkte ved at sammenligne de estimerede parametre med kendte sande værdier fra msprime-simuleringer. Formålet er at bekræfte at SVGD genfinder de sande parametre, at CI dækker den sande værdi, og at konvergens er stabil.</p>
-<section id="hypotese" class="level3">
-<h3 class="anchored" data-anchor-id="hypotese">Hypotese</h3>
-<p>SVGD med den bedste lr-strategi og tilstrækkelig <span class="math inline">\(n\)</span> genfinder sand <span class="math inline">\(\theta\)</span> inden for 95% CI i mindst 90% af replikationer. Posterior-mean ligger tæt på sand <span class="math inline">\(\theta\)</span> og konvergensplottet viser stabil flatning inden slutiterationen.</p>
 <div id="3a777e86" class="cell" data-execution_count="85">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb57"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Byg graf med n=2 til msprime-validering</span></span>
 <span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv</span>
@@ -2453,7 +2433,6 @@ Figure&nbsp;4.21
 </figure>
 </div>
 </div>
-</section>
 </section>
 <section id="anbefaling-standard-svgd-konfiguration-til-alle-notebooks" class="level2">
 <h2 class="anchored" data-anchor-id="anbefaling-standard-svgd-konfiguration-til-alle-notebooks">Anbefaling: Standard SVGD-konfiguration til alle notebooks</h2>
